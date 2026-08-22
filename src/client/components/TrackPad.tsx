@@ -6,7 +6,8 @@ interface Props {
   track: Track;
   color: string;
   active: boolean;
-  playback?: ActivePlayback;
+  playbacks: ActivePlayback[];
+  historyProgress: number;
   loaded: boolean;
   reorderEnabled: boolean;
   dropTarget: boolean;
@@ -20,12 +21,7 @@ interface Props {
   onDragEnd: () => void;
 }
 
-export function TrackPad({ track, color, active, playback, loaded, reorderEnabled, dropTarget, shortcut, onPrimary, onSecondary, onEdit, onDragStart, onDragOver, onDrop, onDragEnd }: Props) {
-  const progressStyle = playback ? {
-    '--progress-duration': `${playback.durationMs}ms`,
-    '--progress-delay': `-${Math.max(0, performance.now() - playback.startedAtMs)}ms`,
-    '--progress-iterations': playback.loop ? 'infinite' : '1',
-  } as React.CSSProperties : undefined;
+export function TrackPad({ track, color, active, playbacks, historyProgress, loaded, reorderEnabled, dropTarget, shortcut, onPrimary, onSecondary, onEdit, onDragStart, onDragOver, onDrop, onDragEnd }: Props) {
   return <article className={`track-pad ${active ? 'is-active' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${dropTarget ? 'is-drop-target' : ''}`}
     style={{ '--track-color': color } as React.CSSProperties} draggable={reorderEnabled}
     onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}>
@@ -35,7 +31,14 @@ export function TrackPad({ track, color, active, playback, loaded, reorderEnable
       <span className="play-disc">{active ? <AudioWaveform size={18} /> : <Play size={18} fill="currentColor" />}</span>
       <span className="track-title">{track.title}</span>
     </button>
-    {playback && <span className="track-progress" key={playback.id} aria-hidden="true"><i style={progressStyle} /></span>}
+    {(historyProgress > 0 || playbacks.length > 0) && <span className="track-progress" aria-hidden="true">
+      {historyProgress > 0 && <i className="history" style={{ transform: `scaleX(${historyProgress})` }} />}
+      {playbacks.map((playback) => <i className="active" key={playback.id} style={{
+        '--progress-duration': `${playback.durationMs}ms`,
+        '--progress-delay': `-${Math.max(0, performance.now() - playback.startedAtMs)}ms`,
+        '--progress-iterations': playback.loop ? 'infinite' : '1',
+      } as React.CSSProperties} />)}
+    </span>}
     <div className="track-meta">
       <span>{track.durationMs ? formatDuration((track.endTimeMs ?? track.durationMs) - track.startTimeMs) : '—:—'}</span>
       <span>{track.loop && <InfinityIcon size={15} />}{shortcut ? `Touche ${shortcut}` : `${Math.round(track.volume * 100)} %`}</span>

@@ -13,10 +13,14 @@ interface Playback extends ActivePlayback {
   source: AudioBufferSourceNode;
   gain: GainNode;
   stopping: boolean;
+  stoppedProgress?: number;
 }
 
 type Listener = (playbacks: ActivePlayback[]) => void;
 type CacheListener = (loadedTrackIds: Set<string>) => void;
+type HistoryListener = (progressByTrack: Map<string, number>) => void;
+
+const historyStorageKey = 'soundflow-playback-history-v1';
 
 class AudioEngine {
   private context?: AudioContext;
@@ -25,6 +29,8 @@ class AudioEngine {
   private active = new Map<string, Set<Playback>>();
   private listeners = new Set<Listener>();
   private cacheListeners = new Set<CacheListener>();
+  private historyListeners = new Set<HistoryListener>();
+  private history = readHistory();
   private playbackSequence = 0;
 
   subscribe(listener: Listener): () => void {
@@ -37,6 +43,19 @@ class AudioEngine {
     this.cacheListeners.add(listener);
     listener(new Set(this.buffers.keys()));
     return () => this.cacheListeners.delete(listener);
+  }
+
+  subscribeHistory(listener: HistoryListener): () => void {
+    this.historyListeners.add(listener);
+    listener(new Map(this.history));
+    return () => this.historyListeners.delete(listener);
+  }
+
+  resetHistory(trackIds?: string[]): void {
+    if (trackIds) for (const trackId of trackIds) this.history.delete(trackId);
+    else this.history.clear();
+    this.persistHistory();
+    this.notifyHistory();
   }
 
   private getActivePlaybacks(): ActivePlayback[] {
@@ -54,6 +73,27 @@ class AudioEngine {
   private notifyCache(): void {
     const ids = new Set(this.buffers.keys());
     this.cacheListeners.forEach((listener) => listener(ids));
+  }
+
+  private notifyHistory(): void {
+    const history = new Map(this.history);
+    this.historyListeners.forEach((listener) => listener(history));
+  }
+
+  private recordProgress(playback: Playback, progress: number): void {
+    const bounded = Math.min(1, Math.max(0, progress));
+    if (bounded <= (this.history.get(playback.trackId) ?? 0)) return;
+    this.history.set(playback.trackId, bounded);
+    this.persistHistory();
+    this.notifyHistory();
+  }
+
+  private persistHistory(): void {
+    try {
+      localStorage.setItem(historyStorageKey, JSON.stringify(Object.fromEntries(this.history)));
+    } catch {
+      // L'historique reste disponible pour la session si le stockage est indisponible.
+    }
   }
 
   private async getContext(): Promise<AudioContext> {
@@ -124,6 +164,10 @@ class AudioEngine {
     instances.add(playback);
     this.active.set(track.id, instances);
     source.onended = () => {
+      const progress = playback.stoppedProgress ?? (playback.loop
+        ? Math.min(1, (performance.now() - playback.startedAtMs) / playback.durationMs)
+        : 1);
+      this.recordProgress(playback, progress);
       instances.delete(playback);
       if (!instances.size) this.active.delete(track.id);
       this.notify();
@@ -153,6 +197,7 @@ class AudioEngine {
   private stopPlayback(playback: Playback, fadeOutMs: number): void {
     const context = this.context;
     if (!context || playback.stopping) return;
+    playback.stoppedProgress = Math.min(1, Math.max(0, (performance.now() - playback.startedAtMs) / playback.durationMs));
     playback.stopping = true;
     const { source, gain } = playback;
     const now = context.currentTime;
@@ -180,6 +225,17 @@ class AudioEngine {
     if (action === 'replace') this.stopAll(projectTracks, 0);
     else this.stopAll(projectTracks);
     await this.play(track);
+  }
+}
+
+function readHistory(): Map<string, number> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(historyStorageKey) ?? '{}') as Record<string, unknown>;
+    return new Map(Object.entries(parsed).flatMap(([trackId, value]) => typeof value === 'number' && Number.isFinite(value)
+      ? [[trackId, Math.min(1, Math.max(0, value))] as const]
+      : []));
+  } catch {
+    return new Map();
   }
 }
 

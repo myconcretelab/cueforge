@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Download, GripVertical, LoaderCircle, Menu, Plus, Radio,
-  Search, Settings, Settings2, Smartphone, Square, Upload, Wifi, WifiOff, X,
+  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Columns3, Download, GripVertical, History, LoaderCircle, Menu, Plus, Radio,
+  RotateCcw, Search, Settings, Settings2, Smartphone, Square, Upload, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
@@ -32,6 +32,7 @@ export default function App() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [activePlaybacks, setActivePlaybacks] = useState<ActivePlayback[]>([]);
+  const [playbackHistory, setPlaybackHistory] = useState<Map<string, number>>(new Map());
   const [loadedTracks, setLoadedTracks] = useState<Set<string>>(new Set());
   const [preloadProgress, setPreloadProgress] = useState<{ done: number; total: number }>();
   const [categoryWidth, setCategoryWidth] = useState(() => readNumber('soundflow-category-width', 112));
@@ -40,6 +41,11 @@ export default function App() {
   const [dropTrackId, setDropTrackId] = useState<string>();
   const [dropCategoryId, setDropCategoryId] = useState<string>();
   const [reordering, setReordering] = useState(false);
+  const [columnsOpen, setColumnsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [compactLayout, setCompactLayout] = useState(() => window.matchMedia('(max-width: 560px)').matches);
+  const [desktopColumns, setDesktopColumns] = useState(() => readNumberRange('soundflow-track-columns', 6, 2, 12));
+  const [mobileColumns, setMobileColumns] = useState(() => readNumberRange('soundflow-track-columns-mobile', 2, 1, 3));
   const [uploadOpen, setUploadOpen] = useState(false);
   const [soundShowImportOpen, setSoundShowImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -54,6 +60,13 @@ export default function App() {
 
   useEffect(() => audioEngine.subscribe(setActivePlaybacks), []);
   useEffect(() => audioEngine.subscribeCache(setLoadedTracks), []);
+  useEffect(() => audioEngine.subscribeHistory(setPlaybackHistory), []);
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 560px)');
+    const onChange = () => setCompactLayout(query.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
 
   useEffect(() => {
     api.me().then(({ user: current }) => {
@@ -136,7 +149,11 @@ export default function App() {
     return inCategory && matches;
   }), [detail?.tracks, isSearching, normalizedSearch, selectedCategoryId]);
   const activeTrackIds = useMemo(() => new Set(activePlaybacks.map((playback) => playback.trackId)), [activePlaybacks]);
-  const latestPlaybackByTrack = useMemo(() => new Map(activePlaybacks.map((playback) => [playback.trackId, playback])), [activePlaybacks]);
+  const playbacksByTrack = useMemo(() => {
+    const grouped = new Map<string, ActivePlayback[]>();
+    for (const playback of activePlaybacks) grouped.set(playback.trackId, [...(grouped.get(playback.trackId) ?? []), playback]);
+    return grouped;
+  }, [activePlaybacks]);
   const playingTracks = useMemo(() => {
     const occurrences = new Map<string, number>();
     return activePlaybacks.flatMap((playback) => {
@@ -153,10 +170,8 @@ export default function App() {
     return detail.tracks.filter((track) => track.categoryId === selectedCategoryId);
   }, [detail, isSearching, selectedCategoryId]);
   const preloadedInCategory = tracksToPreload.filter((track) => loadedTracks.has(track.id)).length;
-  const stopKeyLabels = detail ? [
-    (detail.project.escapeKeyAction ?? 'stop-all') === 'stop-all' ? 'Échap' : '',
-    (detail.project.backspaceKeyAction ?? 'stop-all') === 'stop-all' ? '⌫' : '',
-  ].filter(Boolean).join(' · ') : '';
+  const trackColumns = compactLayout ? mobileColumns : desktopColumns;
+  const currentCategory = detail?.categories.find((category) => category.id === selectedCategoryId);
 
   const sendOrRun = useCallback((command: RemoteCommand, track?: Track) => {
     if (remote && detail) {
@@ -310,8 +325,28 @@ export default function App() {
     }
   }
 
+  function updateTrackColumns(value: number) {
+    if (compactLayout) {
+      setMobileColumns(value);
+      localStorage.setItem('soundflow-track-columns-mobile', String(value));
+    } else {
+      setDesktopColumns(value);
+      localStorage.setItem('soundflow-track-columns', String(value));
+    }
+  }
+
+  function resetPlaybackProgress(scope: 'category' | 'project') {
+    if (!detail) return;
+    const trackIds = scope === 'category' && currentCategory
+      ? detail.tracks.filter((track) => track.categoryId === currentCategory.id).map((track) => track.id)
+      : detail.tracks.map((track) => track.id);
+    audioEngine.resetHistory(trackIds);
+    setHistoryOpen(false);
+  }
+
   async function logout() {
     audioEngine.stopAll(detail?.tracks ?? []);
+    audioEngine.resetHistory();
     await api.logout();
     await caches.delete('soundflow-audio-v1').catch(() => false);
     for (const key of Object.keys(localStorage)) if (key.startsWith('soundflow-')) localStorage.removeItem(key);
@@ -382,26 +417,35 @@ export default function App() {
         </div>
       </section>}
 
-      <section className="toolbar">
-        <div className="search-group">
-          <label className="search"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un son…" /><kbd>⌘ K</kbd></label>
-          {!remote && <button className={`button preload ${preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'is-loaded' : ''}`} onClick={() => preloadCategory()} disabled={!tracksToPreload.length || Boolean(preloadProgress) || preloadedInCategory === tracksToPreload.length} title="Précharger les sons de la catégorie affichée">
-            {preloadProgress ? <LoaderCircle className="spin" size={16} /> : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? <CircleCheck size={16} /> : <Download size={16} />}
-            <span>{preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Préchargée' : 'Précharger'}</span>
+      <section className="dashboard" aria-label="Tableau de bord des morceaux">
+        <label className="search"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un son…" /><kbd>⌘ K</kbd></label>
+        <div className="dashboard-actions">
+          {!remote && <button className={`dashboard-button ${preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'is-loaded' : ''}`} onClick={() => preloadCategory()} disabled={!tracksToPreload.length || Boolean(preloadProgress) || preloadedInCategory === tracksToPreload.length}
+            aria-label={preloadProgress ? `Préchargement ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie préchargée' : 'Précharger la catégorie'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : 'Précharger la catégorie'}>
+            {preloadProgress ? <LoaderCircle className="spin" size={18} /> : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? <CircleCheck size={18} /> : <Download size={18} />}
           </button>}
-          {!remote && <button className={`button reorder ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} disabled={reordering} title="Activer le déplacement des morceaux">
-            <ArrowUpDown size={16} /><span>{reordering ? 'Enregistrement…' : reorderMode ? 'Terminer' : 'Réorganiser'}</span>
-          </button>}
+          {!remote && <button className={`dashboard-button ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} disabled={reordering}
+            aria-label={reordering ? 'Enregistrement de la réorganisation' : reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'} title={reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'}><ArrowUpDown size={18} /></button>}
+          <div className="dashboard-control">
+            <button className={`dashboard-button ${columnsOpen ? 'active' : ''}`} onClick={() => { setColumnsOpen((current) => !current); setHistoryOpen(false); }} aria-label="Régler le nombre de colonnes" title="Nombre de colonnes"><Columns3 size={18} /></button>
+            {columnsOpen && <div className="dashboard-popover columns-popover"><label><span>Colonnes</span><strong>{trackColumns}</strong><input type="range" min={compactLayout ? 1 : 2} max={compactLayout ? 3 : 12} value={trackColumns} onChange={(event) => updateTrackColumns(Number(event.target.value))} /></label></div>}
+          </div>
+          {!remote && <div className="dashboard-control">
+            <button className={`dashboard-button ${historyOpen ? 'active' : ''}`} onClick={() => { setHistoryOpen((current) => !current); setColumnsOpen(false); }} aria-label="Réinitialiser les progressions" title="Réinitialiser les progressions"><History size={18} /></button>
+            {historyOpen && <div className="dashboard-popover history-popover">
+              <button onClick={() => resetPlaybackProgress('category')} disabled={!currentCategory || isSearching}><RotateCcw size={15} /><span><strong>Catégorie actuelle</strong><small>{currentCategory && !isSearching ? currentCategory.name : 'Sélectionnez une catégorie'}</small></span></button>
+              <button onClick={() => resetPlaybackProgress('project')}><RotateCcw size={15} /><span><strong>Tout le spectacle</strong><small>{detail?.tracks.length ?? 0} morceaux</small></span></button>
+            </div>}
+          </div>}
+          <div className="track-count"><span>{visibleTracks.length}</span><small>son{visibleTracks.length !== 1 ? 's' : ''}</small></div>
         </div>
-        <div className="track-count"><span>{visibleTracks.length}</span> son{visibleTracks.length !== 1 ? 's' : ''}</div>
-        <button className="button stop" onClick={() => sendOrRun({ type: 'stop-all' })}><Square size={15} fill="currentColor" />Tout arrêter {stopKeyLabels && <kbd>{stopKeyLabels}</kbd>}</button>
       </section>
 
       <section className="soundboard">
         {remote && <div className="remote-banner"><Radio size={18} /><span>Mode télécommande — les sons seront joués sur la régie connectée.</span></div>}
-        {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleTracks.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className="track-grid">{visibleTracks.map((track, index) => {
+        {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleTracks.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className="track-grid" style={{ '--track-columns': trackColumns } as React.CSSProperties}>{visibleTracks.map((track, index) => {
           const category = detail.categories.find((item) => item.id === track.categoryId);
-          return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playback={latestPlaybackByTrack.get(track.id)} loaded={loadedTracks.has(track.id)} reorderEnabled={reorderMode} dropTarget={dropTrackId === track.id} shortcut={index < 9 ? index + 1 : undefined}
+          return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={loadedTracks.has(track.id)} reorderEnabled={reorderMode} dropTarget={dropTrackId === track.id} shortcut={index < 9 ? index + 1 : undefined}
             onPrimary={() => runTrackAction(detail.project.leftClickAction ?? 'start', track)}
             onSecondary={() => runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
             onEdit={() => { if (!reorderMode) setEditingTrack(track); }}
@@ -442,4 +486,11 @@ function readNumber(key: string, fallback: number): number {
   if (stored === null) return fallback;
   const value = Number(stored);
   return Number.isFinite(value) ? Math.min(220, Math.max(82, value)) : fallback;
+}
+
+function readNumberRange(key: string, fallback: number, min: number, max: number): number {
+  const stored = localStorage.getItem(key);
+  if (stored === null) return fallback;
+  const value = Number(stored);
+  return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
 }
