@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { LoaderCircle, Trash2, X } from 'lucide-react';
+import { LoaderCircle, Save, Trash2, X } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Category, Track } from '../types';
 import { WaveformEditor } from './WaveformEditor';
@@ -39,7 +39,7 @@ export function TrackDialog({ track, categories, onClose, onChanged }: Props) {
 
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <form className="dialog track-dialog" onSubmit={submit}>
-      <header><div><p className="eyebrow">Réglages du son</p><h2>{track.title}</h2></div><button type="button" className="icon-button" onClick={onClose}><X /></button></header>
+      <header><div><p className="eyebrow">Réglages du son</p><h2>{track.title}</h2></div><div className="track-dialog-header-actions"><button type="submit" className="button primary" disabled={loading} aria-label="Enregistrer">{loading ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />}<span>Enregistrer</span></button><button type="button" className="icon-button" onClick={onClose} aria-label="Fermer les réglages"><X /></button></div></header>
       <label>Titre<input name="title" defaultValue={track.title} required /></label>
       <label>Catégorie<select name="categoryId" defaultValue={track.categoryId ?? ''}><option value="">Sans catégorie</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
       <WaveformEditor trackId={track.id} title={track.title} initialDurationMs={track.durationMs} startMs={startTimeMs} endMs={endTimeMs} onStartChange={setStartTimeMs} onEndChange={setEndTimeMs} />
