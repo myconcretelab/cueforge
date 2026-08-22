@@ -229,7 +229,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     const input = z.object({
       title: z.string().trim().min(1).max(160).optional(),
       categoryId: z.string().uuid().nullable().optional(),
-      volume: z.number().min(0).max(2).optional(),
+      volume: z.number().min(0).max(1).optional(),
       loop: z.boolean().optional(),
       fadeInMs: z.number().int().min(0).max(60_000).optional(),
       fadeOutMs: z.number().int().min(0).max(60_000).optional(),

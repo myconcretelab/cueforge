@@ -42,7 +42,7 @@ export function TrackPad({ track, color, active, playbacks, historyProgress, loa
     </span>}
     <div className="track-meta">
       <span>{track.durationMs ? formatDuration((track.endTimeMs ?? track.durationMs) - track.startTimeMs) : '—:—'}</span>
-      <span>{track.loop && <InfinityIcon size={15} />}{shortcut ? `Touche ${shortcut}` : `${Math.round(track.volume * 100)} %`}</span>
+      <span>{track.loop && <InfinityIcon size={15} />}{shortcut ? `Touche ${shortcut}` : `${Math.min(100, Math.round(track.volume * 100))} %`}</span>
     </div>
   </article>;
 }

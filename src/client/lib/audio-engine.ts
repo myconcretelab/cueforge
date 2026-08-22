@@ -11,6 +11,10 @@ export interface ActivePlayback {
   loop: boolean;
   paused: boolean;
   volume: number;
+  volumeFrom: number;
+  volumeTransitionStartedAtMs: number;
+  volumeTransitionDurationMs: number;
+  fadingOut: boolean;
 }
 
 interface Playback extends ActivePlayback {
@@ -68,8 +72,9 @@ class AudioEngine {
   private getActivePlaybacks(): ActivePlayback[] {
     return [...this.active.values()]
       .flatMap((instances) => [...instances])
-      .map(({ id, trackId, sequence, startedAtMs, resumedAtMs, elapsedMs, durationMs, loop, paused, volume }) => ({
+      .map(({ id, trackId, sequence, startedAtMs, resumedAtMs, elapsedMs, durationMs, loop, paused, volume, volumeFrom, volumeTransitionStartedAtMs, volumeTransitionDurationMs, fadingOut }) => ({
         id, trackId, sequence, startedAtMs, resumedAtMs, elapsedMs, durationMs, loop, paused, volume,
+        volumeFrom, volumeTransitionStartedAtMs, volumeTransitionDurationMs, fadingOut,
       }))
       .sort((a, b) => a.sequence - b.sequence);
   }
@@ -142,7 +147,7 @@ class AudioEngine {
     const gain = context.createGain();
     const startAt = Math.min(track.startTimeMs / 1000, Math.max(0, buffer.duration - 0.01));
     const endAt = track.endTimeMs ? Math.min(track.endTimeMs / 1000, buffer.duration) : buffer.duration;
-    const volume = Math.min(2, Math.max(0, track.volume * volumeMultiplier));
+    const volume = Math.min(1, Math.max(0, track.volume * volumeMultiplier));
     gain.connect(context.destination);
     const now = context.currentTime;
     if (fadeInMs > 0) {
@@ -164,6 +169,10 @@ class AudioEngine {
       loop: track.loop,
       paused: false,
       volume,
+      volumeFrom: fadeInMs > 0 ? 0 : volume,
+      volumeTransitionStartedAtMs: startedAtMs,
+      volumeTransitionDurationMs: Math.max(0, fadeInMs),
+      fadingOut: false,
       gain,
       buffer,
       startAtSeconds: startAt,
@@ -199,12 +208,17 @@ class AudioEngine {
     const playback = this.findPlayback(playbackId);
     const context = this.context;
     if (!playback || !context || playback.stopping) return;
-    const nextVolume = Math.min(2, Math.max(0, volume));
+    const nextVolume = Math.min(1, Math.max(0, volume));
     const now = context.currentTime;
+    const nowMs = performance.now();
+    const currentVolume = playbackVolumeAt(playback, nowMs);
     playback.gain.gain.cancelScheduledValues(now);
-    playback.gain.gain.setValueAtTime(playback.gain.gain.value, now);
+    playback.gain.gain.setValueAtTime(currentVolume, now);
     playback.gain.gain.linearRampToValueAtTime(nextVolume, now + .03);
     playback.volume = nextVolume;
+    playback.volumeFrom = currentVolume;
+    playback.volumeTransitionStartedAtMs = nowMs;
+    playback.volumeTransitionDurationMs = 30;
     this.notify();
   }
 
@@ -234,10 +248,22 @@ class AudioEngine {
 
   private stopPlayback(playback: Playback, fadeOutMs: number): void {
     const context = this.context;
-    if (!context || playback.stopping) return;
+    if (!context) return;
+    if (playback.stopping) {
+      if (fadeOutMs <= 0) {
+        const now = context.currentTime;
+        playback.gain.gain.cancelScheduledValues(now);
+        playback.gain.gain.setValueAtTime(0, now);
+        if (playback.source) playback.source.stop(now);
+        else this.finishPlayback(playback, false);
+      }
+      return;
+    }
     const elapsedMs = this.currentElapsedMs(playback);
+    const nowMs = performance.now();
+    const currentVolume = playbackVolumeAt(playback, nowMs);
     playback.elapsedMs = elapsedMs;
-    playback.resumedAtMs = performance.now();
+    playback.resumedAtMs = nowMs;
     this.recordProgress(playback, elapsedMs / playback.durationMs);
     playback.stopping = true;
     const { source, gain } = playback;
@@ -248,13 +274,23 @@ class AudioEngine {
     const now = context.currentTime;
     gain.gain.cancelScheduledValues(now);
     if (fadeOutMs <= 0) {
+      playback.volume = 0;
+      playback.volumeFrom = 0;
+      playback.volumeTransitionStartedAtMs = nowMs;
+      playback.volumeTransitionDurationMs = 0;
       gain.gain.setValueAtTime(0, now);
       source.stop(now);
       return;
     }
-    gain.gain.setValueAtTime(gain.gain.value, now);
+    playback.volume = 0;
+    playback.volumeFrom = currentVolume;
+    playback.volumeTransitionStartedAtMs = nowMs;
+    playback.volumeTransitionDurationMs = fadeOutMs;
+    playback.fadingOut = true;
+    gain.gain.setValueAtTime(currentVolume, now);
     gain.gain.linearRampToValueAtTime(0, now + fadeOutMs / 1000);
     source.stop(now + fadeOutMs / 1000 + 0.02);
+    this.notify();
   }
 
   stopAll(tracks: Track[], fadeOutMs?: number): void {
@@ -306,6 +342,7 @@ class AudioEngine {
     const source = playback.source;
     if (!source) return;
     const nowMs = performance.now();
+    const currentVolume = playbackVolumeAt(playback, nowMs);
     const elapsedSeconds = Math.max(0, nowMs - playback.resumedAtMs) / 1_000;
     playback.elapsedMs += elapsedSeconds * 1_000;
     if (playback.loop) {
@@ -323,8 +360,12 @@ class AudioEngine {
     if (context) {
       const now = context.currentTime;
       playback.gain.gain.cancelScheduledValues(now);
-      playback.gain.gain.setValueAtTime(playback.gain.gain.value, now);
+      playback.gain.gain.setValueAtTime(currentVolume, now);
     }
+    playback.volume = currentVolume;
+    playback.volumeFrom = currentVolume;
+    playback.volumeTransitionStartedAtMs = nowMs;
+    playback.volumeTransitionDurationMs = 0;
   }
 
   private currentElapsedMs(playback: Playback): number {
@@ -340,6 +381,12 @@ class AudioEngine {
     playback.gain.disconnect();
     this.notify();
   }
+}
+
+export function playbackVolumeAt(playback: Pick<ActivePlayback, 'volume' | 'volumeFrom' | 'volumeTransitionStartedAtMs' | 'volumeTransitionDurationMs'>, atMs = performance.now()): number {
+  if (playback.volumeTransitionDurationMs <= 0) return playback.volume;
+  const progress = Math.min(1, Math.max(0, (atMs - playback.volumeTransitionStartedAtMs) / playback.volumeTransitionDurationMs));
+  return playback.volumeFrom + (playback.volume - playback.volumeFrom) * progress;
 }
 
 function readHistory(): Map<string, number> {

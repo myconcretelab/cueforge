@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { audioEngine, type ActivePlayback } from '../src/client/lib/audio-engine.js';
+import { audioEngine, playbackVolumeAt, type ActivePlayback } from '../src/client/lib/audio-engine.js';
 import type { Track } from '../src/client/types.js';
 
 class FakeAudioParam {
@@ -23,7 +23,7 @@ class FakeSourceNode {
   onended: (() => void) | null = null;
   connect() { return this; }
   start() { /* Lecture simulée. */ }
-  stop() { this.onended?.(); }
+  stop(when = 0) { if (when <= 0) this.onended?.(); }
 }
 
 class FakeAudioContext {
@@ -76,13 +76,14 @@ describe('audio player instance controls', () => {
   });
 
   it('règle le volume, la pause et la boucle indépendamment par lecture', async () => {
-    await audioEngine.play(track, 0, .6);
+    await audioEngine.play(track, 1_000, .6);
     const playbackId = latest[0]?.id;
     expect(playbackId).toBeTruthy();
-    expect(latest[0]).toMatchObject({ volume: .6, paused: false, loop: false });
+    expect(latest[0]).toMatchObject({ volume: .6, volumeFrom: 0, volumeTransitionDurationMs: 1_000, paused: false, loop: false, fadingOut: false });
+    expect(playbackVolumeAt(latest[0]!, latest[0]!.volumeTransitionStartedAtMs + 500)).toBeCloseTo(.3);
 
     audioEngine.setInstanceVolume(playbackId!, 1.25);
-    expect(latest[0]?.volume).toBe(1.25);
+    expect(latest[0]?.volume).toBe(1);
 
     audioEngine.togglePauseInstance(playbackId!);
     expect(latest[0]?.paused).toBe(true);
@@ -92,6 +93,9 @@ describe('audio player instance controls', () => {
 
     audioEngine.togglePauseInstance(playbackId!);
     expect(latest[0]?.paused).toBe(false);
+
+    audioEngine.stopInstance(playbackId!, 500);
+    expect(latest[0]).toMatchObject({ fadingOut: true, volume: 0, volumeTransitionDurationMs: 500 });
 
     audioEngine.stopInstance(playbackId!, 0);
     expect(latest).toHaveLength(0);

@@ -43,7 +43,7 @@ export function TrackDialog({ track, categories, onClose, onChanged }: Props) {
       <label>Titre<input name="title" defaultValue={track.title} required /></label>
       <label>Catégorie<select name="categoryId" defaultValue={track.categoryId ?? ''}><option value="">Sans catégorie</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
       <WaveformEditor trackId={track.id} title={track.title} initialDurationMs={track.durationMs} startMs={startTimeMs} endMs={endTimeMs} onStartChange={setStartTimeMs} onEndChange={setEndTimeMs} />
-      <label>Volume · {Math.round(track.volume * 100)} %<input name="volume" type="range" min="0" max="200" defaultValue={track.volume * 100} /></label>
+      <label>Volume · {Math.min(100, Math.round(track.volume * 100))} %<input name="volume" type="range" min="0" max="100" defaultValue={Math.min(100, track.volume * 100)} /></label>
       <div className="field-row"><label>Fondu d’entrée (ms)<input name="fadeInMs" type="number" min="0" max="60000" defaultValue={track.fadeInMs} /></label><label>Fondu de sortie (ms)<input name="fadeOutMs" type="number" min="0" max="60000" defaultValue={track.fadeOutMs} /></label></div>
       <label className="check"><input name="loop" type="checkbox" defaultChecked={track.loop} /> Jouer en boucle</label>
       {error && <p className="form-error">{error}</p>}

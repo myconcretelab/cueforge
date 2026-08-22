@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, GripVertical, History, LoaderCircle, Menu, Pause, Play, Plus, Radio,
-  Repeat2, RotateCcw, Search, Settings, Settings2, Square, Timer, Upload, Volume2, Waves, Wifi, WifiOff, X,
+  Repeat2, RotateCcw, Search, Settings, Settings2, Square, Timer, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
@@ -12,7 +12,7 @@ import { TrackDialog } from './components/TrackDialog';
 import { TrackPad } from './components/TrackPad';
 import { UploadDialog } from './components/UploadDialog';
 import { api, ApiError } from './lib/api';
-import { audioEngine, type ActivePlayback } from './lib/audio-engine';
+import { audioEngine, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
 import type { KeyAction, MouseAction, Project, ProjectDetail, RemoteCommand, Track, User } from './types';
 
 const colors = ['#f97316', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
@@ -424,11 +424,12 @@ export default function App() {
             <div className="player-card-signal"><i /><i /><i /><i /></div>
             <div className="player-card-copy"><strong>{track.title}</strong><span>{category?.name ?? 'Sans catégorie'}{occurrence > 1 ? ` · Lecture ${occurrence}` : ''}</span></div>
             <div className="player-card-time"><span>{formatPlaybackDuration(positionMs)}</span><span>−{formatPlaybackDuration(Math.max(0, playback.durationMs - positionMs))}</span></div>
-            <label className="player-card-volume"><Volume2 size={14} /><input type="range" min="0" max="200" value={Math.round(playback.volume * 100)} onChange={(event) => audioEngine.setInstanceVolume(playback.id, Number(event.target.value) / 100)} aria-label={`Volume de ${track.title}`} /><em>{Math.round(playback.volume * 100)}</em></label>
+            <PlaybackVolumeControl playback={playback} title={track.title} />
             <div className="player-card-controls">
-              <button className={playback.loop ? 'active' : ''} onClick={() => audioEngine.setInstanceLoop(playback.id, !playback.loop)} aria-label={playback.loop ? `Désactiver la boucle de ${track.title}` : `Jouer ${track.title} en boucle`} title="Boucle"><Repeat2 size={15} /></button>
-              <button onClick={() => audioEngine.togglePauseInstance(playback.id)} aria-label={playback.paused ? `Reprendre ${track.title}` : `Mettre ${track.title} en pause`} title={playback.paused ? 'Reprendre' : 'Pause'}>{playback.paused ? <Play size={15} fill="currentColor" /> : <Pause size={15} fill="currentColor" />}</button>
-              <button className="stop" onClick={() => audioEngine.stopInstance(playback.id, track.fadeOutMs)} aria-label={`Arrêter cette lecture de ${track.title}`} title="Arrêter"><Square size={14} fill="currentColor" /></button>
+              <button className={playback.loop ? 'active' : ''} disabled={playback.fadingOut} onClick={() => audioEngine.setInstanceLoop(playback.id, !playback.loop)} aria-label={playback.loop ? `Désactiver la boucle de ${track.title}` : `Jouer ${track.title} en boucle`} title="Boucle"><Repeat2 size={15} /></button>
+              <button disabled={playback.fadingOut} onClick={() => audioEngine.togglePauseInstance(playback.id)} aria-label={playback.paused ? `Reprendre ${track.title}` : `Mettre ${track.title} en pause`} title={playback.paused ? 'Reprendre' : 'Pause'}>{playback.paused ? <Play size={15} fill="currentColor" /> : <Pause size={15} fill="currentColor" />}</button>
+              <button className="fade-out" disabled={playback.fadingOut} onClick={() => audioEngine.stopInstance(playback.id, track.fadeOutMs > 0 ? track.fadeOutMs : 1_200)} aria-label={`Faire disparaître ${track.title} en fondu`} title="Fondu sortant"><VolumeX size={16} /></button>
+              <button className="stop" onClick={() => audioEngine.stopInstance(playback.id, 0)} aria-label={`Arrêter immédiatement cette lecture de ${track.title}`} title="Arrêt immédiat"><Square size={14} fill="currentColor" /></button>
             </div>
           </article>;
         })}
@@ -443,7 +444,7 @@ export default function App() {
         <div className="topbar-console">
           <section className="console-module next-volume" title="Ce multiplicateur s'applique au prochain son, puis revient à 100 %.">
             <span><Volume2 size={14} />Son suivant</span>
-            <label><input type="range" min="0" max="200" value={nextTrackVolume} onChange={(event) => setNextTrackVolume(Number(event.target.value))} /><strong>{nextTrackVolume} %</strong></label>
+            <label><input type="range" min="0" max="100" value={nextTrackVolume} onChange={(event) => setNextTrackVolume(Number(event.target.value))} /><strong>{nextTrackVolume} %</strong></label>
           </section>
           <section className="console-module stopwatch">
             <span><Timer size={14} />Chrono</span>
@@ -574,4 +575,29 @@ function formatStopwatch(ms: number): string {
 
 function formatClock(timestamp: number): string {
   return clockFormatter.format(timestamp);
+}
+
+function PlaybackVolumeControl({ playback, title }: { playback: ActivePlayback; title: string }) {
+  const [displayVolume, setDisplayVolume] = useState(() => playbackVolumeAt(playback));
+  const { id, volume, volumeFrom, volumeTransitionDurationMs, volumeTransitionStartedAtMs } = playback;
+
+  useEffect(() => {
+    let frame: number | undefined;
+    const update = () => {
+      const nextVolume = playbackVolumeAt({ volume, volumeFrom, volumeTransitionDurationMs, volumeTransitionStartedAtMs });
+      setDisplayVolume(nextVolume);
+      if (performance.now() < volumeTransitionStartedAtMs + volumeTransitionDurationMs) {
+        frame = requestAnimationFrame(update);
+      }
+    };
+    update();
+    return () => { if (frame !== undefined) cancelAnimationFrame(frame); };
+  }, [id, volume, volumeFrom, volumeTransitionDurationMs, volumeTransitionStartedAtMs]);
+
+  const percentage = Math.round(displayVolume * 100);
+  return <label className="player-card-volume"><Volume2 size={14} /><input type="range" min="0" max="100" value={percentage} disabled={playback.fadingOut} onChange={(event) => {
+    const nextVolume = Number(event.target.value) / 100;
+    setDisplayVolume(nextVolume);
+    audioEngine.setInstanceVolume(playback.id, nextVolume);
+  }} aria-label={`Volume de ${title}`} /><em>{percentage}</em></label>;
 }

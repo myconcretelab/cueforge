@@ -101,9 +101,11 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .player-card-volume { display: grid; grid-template-columns: 14px minmax(0, 1fr) 25px; align-items: center; gap: 5px; color: #71717a; }
 .player-card-volume input { height: 15px; min-width: 0; }
 .player-card-volume em { color: #a1a1aa; font-size: .57rem; font-style: normal; text-align: right; }
-.player-card-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.player-card-controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
 .player-card-controls button { height: 28px; padding: 0; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 7px; color: #a1a1aa; background: rgba(9,9,11,.45); cursor: pointer; }
 .player-card-controls button:hover, .player-card-controls button.active { color: color-mix(in srgb, var(--track-color) 80%, #fff); border-color: color-mix(in srgb, var(--track-color) 45%, var(--border)); background: color-mix(in srgb, var(--track-color) 10%, rgba(9,9,11,.45)); }
+.player-card-controls button:disabled { opacity: .38; cursor: default; }
+.player-card-controls button.fade-out { color: #fdba74; }
 .player-card-controls button.stop { color: #fca5a5; }
 .player-card-signal { position: absolute; top: 11px; left: 11px; height: 17px; display: flex; align-items: end; gap: 2px; }
 .player-card-signal i { width: 3px; height: 35%; border-radius: 2px; background: var(--track-color); animation: playing-signal .7s ease-in-out infinite alternate; }
