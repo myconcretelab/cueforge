@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  AudioLines, AudioWaveform, CloudDownload, FileArchive, FolderPlus, LogOut, Menu, Plus, Radio,
-  Search, Settings2, Smartphone, Square, Upload, Wifi, WifiOff, X,
+  AudioLines, AudioWaveform, Menu, Plus, Radio,
+  Search, Settings, Settings2, Smartphone, Square, Upload, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
 import { SoundShowImportDialog } from './components/SoundShowImportDialog';
+import { SettingsDialog } from './components/SettingsDialog';
 import { TrackDialog } from './components/TrackDialog';
 import { TrackPad } from './components/TrackPad';
 import { UploadDialog } from './components/UploadDialog';
@@ -33,6 +34,7 @@ export default function App() {
   const [activeTracks, setActiveTracks] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
   const [soundShowImportOpen, setSoundShowImportOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingTrack, setEditingTrack] = useState<Track>();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [socket, setSocket] = useState<Socket>();
@@ -116,11 +118,13 @@ export default function App() {
     return () => { connection.disconnect(); setSocket(undefined); setConnected(false); };
   }, [selectedProjectId, user, remote, detail?.tracks]);
 
+  const normalizedSearch = search.trim().toLocaleLowerCase('fr');
+  const isSearching = normalizedSearch.length > 0;
   const visibleTracks = useMemo(() => (detail?.tracks ?? []).filter((track) => {
-    const inCategory = selectedCategoryId === 'all' || track.categoryId === selectedCategoryId;
-    const matches = track.title.toLowerCase().includes(search.toLowerCase()) || track.originalFilename.toLowerCase().includes(search.toLowerCase());
+    const inCategory = isSearching || selectedCategoryId === 'all' || track.categoryId === selectedCategoryId;
+    const matches = track.title.toLocaleLowerCase('fr').includes(normalizedSearch) || track.originalFilename.toLocaleLowerCase('fr').includes(normalizedSearch);
     return inCategory && matches;
-  }), [detail?.tracks, search, selectedCategoryId]);
+  }), [detail?.tracks, isSearching, normalizedSearch, selectedCategoryId]);
   const playingTracks = useMemo(() => (detail?.tracks ?? []).filter((track) => activeTracks.has(track.id)), [activeTracks, detail?.tracks]);
 
   const sendOrRun = useCallback((command: RemoteCommand, track?: Track) => {
@@ -242,11 +246,6 @@ export default function App() {
           </article>;
         })}
       </div>
-      <div className="side-label projects-heading"><span>Spectacles</span><button onClick={createProject} aria-label="Nouveau spectacle"><FolderPlus size={17} /></button></div>
-      <nav className="project-list">
-        {projects.map((project) => <button key={project.id} className={project.id === selectedProjectId ? 'active' : ''} onClick={() => chooseProject(project.id)}><span>{project.name.slice(0, 1).toUpperCase()}</span>{project.name}</button>)}
-      </nav>
-      <footer className="sidebar-footer"><button onClick={cacheOffline}><CloudDownload size={18} /><span>{offlineStatus || 'Disponible hors ligne'}</span></button><button onClick={logout}><LogOut size={18} /><span>Se déconnecter</span></button><div className="user-chip"><span>{user.displayName.slice(0, 1).toUpperCase()}</span><div><strong>{user.displayName}</strong><small>{user.email}</small></div></div></footer>
     </aside>
     {sidebarOpen && <button className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Fermer le menu" />}
 
@@ -261,7 +260,7 @@ export default function App() {
             if (remote) url.searchParams.delete('remote'); else url.searchParams.set('remote', '1');
             window.location.href = url.toString();
           }}>{remote ? <Radio size={17} /> : <Smartphone size={17} />}{remote ? 'Ouvrir la régie' : 'Télécommande'}</button>
-          {!remote && <button className="button ghost import-button" onClick={() => setSoundShowImportOpen(true)}><FileArchive size={17} />Importer SoundShow</button>}
+          <button className="icon-button settings-button" onClick={() => setSettingsOpen(true)} aria-label="Ouvrir les paramètres" title="Paramètres"><Settings size={19} /></button>
           {!remote && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Ajouter un son</button>}
         </div>
       </header>
@@ -269,8 +268,8 @@ export default function App() {
       {detail && <section className="category-strip">
         <div className="category-strip-heading"><span>Catégories</span><button className="icon-button subtle" onClick={createCategory} aria-label="Nouvelle catégorie"><Plus size={17} /></button></div>
         <nav className="category-tabs" aria-label="Catégories de sons">
-          <button className={selectedCategoryId === 'all' ? 'active' : ''} onClick={() => setSelectedCategoryId('all')} style={{ '--category-color': '#a1a1aa' } as React.CSSProperties}><span>Tous les sons</span><em>{detail.tracks.length}</em></button>
-          {detail.categories.map((category) => <button key={category.id} className={category.id === selectedCategoryId ? 'active' : ''} onClick={() => setSelectedCategoryId(category.id)} style={{ '--category-color': category.color } as React.CSSProperties}><span>{category.name}</span><em>{detail.tracks.filter((track) => track.categoryId === category.id).length}</em></button>)}
+          <button className={selectedCategoryId === 'all' || isSearching ? 'active' : ''} onClick={() => { setSelectedCategoryId('all'); setSearch(''); }} style={{ '--category-color': '#a1a1aa' } as React.CSSProperties}><span>Tous les sons</span><em>{detail.tracks.length}</em></button>
+          {detail.categories.map((category) => <button key={category.id} className={!isSearching && category.id === selectedCategoryId ? 'active' : ''} onClick={() => { setSelectedCategoryId(category.id); setSearch(''); }} style={{ '--category-color': category.color } as React.CSSProperties}><span>{category.name}</span><em>{detail.tracks.filter((track) => track.categoryId === category.id).length}</em></button>)}
         </nav>
       </section>}
 
@@ -295,6 +294,7 @@ export default function App() {
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
+    {settingsOpen && <SettingsDialog user={user} projects={projects} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onCacheOffline={cacheOffline} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
     {error && <Toast message={error} onClose={() => setError('')} />}
