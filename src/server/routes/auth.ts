@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db/index.js';
 import { projects, users } from '../db/schema.js';
@@ -17,11 +17,11 @@ const registerSchema = credentialsSchema.extend({
 export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.post('/api/auth/register', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const input = registerSchema.parse(request.body);
-    const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
-    if (existing.length) return reply.code(409).send({ error: 'Cette adresse est déjà utilisée.' });
-
     const passwordHash = await hashPassword(input.password);
     const user = await db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(824731905)`);
+      const existing = await tx.select({ id: users.id }).from(users).limit(1);
+      if (existing.length) return null;
       const [created] = await tx.insert(users).values({
         email: input.email,
         displayName: input.displayName,
@@ -30,6 +30,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       await tx.insert(projects).values({ ownerId: created.id, name: 'Mon premier spectacle' });
       return created;
     });
+    if (!user) return reply.code(403).send({ error: 'Le compte administrateur a déjà été créé.' });
     await startSession(user.id, reply);
     return reply.code(201).send({ user: { id: user.id, email: user.email, displayName: user.displayName } });
   });

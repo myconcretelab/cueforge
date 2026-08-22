@@ -4,7 +4,7 @@ SoundFlow est une régie son web inspirée de SoundShow. Les médias sont stock�
 
 ## Fonctionnalités actuelles
 
-- comptes avec sessions sécurisées et mots de passe dérivés avec `scrypt` ;
+- premier compte administrateur unique, sessions sécurisées et mots de passe dérivés avec `scrypt` ;
 - plusieurs spectacles, catégories colorées et recherche ;
 - import MP3, WAV, OGG, FLAC et AAC jusqu’à 250 Mo ;
 - lecture polyphonique, boucles, volume et fondus ;
