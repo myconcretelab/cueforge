@@ -7,6 +7,7 @@ SoundFlow est une régie son web inspirée de SoundShow. Les médias sont stock�
 - premier compte administrateur unique, sessions sécurisées et mots de passe dérivés avec `scrypt` ;
 - plusieurs spectacles, catégories colorées et recherche ;
 - import MP3, WAV, OGG, FLAC et AAC jusqu’à 250 Mo ;
+- recherche Freesound avec préécoute, renommage et import dans la catégorie choisie ;
 - import complet d’un projet SoundShow `.ssp` avec catégories, couleurs, boucles et points d’entrée/sortie ;
 - lecture polyphonique, boucles, volume et fondus ;
 - actions configurables par spectacle pour les clics gauche et droit : démarrer, fondu enchaîné, fondu d’entrée, remplacer, arrêter ou aucune action ;
@@ -75,7 +76,7 @@ Le serveur utilise automatiquement les variables `IP` et `PORT` fournies par Alw
 
 Les fichiers audio résident dans `STORAGE_PATH`, jamais dans PostgreSQL. Ils sont servis uniquement après contrôle de la session et avec prise en charge des requêtes HTTP `Range`.
 
-La recherche Freesound utilise `FREESOUND_API_KEY` exclusivement côté serveur. Les préécoutes sont diffusées directement depuis Freesound, sans être enregistrées dans le spectacle ; seuls les résultats CC0 et CC BY sont proposés et leur attribution reste visible.
+La recherche Freesound utilise `FREESOUND_API_KEY` exclusivement côté serveur. Les préécoutes peuvent être écoutées sans stockage ou importées dans le spectacle sous un nouveau nom et dans la catégorie choisie. SoundFlow télécharge alors la préécoute haute qualité dans `STORAGE_PATH` et conserve l’auteur, la licence et l’URL source. Seuls les résultats CC0 et CC BY sont proposés.
 
 ## Structure
 

@@ -1,16 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ExternalLink, LoaderCircle, Pause, Play, Search, ShieldCheck, Square, Volume2, Waves, X } from 'lucide-react';
+import { CircleCheck, Download, ExternalLink, LoaderCircle, Pause, Play, Search, ShieldCheck, Square, Volume2, Waves, X } from 'lucide-react';
 import { api } from '../lib/api';
-import type { FreesoundLicenseFilter, FreesoundSearchResult, FreesoundSound } from '../types';
+import type { Category, FreesoundLicenseFilter, FreesoundSearchResult, FreesoundSound } from '../types';
 
 interface Props {
   initialQuery?: string;
+  projectId: string;
+  categories: Category[];
+  defaultCategoryId?: string;
+  nextPosition: number;
+  onImported: () => Promise<void>;
   onClose: () => void;
 }
 
 type PlayerState = 'idle' | 'loading' | 'playing' | 'paused';
 
-export function FreesoundDialog({ initialQuery = '', onClose }: Props) {
+export function FreesoundDialog({ initialQuery = '', projectId, categories, defaultCategoryId, nextPosition, onImported, onClose }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [license, setLicense] = useState<FreesoundLicenseFilter>('compatible');
   const [maxDuration, setMaxDuration] = useState('');
@@ -22,6 +27,12 @@ export function FreesoundDialog({ initialQuery = '', onClose }: Props) {
   const [currentTime, setCurrentTime] = useState(0);
   const [playerDuration, setPlayerDuration] = useState(0);
   const [volume, setVolume] = useState(.9);
+  const [soundToImport, setSoundToImport] = useState<FreesoundSound>();
+  const [importTitle, setImportTitle] = useState('');
+  const [importCategoryId, setImportCategoryId] = useState(defaultCategoryId ?? '');
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
+  const [importedIds, setImportedIds] = useState<Set<number>>(new Set());
   const audioRef = useRef<HTMLAudioElement | undefined>(undefined);
   const searchRef = useRef<AbortController | undefined>(undefined);
 
@@ -131,6 +142,47 @@ export function FreesoundDialog({ initialQuery = '', onClose }: Props) {
     onClose();
   }
 
+  function prepareImport(sound: FreesoundSound) {
+    setSoundToImport(sound);
+    setImportTitle(withoutAudioExtension(sound.name));
+    setImportCategoryId(defaultCategoryId ?? '');
+    setImportError('');
+  }
+
+  async function importSound() {
+    if (!soundToImport || importing) return;
+    const title = importTitle.trim();
+    if (!title) {
+      setImportError('Donnez un nom au son.');
+      return;
+    }
+    setImporting(true);
+    setImportError('');
+    try {
+      await api.importRemoteTrack({
+        projectId,
+        categoryId: importCategoryId || undefined,
+        title,
+        durationMs: Math.max(1, Math.round(soundToImport.durationSeconds * 1_000)),
+        position: nextPosition,
+        url: soundToImport.previewUrl,
+        sourceUrl: soundToImport.pageUrl,
+        sourceId: `freesound:${soundToImport.id}`,
+        description: soundToImport.tags.length ? `Tags Freesound : ${soundToImport.tags.join(', ')}` : 'Importé depuis Freesound.',
+        copyrightText: `« ${soundToImport.name} » par ${soundToImport.username} — ${soundToImport.license.label} — ${soundToImport.pageUrl}`,
+        loop: false,
+      });
+    } catch (cause) {
+      setImportError(cause instanceof Error ? cause.message : 'Import Freesound impossible.');
+      setImporting(false);
+      return;
+    }
+    setImportedIds((current) => new Set(current).add(soundToImport.id));
+    setSoundToImport(undefined);
+    setImporting(false);
+    onImported().catch(() => setError("Le son est stocké, mais l'affichage du spectacle n'a pas pu être actualisé."));
+  }
+
   function updateVolume(value: number) {
     setVolume(value);
     if (audioRef.current) audioRef.current.volume = value;
@@ -186,7 +238,12 @@ export function FreesoundDialog({ initialQuery = '', onClose }: Props) {
                 <span>par {sound.username} · {formatDuration(sound.durationSeconds)}</span>
                 <div className="freesound-tags">{sound.tags.slice(0, 4).map((tag) => <em key={tag}>{tag}</em>)}</div>
               </div>
-              <a className={`freesound-license ${sound.license.code}`} href={sound.license.url} target="_blank" rel="noreferrer">{sound.license.label}</a>
+              <div className="freesound-result-actions">
+                <a className={`freesound-license ${sound.license.code}`} href={sound.license.url} target="_blank" rel="noreferrer">{sound.license.label}</a>
+                <button className={importedIds.has(sound.id) ? 'freesound-import-button is-imported' : 'freesound-import-button'} onClick={() => prepareImport(sound)} aria-label={`Importer ${sound.name}`} title={importedIds.has(sound.id) ? 'Importer à nouveau' : 'Importer dans SoundFlow'}>
+                  {importedIds.has(sound.id) ? <CircleCheck size={17} /> : <Download size={17} />}
+                </button>
+              </div>
             </article>;
           })}
           {result.results.length === 0 && <div className="freesound-empty compact"><strong>Aucun son compatible sur cette page</strong><span>Essayez une recherche plus large.</span></div>}
@@ -196,6 +253,17 @@ export function FreesoundDialog({ initialQuery = '', onClose }: Props) {
           <button className="button ghost" disabled={loading || !result.hasNext} onClick={() => searchSounds(result.page + 1).catch(() => undefined)}>Suivant</button>
         </div>
       </>}
+
+      {soundToImport && <section className="freesound-import-panel">
+        <header><div><strong>Importer dans le spectacle</strong><span>La préécoute haute qualité sera téléchargée et conservée dans le stockage SoundFlow.</span></div><button className="icon-button subtle" onClick={() => setSoundToImport(undefined)} aria-label="Annuler l'import"><X size={17} /></button></header>
+        <div className="field-row">
+          <label>Nom du morceau<input value={importTitle} onChange={(event) => setImportTitle(event.target.value)} maxLength={160} autoFocus /></label>
+          <label>Catégorie de destination<select value={importCategoryId} onChange={(event) => setImportCategoryId(event.target.value)}><option value="">Sans catégorie</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+        </div>
+        <div className="freesound-import-source"><ShieldCheck size={16} /><span><strong>{soundToImport.license.label}</strong> · {soundToImport.username}<small>La source et la licence seront enregistrées avec le morceau.</small></span></div>
+        {importError && <div className="form-error">{importError}</div>}
+        <footer><button className="button ghost" onClick={() => setSoundToImport(undefined)} disabled={importing}>Annuler</button><button className="button primary" onClick={() => importSound().catch(() => undefined)} disabled={importing || !importTitle.trim()}>{importing ? <LoaderCircle className="spin" size={17} /> : <Download size={17} />}{importing ? 'Téléchargement…' : 'Importer et stocker'}</button></footer>
+      </section>}
 
       {currentSound && <section className="freesound-player" aria-label="Lecteur Freesound">
         <button className="freesound-player-toggle" onClick={() => togglePreview(currentSound)} aria-label={playerState === 'playing' ? 'Pause' : 'Lecture'}>
@@ -213,4 +281,8 @@ function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds)) return '0:00';
   const rounded = Math.max(0, Math.floor(seconds));
   return `${Math.floor(rounded / 60)}:${String(rounded % 60).padStart(2, '0')}`;
+}
+
+function withoutAudioExtension(filename: string): string {
+  return filename.replace(/\.(?:mp3|wav|wave|aif|aiff|flac|ogg|m4a|aac)$/i, '');
 }

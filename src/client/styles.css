@@ -236,11 +236,27 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .freesound-license { padding: 5px 7px; border: 1px solid var(--border); border-radius: 6px; color: #a1a1aa; font-size: .59rem; font-weight: 750; text-decoration: none; white-space: nowrap; }
 .freesound-license.cc0 { color: #86efac; border-color: rgba(34,197,94,.2); }
 .freesound-license.by { color: #fde68a; border-color: rgba(234,179,8,.2); }
+.freesound-result-actions { display: flex; align-items: center; gap: 6px; }
+.freesound-import-button { width: 31px; height: 31px; padding: 0; display: grid; place-items: center; border: 1px solid rgba(249,115,22,.25); border-radius: 8px; color: #fdba74; background: var(--orange-soft); cursor: pointer; }
+.freesound-import-button:hover { color: #ffedd5; border-color: rgba(249,115,22,.55); background: rgba(249,115,22,.2); }
+.freesound-import-button.is-imported { color: #86efac; border-color: rgba(34,197,94,.25); background: rgba(34,197,94,.08); }
 .freesound-empty { min-height: 250px; display: grid; place-content: center; justify-items: center; gap: 7px; color: #52525b; text-align: center; }
 .freesound-empty strong { color: #a1a1aa; font-size: .82rem; }
 .freesound-empty span { color: #62626a; font-size: .69rem; }
 .freesound-empty.compact { min-height: 120px; }
 .freesound-pagination { display: flex; justify-content: flex-end; gap: 8px; }
+.freesound-import-panel { padding: 14px; display: grid; gap: 12px; border: 1px solid rgba(249,115,22,.3); border-radius: 12px; background: #17120f; }
+.freesound-import-panel > header { align-items: flex-start; }
+.freesound-import-panel > header > div { display: grid; gap: 3px; }
+.freesound-import-panel > header strong { color: #fed7aa; font-size: .82rem; }
+.freesound-import-panel > header span { color: #78716c; font-size: .67rem; }
+.freesound-import-panel label { font-size: .7rem; }
+.freesound-import-panel input, .freesound-import-panel select { height: 40px; padding-block: 0; font-size: .73rem; }
+.freesound-import-source { padding: 9px 10px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px; color: #86efac; background: rgba(34,197,94,.04); }
+.freesound-import-source > span { min-width: 0; display: flex; align-items: baseline; gap: 5px; color: #a1a1aa; font-size: .65rem; }
+.freesound-import-source strong { color: #86efac; }
+.freesound-import-source small { margin-left: auto; color: #71717a; }
+.freesound-import-panel footer { padding: 0; }
 .freesound-player { position: sticky; z-index: 3; bottom: -1px; padding: 11px; display: grid; grid-template-columns: 38px minmax(150px, 1fr) minmax(115px, 170px) 34px; align-items: center; gap: 10px; border: 1px solid rgba(34,211,238,.28); border-radius: 11px; background: #10171a; box-shadow: 0 -10px 28px rgba(0,0,0,.28); }
 .freesound-player-toggle, .freesound-player-stop { width: 36px; height: 36px; padding: 0; display: grid; place-items: center; border: 1px solid rgba(34,211,238,.2); border-radius: 50%; color: #cffafe; background: rgba(34,211,238,.1); cursor: pointer; }
 .freesound-player-stop { width: 32px; height: 32px; border-color: rgba(248,113,113,.2); border-radius: 8px; color: #fca5a5; background: rgba(248,113,113,.08); }
@@ -377,7 +393,9 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
   .freesound-search-form .button { grid-column: 1 / -1; }
   .freesound-result { grid-template-columns: 38px minmax(0, 1fr); }
   .freesound-play { width: 38px; height: 38px; }
-  .freesound-license { grid-column: 2; width: max-content; }
+  .freesound-result-actions { grid-column: 2; width: max-content; }
+  .freesound-import-source > span { align-items: flex-start; flex-direction: column; }
+  .freesound-import-source small { margin-left: 0; }
   .freesound-player { grid-template-columns: 36px minmax(0, 1fr) 32px; }
   .freesound-volume { grid-column: 1 / -1; }
   .settings-key-actions label { grid-template-columns: 1fr; }
