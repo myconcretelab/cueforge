@@ -1,0 +1,90 @@
+# SoundFlow
+
+SoundFlow est une régie son web inspirée de SoundShow. Les médias sont stockés en ligne, préparés hors connexion dans une PWA, puis joués localement avec Web Audio pour éviter la latence du réseau pendant un spectacle.
+
+## Fonctionnalités actuelles
+
+- comptes avec sessions sécurisées et mots de passe dérivés avec `scrypt` ;
+- plusieurs spectacles, catégories colorées et recherche ;
+- import MP3, WAV, OGG, FLAC et AAC jusqu’à 250 Mo ;
+- lecture polyphonique, boucles, volume et fondus ;
+- raccourcis `1` à `9` et arrêt général avec `Échap` ;
+- télécommande temps réel via WebSocket ;
+- téléchargement d’un projet dans le cache hors ligne ;
+- interface responsive installable comme PWA.
+
+## Développement local
+
+Prérequis : Node.js 22 ou 24 et Docker, ou une instance PostgreSQL locale.
+
+```bash
+cp .env.example .env
+docker compose up -d postgres
+npm install
+npm run db:migrate
+npm run dev
+```
+
+L’interface est disponible sur `http://localhost:5173` et l’API sur `http://127.0.0.1:8100`.
+
+## Vérification
+
+```bash
+npm run typecheck
+npm test
+npm run lint
+npm run build
+```
+
+## Déploiement Alwaysdata
+
+1. Créer une base PostgreSQL et un utilisateur dans **Bases de données > PostgreSQL**.
+2. Choisir Node.js 24 dans **Environnement > Node.js**.
+3. Déployer le dépôt dans `/home/<compte>/soundflow`.
+4. Configurer les variables d’environnement suivantes dans le site Node.js :
+
+```dotenv
+NODE_ENV=production
+DATABASE_URL=postgresql://<utilisateur>:<mot-de-passe>@postgresql-<compte>.alwaysdata.net:5433/<base>
+SESSION_SECRET=<une-valeur-aleatoire-d-au-moins-32-caracteres>
+STORAGE_PATH=/home/<compte>/soundflow/storage
+PUBLIC_URL=https://<votre-domaine>
+```
+
+5. Depuis SSH, préparer l’application :
+
+```bash
+cd /home/<compte>/soundflow
+npm ci
+npm run build
+npm run db:migrate
+npm prune --omit=dev
+```
+
+6. Créer un site de type **Node.js** avec cette commande :
+
+```bash
+node /home/<compte>/soundflow/dist/server/index.js
+```
+
+Le serveur utilise automatiquement les variables `IP` et `PORT` fournies par Alwaysdata. Dans les réglages avancés du site, mettre le temps d’inactivité à `0` afin de conserver les connexions WebSocket. Activer HTTPS et vérifier que `PUBLIC_URL` contient exactement l’origine publique.
+
+Les fichiers audio résident dans `STORAGE_PATH`, jamais dans PostgreSQL. Ils sont servis uniquement après contrôle de la session et avec prise en charge des requêtes HTTP `Range`.
+
+## Structure
+
+```text
+src/client/       interface React, PWA et moteur audio
+src/server/       API Fastify et serveur WebSocket
+src/server/db/    schéma et migrations Drizzle
+migrations/       migrations PostgreSQL versionnées
+storage/          médias locaux, ignorés par Git
+public/           manifeste, icône et service worker
+```
+
+## Limites connues de cette première version
+
+- un téléphone contrôleur doit se connecter avec le même compte ;
+- les points d’entrée/sortie, playlists et séquences ne sont pas encore implémentés ;
+- le routage vers plusieurs périphériques audio dépend fortement du navigateur ;
+- l’import direct d’un projet SoundShow `.ssp` sera ajouté dans une prochaine étape.

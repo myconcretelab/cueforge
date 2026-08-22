@@ -1,0 +1,52 @@
+import { useRef, useState, type FormEvent } from 'react';
+import { FileAudio, LoaderCircle, Upload, X } from 'lucide-react';
+import { api } from '../lib/api';
+import type { Category } from '../types';
+
+interface Props {
+  projectId: string;
+  categories: Category[];
+  onClose: () => void;
+  onUploaded: () => void;
+}
+
+export function UploadDialog({ projectId, categories, onClose, onUploaded }: Props) {
+  const [file, setFile] = useState<File>();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const input = useRef<HTMLInputElement>(null);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!file) return setError('Choisissez un fichier audio.');
+    const data = new FormData(event.currentTarget);
+    data.set('projectId', projectId);
+    data.set('file', file);
+    setLoading(true);
+    setError('');
+    try {
+      await api.uploadTrack(data);
+      onUploaded();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Import impossible.');
+    } finally { setLoading(false); }
+  }
+
+  return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <form className="dialog" onSubmit={submit}>
+      <header><div><p className="eyebrow">Bibliothèque</p><h2>Ajouter un son</h2></div><button type="button" className="icon-button" onClick={onClose}><X /></button></header>
+      <button type="button" className={`drop-zone ${file ? 'has-file' : ''}`} onClick={() => input.current?.click()}>
+        {file ? <><FileAudio size={36} /><strong>{file.name}</strong><span>{formatSize(file.size)}</span></> : <><Upload size={36} /><strong>Choisir un fichier audio</strong><span>MP3, WAV, OGG, FLAC, AAC · 250 Mo maximum</span></>}
+      </button>
+      <input ref={input} hidden type="file" name="file" accept="audio/*,.flac" onChange={(event) => {
+        const selected = event.target.files?.[0]; setFile(selected); if (selected) setError('');
+      }} />
+      <label>Titre<input name="title" required defaultValue={file?.name.replace(/\.[^.]+$/, '') ?? ''} key={file?.name} placeholder="Entrée des comédiens" /></label>
+      <label>Catégorie<select name="categoryId" defaultValue=""><option value="">Sans catégorie</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+      {error && <p className="form-error">{error}</p>}
+      <footer><button type="button" className="button ghost" onClick={onClose}>Annuler</button><button className="button primary" disabled={loading || !file}>{loading && <LoaderCircle className="spin" size={18} />}Importer</button></footer>
+    </form>
+  </div>;
+}
+
+function formatSize(bytes: number) { return `${(bytes / 1024 / 1024).toFixed(1)} Mo`; }
