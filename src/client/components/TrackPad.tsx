@@ -35,8 +35,9 @@ export function TrackPad({ track, color, active, playbacks, historyProgress, loa
       {historyProgress > 0 && <i className="history" style={{ transform: `scaleX(${historyProgress})` }} />}
       {playbacks.map((playback) => <i className="active" key={playback.id} style={{
         '--progress-duration': `${playback.durationMs}ms`,
-        '--progress-delay': `-${Math.max(0, performance.now() - playback.startedAtMs)}ms`,
+        '--progress-delay': `-${playback.paused ? playback.elapsedMs : playback.elapsedMs + Math.max(0, performance.now() - playback.resumedAtMs)}ms`,
         '--progress-iterations': playback.loop ? 'infinite' : '1',
+        animationPlayState: playback.paused ? 'paused' : 'running',
       } as React.CSSProperties} />)}
     </span>}
     <div className="track-meta">

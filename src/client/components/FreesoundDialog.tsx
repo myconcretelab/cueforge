@@ -18,6 +18,7 @@ type PlayerState = 'idle' | 'loading' | 'playing' | 'paused';
 export function FreesoundDialog({ initialQuery = '', projectId, categories, defaultCategoryId, nextPosition, onImported, onClose }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [license, setLicense] = useState<FreesoundLicenseFilter>('compatible');
+  const [minDuration, setMinDuration] = useState('');
   const [maxDuration, setMaxDuration] = useState('');
   const [result, setResult] = useState<FreesoundSearchResult>();
   const [loading, setLoading] = useState(false);
@@ -66,6 +67,10 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
       setError('Saisissez au moins deux caractères.');
       return;
     }
+    if (minDuration && maxDuration && Number(minDuration) > Number(maxDuration)) {
+      setError('La durée minimale doit être inférieure à la durée maximale.');
+      return;
+    }
     searchRef.current?.abort();
     const controller = new AbortController();
     searchRef.current = controller;
@@ -75,6 +80,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
       const response = await api.searchFreesound({
         query: normalized,
         license,
+        minDuration: minDuration ? Number(minDuration) : undefined,
         maxDuration: maxDuration ? Number(maxDuration) : undefined,
         page,
       }, controller.signal);
@@ -211,8 +217,16 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
           <option value="cc0">CC0 uniquement</option>
           <option value="by">CC BY uniquement</option>
         </select>
+        <select aria-label="Durée minimale" value={minDuration} onChange={(event) => setMinDuration(event.target.value)}>
+          <option value="">Aucun minimum</option>
+          <option value="3">3 s minimum</option>
+          <option value="10">10 s minimum</option>
+          <option value="30">30 s minimum</option>
+          <option value="60">1 min minimum</option>
+          <option value="300">5 min minimum</option>
+        </select>
         <select aria-label="Durée maximale" value={maxDuration} onChange={(event) => setMaxDuration(event.target.value)}>
-          <option value="">Toutes durées</option>
+          <option value="">Aucun maximum</option>
           <option value="10">10 s maximum</option>
           <option value="30">30 s maximum</option>
           <option value="60">1 min maximum</option>

@@ -7,8 +7,12 @@ import { searchFreesound } from '../services/freesound.js';
 const searchQuerySchema = z.object({
   q: z.string().trim().min(2).max(100),
   license: z.enum(['compatible', 'cc0', 'by']).default('compatible'),
+  minDuration: z.coerce.number().int().min(1).max(3_600).optional(),
   maxDuration: z.coerce.number().int().min(1).max(3_600).optional(),
   page: z.coerce.number().int().min(1).max(50).default(1),
+}).refine((input) => !input.minDuration || !input.maxDuration || input.minDuration <= input.maxDuration, {
+  message: 'La durée minimale doit être inférieure à la durée maximale.',
+  path: ['minDuration'],
 });
 
 export async function freesoundRoutes(app: FastifyInstance): Promise<void> {
@@ -26,6 +30,7 @@ export async function freesoundRoutes(app: FastifyInstance): Promise<void> {
         apiKey: config.FREESOUND_API_KEY,
         query: input.q,
         license: input.license,
+        minDuration: input.minDuration,
         maxDuration: input.maxDuration,
         page: input.page,
       });

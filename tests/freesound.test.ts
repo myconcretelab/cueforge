@@ -3,13 +3,18 @@ import { buildFreesoundSearchUrl, searchFreesound } from '../src/server/services
 
 describe('Freesound search', () => {
   it('construit une recherche limitée aux licences compatibles', () => {
-    const url = buildFreesoundSearchUrl({ query: 'door slam', license: 'compatible', maxDuration: 30, page: 2 });
+    const url = buildFreesoundSearchUrl({ query: 'door slam', license: 'compatible', minDuration: 3, maxDuration: 30, page: 2 });
     expect(url.origin).toBe('https://freesound.org');
     expect(url.searchParams.get('query')).toBe('door slam');
     expect(url.searchParams.get('page')).toBe('2');
     expect(url.searchParams.get('filter')).toContain('Creative Commons 0');
     expect(url.searchParams.get('filter')).toContain('Attribution');
-    expect(url.searchParams.get('filter')).toContain('duration:[0 TO 30]');
+    expect(url.searchParams.get('filter')).toContain('duration:[3 TO 30]');
+  });
+
+  it('accepte une durée minimale sans maximum', () => {
+    const url = buildFreesoundSearchUrl({ query: 'ambience', license: 'cc0', minDuration: 60, page: 1 });
+    expect(url.searchParams.get('filter')).toContain('duration:[60 TO *]');
   });
 
   it('protège la clé et normalise les résultats utiles', async () => {

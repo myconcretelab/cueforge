@@ -112,7 +112,7 @@ export interface FreesoundSearchResult {
 }
 
 export type RemoteCommand =
-  | { type: 'play'; trackId: string }
+  | { type: 'play'; trackId: string; volumeMultiplier?: number }
   | { type: 'stop'; trackId: string }
   | { type: 'stop-all' }
-  | { type: 'run-action'; trackId: string; action: MouseAction };
+  | { type: 'run-action'; trackId: string; action: MouseAction; volumeMultiplier?: number };

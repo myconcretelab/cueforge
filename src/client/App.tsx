@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Columns3, Download, GripVertical, History, LoaderCircle, Menu, Plus, Radio,
-  RotateCcw, Search, Settings, Settings2, Smartphone, Square, Upload, Waves, Wifi, WifiOff, X,
+  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, GripVertical, History, LoaderCircle, Menu, Pause, Play, Plus, Radio,
+  Repeat2, RotateCcw, Search, Settings, Settings2, Square, Timer, Upload, Volume2, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
@@ -24,6 +24,7 @@ const mouseActions: Array<{ value: MouseAction; label: string }> = [
   { value: 'stop', label: 'Arrêter' },
   { value: 'none', label: 'Aucune action' },
 ];
+const clockFormatter = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 export default function App() {
   const [user, setUser] = useState<User | null>();
@@ -57,12 +58,20 @@ export default function App() {
   const [connected, setConnected] = useState(false);
   const [offlineStatus, setOfflineStatus] = useState('');
   const [error, setError] = useState('');
+  const [nextTrackVolume, setNextTrackVolume] = useState(100);
+  const [now, setNow] = useState(() => Date.now());
+  const [chronoElapsedMs, setChronoElapsedMs] = useState(0);
+  const [chronoStartedAt, setChronoStartedAt] = useState<number | undefined>(undefined);
   const categoryResize = useRef<{ x: number; width: number; latest: number } | undefined>(undefined);
   const remote = new URLSearchParams(window.location.search).get('remote') === '1';
 
   useEffect(() => audioEngine.subscribe(setActivePlaybacks), []);
   useEffect(() => audioEngine.subscribeCache(setLoadedTracks), []);
   useEffect(() => audioEngine.subscribeHistory(setPlaybackHistory), []);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, []);
   useEffect(() => {
     const query = window.matchMedia('(max-width: 560px)');
     const onChange = () => setCompactLayout(query.matches);
@@ -139,8 +148,8 @@ export default function App() {
       }
       const track = currentTracks.find((candidate) => candidate.id === command.trackId);
       if (!track) return;
-      if (command.type === 'run-action') audioEngine.runAction(command.action, track, currentTracks).catch((cause) => setError(cause.message));
-      else if (command.type === 'play') audioEngine.play(track).catch((cause) => setError(cause.message));
+      if (command.type === 'run-action') audioEngine.runAction(command.action, track, currentTracks, command.volumeMultiplier).catch((cause) => setError(cause.message));
+      else if (command.type === 'play') audioEngine.play(track, track.fadeInMs, command.volumeMultiplier).catch((cause) => setError(cause.message));
       else audioEngine.stop(track.id, track.fadeOutMs);
     });
     return () => { connection.disconnect(); setSocket(undefined); setConnected(false); };
@@ -177,28 +186,40 @@ export default function App() {
   const preloadedInCategory = tracksToPreload.filter((track) => loadedTracks.has(track.id)).length;
   const trackColumns = compactLayout ? mobileColumns : desktopColumns;
   const currentCategory = detail?.categories.find((category) => category.id === selectedCategoryId);
+  const displayedChronoMs = chronoElapsedMs + (chronoStartedAt === undefined ? 0 : Math.max(0, now - chronoStartedAt));
+
+  const consumeNextTrackVolume = useCallback(() => {
+    const multiplier = nextTrackVolume / 100;
+    setNextTrackVolume(100);
+    return multiplier;
+  }, [nextTrackVolume]);
 
   const sendOrRun = useCallback((command: RemoteCommand, track?: Track) => {
+    const preparedCommand = command.type === 'play' && command.volumeMultiplier === undefined
+      ? { ...command, volumeMultiplier: consumeNextTrackVolume() }
+      : command;
     if (remote && detail) {
-      socket?.emit('remote-command', { projectId: detail.project.id, command });
+      socket?.emit('remote-command', { projectId: detail.project.id, command: preparedCommand });
       return;
     }
-    if (command.type === 'stop-all') {
+    if (preparedCommand.type === 'stop-all') {
       window.dispatchEvent(new Event('soundflow:stop-temporary-audio'));
       audioEngine.stopAll(detail?.tracks ?? []);
     }
-    else if (command.type === 'stop' && track) audioEngine.stop(track.id, track.fadeOutMs);
-    else if (command.type === 'play' && track) audioEngine.play(track).catch((cause) => setError(cause.message));
-  }, [detail, remote, socket]);
+    else if (preparedCommand.type === 'stop' && track) audioEngine.stop(track.id, track.fadeOutMs);
+    else if (preparedCommand.type === 'play' && track) audioEngine.play(track, track.fadeInMs, preparedCommand.volumeMultiplier).catch((cause) => setError(cause.message));
+  }, [consumeNextTrackVolume, detail, remote, socket]);
 
   const runTrackAction = useCallback((action: MouseAction, track: Track) => {
     if (action === 'none') return;
+    const startsPlayback = action === 'start' || action === 'crossfade' || action === 'fade-in' || action === 'replace';
+    const volumeMultiplier = startsPlayback ? consumeNextTrackVolume() : undefined;
     if (remote && detail) {
-      socket?.emit('remote-command', { projectId: detail.project.id, command: { type: 'run-action', trackId: track.id, action } satisfies RemoteCommand });
+      socket?.emit('remote-command', { projectId: detail.project.id, command: { type: 'run-action', trackId: track.id, action, volumeMultiplier } satisfies RemoteCommand });
       return;
     }
-    audioEngine.runAction(action, track, detail?.tracks ?? []).catch((cause) => setError(cause.message));
-  }, [detail, remote, socket]);
+    audioEngine.runAction(action, track, detail?.tracks ?? [], volumeMultiplier).catch((cause) => setError(cause.message));
+  }, [consumeNextTrackVolume, detail, remote, socket]);
 
   useEffect(() => {
     if (!detail) return;
@@ -352,6 +373,26 @@ export default function App() {
     setHistoryOpen(false);
   }
 
+  function toggleChrono() {
+    if (chronoStartedAt !== undefined) {
+      setChronoElapsedMs((elapsed) => elapsed + Date.now() - chronoStartedAt);
+      setChronoStartedAt(undefined);
+    } else {
+      setChronoStartedAt(Date.now());
+    }
+  }
+
+  function resetChrono() {
+    setChronoElapsedMs(0);
+    if (chronoStartedAt !== undefined) setChronoStartedAt(Date.now());
+  }
+
+  function toggleRemoteMode() {
+    const url = new URL(window.location.href);
+    if (remote) url.searchParams.delete('remote'); else url.searchParams.set('remote', '1');
+    window.location.href = url.toString();
+  }
+
   async function logout() {
     audioEngine.stopAll(detail?.tracks ?? []);
     audioEngine.resetHistory();
@@ -377,11 +418,18 @@ export default function App() {
         {playingTracks.length === 0 ? <div className="players-empty"><AudioWaveform size={24} /><strong>Aucun son en lecture</strong><span>Les lecteurs actifs apparaîtront ici.</span></div> : playingTracks.map(({ playback, track, occurrence }) => {
           const category = detail?.categories.find((item) => item.id === track.categoryId);
           const color = track.color ?? category?.color ?? '#71717a';
-          return <article className="player-card" key={playback.id} style={{ '--track-color': color } as React.CSSProperties}>
+          const totalElapsedMs = playback.paused ? playback.elapsedMs : playback.elapsedMs + Math.max(0, performance.now() - playback.resumedAtMs);
+          const positionMs = playback.loop ? totalElapsedMs % playback.durationMs : Math.min(totalElapsedMs, playback.durationMs);
+          return <article className={`player-card ${playback.paused ? 'is-paused' : ''}`} key={playback.id} style={{ '--track-color': color } as React.CSSProperties}>
             <div className="player-card-signal"><i /><i /><i /><i /></div>
-            <button onClick={() => audioEngine.stopInstance(playback.id, track.fadeOutMs)} aria-label={`Arrêter cette lecture de ${track.title}`}><Square size={13} fill="currentColor" /></button>
-            <strong>{track.title}</strong>
-            <span>{category?.name ?? 'Sans catégorie'}{occurrence > 1 ? ` · Lecture ${occurrence}` : ''}{track.loop ? ' · Boucle' : ''}</span>
+            <div className="player-card-copy"><strong>{track.title}</strong><span>{category?.name ?? 'Sans catégorie'}{occurrence > 1 ? ` · Lecture ${occurrence}` : ''}</span></div>
+            <div className="player-card-time"><span>{formatPlaybackDuration(positionMs)}</span><span>−{formatPlaybackDuration(Math.max(0, playback.durationMs - positionMs))}</span></div>
+            <label className="player-card-volume"><Volume2 size={14} /><input type="range" min="0" max="200" value={Math.round(playback.volume * 100)} onChange={(event) => audioEngine.setInstanceVolume(playback.id, Number(event.target.value) / 100)} aria-label={`Volume de ${track.title}`} /><em>{Math.round(playback.volume * 100)}</em></label>
+            <div className="player-card-controls">
+              <button className={playback.loop ? 'active' : ''} onClick={() => audioEngine.setInstanceLoop(playback.id, !playback.loop)} aria-label={playback.loop ? `Désactiver la boucle de ${track.title}` : `Jouer ${track.title} en boucle`} title="Boucle"><Repeat2 size={15} /></button>
+              <button onClick={() => audioEngine.togglePauseInstance(playback.id)} aria-label={playback.paused ? `Reprendre ${track.title}` : `Mettre ${track.title} en pause`} title={playback.paused ? 'Reprendre' : 'Pause'}>{playback.paused ? <Play size={15} fill="currentColor" /> : <Pause size={15} fill="currentColor" />}</button>
+              <button className="stop" onClick={() => audioEngine.stopInstance(playback.id, track.fadeOutMs)} aria-label={`Arrêter cette lecture de ${track.title}`} title="Arrêter"><Square size={14} fill="currentColor" /></button>
+            </div>
           </article>;
         })}
       </div>
@@ -391,14 +439,20 @@ export default function App() {
     <main className="workspace">
       <header className="topbar">
         <button className="icon-button menu-button" onClick={() => setSidebarOpen(true)}><Menu /></button>
-        <div><p className="eyebrow">{remote ? 'Télécommande' : 'Régie principale'}</p><h1>{detail?.project.name ?? 'Chargement…'}</h1></div>
+        <div className="topbar-title"><p className="eyebrow">{remote ? 'Télécommande' : 'Régie principale'}</p><h1>{detail?.project.name ?? 'Chargement…'}</h1></div>
+        <div className="topbar-console">
+          <section className="console-module next-volume" title="Ce multiplicateur s'applique au prochain son, puis revient à 100 %.">
+            <span><Volume2 size={14} />Son suivant</span>
+            <label><input type="range" min="0" max="200" value={nextTrackVolume} onChange={(event) => setNextTrackVolume(Number(event.target.value))} /><strong>{nextTrackVolume} %</strong></label>
+          </section>
+          <section className="console-module stopwatch">
+            <span><Timer size={14} />Chrono</span>
+            <div><strong>{formatStopwatch(displayedChronoMs)}</strong><button onClick={toggleChrono} aria-label={chronoStartedAt === undefined ? 'Démarrer le chronomètre' : 'Mettre le chronomètre en pause'}>{chronoStartedAt === undefined ? <Play size={13} fill="currentColor" /> : <Pause size={13} fill="currentColor" />}</button><button onClick={resetChrono} aria-label="Réinitialiser le chronomètre"><RotateCcw size={13} /></button></div>
+          </section>
+          <section className="console-module wall-clock"><span><Clock3 size={14} />Horloge</span><strong>{formatClock(now)}</strong></section>
+        </div>
         <div className="top-actions">
           <span className={`connection ${connected ? 'online' : ''}`}>{connected ? <Wifi size={15} /> : <WifiOff size={15} />}{connected ? 'Synchronisé' : 'Hors connexion'}</span>
-          <button className="button ghost remote-button" onClick={() => {
-            const url = new URL(window.location.href);
-            if (remote) url.searchParams.delete('remote'); else url.searchParams.set('remote', '1');
-            window.location.href = url.toString();
-          }}>{remote ? <Radio size={17} /> : <Smartphone size={17} />}{remote ? 'Ouvrir la régie' : 'Télécommande'}</button>
           <button className="icon-button settings-button" onClick={() => setSettingsOpen(true)} aria-label="Ouvrir les paramètres" title="Paramètres"><Settings size={19} /></button>
           {!remote && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Ajouter un son</button>}
         </div>
@@ -469,7 +523,7 @@ export default function App() {
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
-    {settingsOpen && <SettingsDialog user={user} projects={projects} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {settingsOpen && <SettingsDialog user={user} projects={projects} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} remote={remote} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {freesoundOpen && detail && <FreesoundDialog initialQuery={search} projectId={detail.project.id} categories={detail.categories} defaultCategoryId={!isSearching && selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} onImported={refreshProject} onClose={() => setFreesoundOpen(false)} />}
     {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
@@ -503,4 +557,21 @@ function readNumberRange(key: string, fallback: number, min: number, max: number
   if (stored === null) return fallback;
   const value = Number(stored);
   return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+}
+
+function formatPlaybackDuration(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1_000));
+  return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, '0')}`;
+}
+
+function formatStopwatch(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1_000));
+  const hours = Math.floor(totalSeconds / 3_600);
+  const minutes = Math.floor((totalSeconds % 3_600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, '0')).join(':');
+}
+
+function formatClock(timestamp: number): string {
+  return clockFormatter.format(timestamp);
 }

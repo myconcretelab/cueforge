@@ -30,6 +30,7 @@ interface FreesoundSearchInput {
   apiKey: string;
   query: string;
   license: FreesoundLicenseFilter;
+  minDuration?: number;
   maxDuration?: number;
   page: number;
 }
@@ -63,7 +64,9 @@ export function buildFreesoundSearchUrl(input: Omit<FreesoundSearchInput, 'apiKe
   url.searchParams.set('page', String(input.page));
   url.searchParams.set('sort', 'score');
   const filters = [licenseFilters[input.license]];
-  if (input.maxDuration) filters.push(`duration:[0 TO ${input.maxDuration}]`);
+  if (input.minDuration || input.maxDuration) {
+    filters.push(`duration:[${input.minDuration ?? 0} TO ${input.maxDuration ?? '*'}]`);
+  }
   url.searchParams.set('filter', filters.join(' '));
   return url;
 }

@@ -5,15 +5,22 @@ export interface ActivePlayback {
   trackId: string;
   sequence: number;
   startedAtMs: number;
+  resumedAtMs: number;
+  elapsedMs: number;
   durationMs: number;
   loop: boolean;
+  paused: boolean;
+  volume: number;
 }
 
 interface Playback extends ActivePlayback {
-  source: AudioBufferSourceNode;
+  source?: AudioBufferSourceNode;
   gain: GainNode;
+  buffer: AudioBuffer;
+  startAtSeconds: number;
+  endAtSeconds: number;
+  positionSeconds: number;
   stopping: boolean;
-  stoppedProgress?: number;
 }
 
 type Listener = (playbacks: ActivePlayback[]) => void;
@@ -61,7 +68,9 @@ class AudioEngine {
   private getActivePlaybacks(): ActivePlayback[] {
     return [...this.active.values()]
       .flatMap((instances) => [...instances])
-      .map(({ id, trackId, sequence, startedAtMs, durationMs, loop }) => ({ id, trackId, sequence, startedAtMs, durationMs, loop }))
+      .map(({ id, trackId, sequence, startedAtMs, resumedAtMs, elapsedMs, durationMs, loop, paused, volume }) => ({
+        id, trackId, sequence, startedAtMs, resumedAtMs, elapsedMs, durationMs, loop, paused, volume,
+      }))
       .sort((a, b) => a.sequence - b.sequence);
   }
 
@@ -128,52 +137,86 @@ class AudioEngine {
     await this.load(track);
   }
 
-  async play(track: Track, fadeInMs = track.fadeInMs): Promise<void> {
+  async play(track: Track, fadeInMs = track.fadeInMs, volumeMultiplier = 1): Promise<void> {
     const [context, buffer] = await Promise.all([this.getContext(), this.load(track)]);
-    const source = context.createBufferSource();
     const gain = context.createGain();
-    source.buffer = buffer;
-    source.loop = track.loop;
     const startAt = Math.min(track.startTimeMs / 1000, Math.max(0, buffer.duration - 0.01));
     const endAt = track.endTimeMs ? Math.min(track.endTimeMs / 1000, buffer.duration) : buffer.duration;
-    if (track.loop) {
-      source.loopStart = startAt;
-      source.loopEnd = Math.max(startAt + 0.01, endAt);
-    }
-    source.connect(gain).connect(context.destination);
+    const volume = Math.min(2, Math.max(0, track.volume * volumeMultiplier));
+    gain.connect(context.destination);
     const now = context.currentTime;
     if (fadeInMs > 0) {
       gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(track.volume, now + fadeInMs / 1000);
+      gain.gain.linearRampToValueAtTime(volume, now + fadeInMs / 1000);
     } else {
-      gain.gain.setValueAtTime(track.volume, now);
+      gain.gain.setValueAtTime(volume, now);
     }
     const sequence = ++this.playbackSequence;
+    const startedAtMs = performance.now();
     const playback: Playback = {
       id: `${track.id}:${sequence}`,
       trackId: track.id,
       sequence,
-      startedAtMs: performance.now(),
+      startedAtMs,
+      resumedAtMs: startedAtMs,
+      elapsedMs: 0,
       durationMs: Math.max(10, (endAt - startAt) * 1_000),
       loop: track.loop,
-      source,
+      paused: false,
+      volume,
       gain,
+      buffer,
+      startAtSeconds: startAt,
+      endAtSeconds: endAt,
+      positionSeconds: startAt,
       stopping: false,
     };
     const instances = this.active.get(track.id) ?? new Set<Playback>();
     instances.add(playback);
     this.active.set(track.id, instances);
-    source.onended = () => {
-      const progress = playback.stoppedProgress ?? (playback.loop
-        ? Math.min(1, (performance.now() - playback.startedAtMs) / playback.durationMs)
-        : 1);
-      this.recordProgress(playback, progress);
-      instances.delete(playback);
-      if (!instances.size) this.active.delete(track.id);
-      this.notify();
-    };
-    if (track.loop) source.start(0, startAt);
-    else source.start(0, startAt, Math.max(0.01, endAt - startAt));
+    this.startPlaybackSource(playback);
+    this.notify();
+  }
+
+  togglePauseInstance(playbackId: string): void {
+    const playback = this.findPlayback(playbackId);
+    if (!playback || playback.stopping) return;
+    if (playback.paused) {
+      playback.paused = false;
+      if (!playback.loop && playback.positionSeconds >= playback.endAtSeconds - 0.005) {
+        this.finishPlayback(playback, true);
+        return;
+      }
+      this.startPlaybackSource(playback);
+    } else {
+      this.capturePosition(playback);
+      playback.paused = true;
+    }
+    this.notify();
+  }
+
+  setInstanceVolume(playbackId: string, volume: number): void {
+    const playback = this.findPlayback(playbackId);
+    const context = this.context;
+    if (!playback || !context || playback.stopping) return;
+    const nextVolume = Math.min(2, Math.max(0, volume));
+    const now = context.currentTime;
+    playback.gain.gain.cancelScheduledValues(now);
+    playback.gain.gain.setValueAtTime(playback.gain.gain.value, now);
+    playback.gain.gain.linearRampToValueAtTime(nextVolume, now + .03);
+    playback.volume = nextVolume;
+    this.notify();
+  }
+
+  setInstanceLoop(playbackId: string, loop: boolean): void {
+    const playback = this.findPlayback(playbackId);
+    if (!playback || playback.stopping || playback.loop === loop) return;
+    if (!playback.paused) this.capturePosition(playback);
+    if (playback.loop && !loop) {
+      playback.elapsedMs = Math.max(0, playback.positionSeconds - playback.startAtSeconds) * 1_000;
+    }
+    playback.loop = loop;
+    if (!playback.paused) this.startPlaybackSource(playback);
     this.notify();
   }
 
@@ -185,21 +228,23 @@ class AudioEngine {
   }
 
   stopInstance(playbackId: string, fadeOutMs = 250): void {
-    for (const instances of this.active.values()) {
-      const playback = [...instances].find((candidate) => candidate.id === playbackId);
-      if (playback) {
-        this.stopPlayback(playback, fadeOutMs);
-        return;
-      }
-    }
+    const playback = this.findPlayback(playbackId);
+    if (playback) this.stopPlayback(playback, fadeOutMs);
   }
 
   private stopPlayback(playback: Playback, fadeOutMs: number): void {
     const context = this.context;
     if (!context || playback.stopping) return;
-    playback.stoppedProgress = Math.min(1, Math.max(0, (performance.now() - playback.startedAtMs) / playback.durationMs));
+    const elapsedMs = this.currentElapsedMs(playback);
+    playback.elapsedMs = elapsedMs;
+    playback.resumedAtMs = performance.now();
+    this.recordProgress(playback, elapsedMs / playback.durationMs);
     playback.stopping = true;
     const { source, gain } = playback;
+    if (!source || playback.paused) {
+      this.finishPlayback(playback, false);
+      return;
+    }
     const now = context.currentTime;
     gain.gain.cancelScheduledValues(now);
     if (fadeOutMs <= 0) {
@@ -216,15 +261,84 @@ class AudioEngine {
     for (const track of tracks) this.stop(track.id, fadeOutMs ?? track.fadeOutMs);
   }
 
-  async runAction(action: MouseAction, track: Track, projectTracks: Track[]): Promise<void> {
+  async runAction(action: MouseAction, track: Track, projectTracks: Track[], volumeMultiplier = 1): Promise<void> {
     if (action === 'none') return;
     if (action === 'stop') return this.stop(track.id, track.fadeOutMs);
-    if (action === 'start') return this.play(track);
-    if (action === 'fade-in') return this.play(track, track.fadeInMs > 0 ? track.fadeInMs : 1_200);
+    if (action === 'start') return this.play(track, track.fadeInMs, volumeMultiplier);
+    if (action === 'fade-in') return this.play(track, track.fadeInMs > 0 ? track.fadeInMs : 1_200, volumeMultiplier);
     await this.load(track);
     if (action === 'replace') this.stopAll(projectTracks, 0);
     else this.stopAll(projectTracks);
-    await this.play(track);
+    await this.play(track, track.fadeInMs, volumeMultiplier);
+  }
+
+  private findPlayback(playbackId: string): Playback | undefined {
+    for (const instances of this.active.values()) {
+      const playback = [...instances].find((candidate) => candidate.id === playbackId);
+      if (playback) return playback;
+    }
+    return undefined;
+  }
+
+  private startPlaybackSource(playback: Playback): void {
+    const context = this.context;
+    if (!context) return;
+    const source = context.createBufferSource();
+    source.buffer = playback.buffer;
+    source.loop = playback.loop;
+    if (playback.loop) {
+      source.loopStart = playback.startAtSeconds;
+      source.loopEnd = Math.max(playback.startAtSeconds + .01, playback.endAtSeconds);
+    }
+    source.connect(playback.gain);
+    playback.source = source;
+    playback.resumedAtMs = performance.now();
+    source.onended = () => {
+      if (playback.source !== source) return;
+      playback.source = undefined;
+      this.finishPlayback(playback, !playback.stopping && !playback.loop);
+    };
+    if (playback.loop) source.start(0, playback.positionSeconds);
+    else source.start(0, playback.positionSeconds, Math.max(.01, playback.endAtSeconds - playback.positionSeconds));
+  }
+
+  private capturePosition(playback: Playback): void {
+    const source = playback.source;
+    if (!source) return;
+    const nowMs = performance.now();
+    const elapsedSeconds = Math.max(0, nowMs - playback.resumedAtMs) / 1_000;
+    playback.elapsedMs += elapsedSeconds * 1_000;
+    if (playback.loop) {
+      const length = Math.max(.01, playback.endAtSeconds - playback.startAtSeconds);
+      playback.positionSeconds = playback.startAtSeconds
+        + ((playback.positionSeconds - playback.startAtSeconds + elapsedSeconds) % length);
+    } else {
+      playback.positionSeconds = Math.min(playback.endAtSeconds, playback.positionSeconds + elapsedSeconds);
+    }
+    playback.resumedAtMs = nowMs;
+    playback.source = undefined;
+    source.onended = null;
+    try { source.stop(); } catch { /* La source peut déjà être terminée. */ }
+    const context = this.context;
+    if (context) {
+      const now = context.currentTime;
+      playback.gain.gain.cancelScheduledValues(now);
+      playback.gain.gain.setValueAtTime(playback.gain.gain.value, now);
+    }
+  }
+
+  private currentElapsedMs(playback: Playback): number {
+    return playback.paused ? playback.elapsedMs : playback.elapsedMs + Math.max(0, performance.now() - playback.resumedAtMs);
+  }
+
+  private finishPlayback(playback: Playback, completed: boolean): void {
+    this.recordProgress(playback, completed ? 1 : this.currentElapsedMs(playback) / playback.durationMs);
+    const instances = this.active.get(playback.trackId);
+    instances?.delete(playback);
+    if (!instances?.size) this.active.delete(playback.trackId);
+    playback.source = undefined;
+    playback.gain.disconnect();
+    this.notify();
   }
 }
 
