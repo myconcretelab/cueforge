@@ -14,14 +14,10 @@ interface Props {
 
 export function TrackPad({ track, color, active, remote, shortcut, onPlay, onStop, onEdit }: Props) {
   return <article className={`track-pad ${active ? 'is-active' : ''}`} style={{ '--track-color': color } as React.CSSProperties}>
-    <div className="track-pad-top">
-      <span className="track-type">{track.mimeType.split('/')[1]?.toUpperCase()}</span>
-      <button className="icon-button subtle" onClick={onEdit} aria-label={`Modifier ${track.title}`}><MoreHorizontal size={18} /></button>
-    </div>
+    <button className="icon-button subtle track-edit" onClick={onEdit} aria-label={`Modifier ${track.title}`}><MoreHorizontal size={18} /></button>
     <button className="track-trigger" onClick={active && !remote ? onStop : onPlay}>
-      <span className="play-disc">{active ? <Pause size={22} fill="currentColor" /> : <Play size={22} fill="currentColor" />}</span>
+      <span className="play-disc">{active ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}</span>
       <span className="track-title">{track.title}</span>
-      <span className="track-file">{track.originalFilename}</span>
     </button>
     <div className="track-meta">
       <span>{track.durationMs ? formatDuration((track.endTimeMs ?? track.durationMs) - track.startTimeMs) : '—:—'}</span>

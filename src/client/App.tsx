@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  AudioLines, CloudDownload, FileArchive, FolderPlus, LogOut, Menu, Plus, Radio,
+  AudioLines, AudioWaveform, CloudDownload, FileArchive, FolderPlus, LogOut, Menu, Plus, Radio,
   Search, Settings2, Smartphone, Square, Upload, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
@@ -112,6 +112,7 @@ export default function App() {
     const matches = track.title.toLowerCase().includes(search.toLowerCase()) || track.originalFilename.toLowerCase().includes(search.toLowerCase());
     return inCategory && matches;
   }), [detail?.tracks, search, selectedCategoryId]);
+  const playingTracks = useMemo(() => (detail?.tracks ?? []).filter((track) => activeTracks.has(track.id)), [activeTracks, detail?.tracks]);
 
   const sendOrRun = useCallback((command: RemoteCommand, track?: Track) => {
     if (remote && detail) {
@@ -196,17 +197,23 @@ export default function App() {
   return <div className={`app-shell ${remote ? 'remote-mode' : ''}`}>
     <aside className={sidebarOpen ? 'sidebar open' : 'sidebar'}>
       <header className="brand"><span className="brand-mark small"><AudioLines /></span><strong>SoundFlow</strong><button className="icon-button sidebar-close" onClick={() => setSidebarOpen(false)}><X /></button></header>
-      <div className="side-label"><span>Spectacles</span><button onClick={createProject} aria-label="Nouveau spectacle"><FolderPlus size={17} /></button></div>
+      <div className="side-label player-heading"><span>En lecture</span><em>{playingTracks.length}</em>{playingTracks.length > 0 && <button onClick={() => sendOrRun({ type: 'stop-all' })} aria-label="Tout arrêter"><Square size={13} fill="currentColor" /></button>}</div>
+      <div className="now-playing-list">
+        {playingTracks.length === 0 ? <div className="players-empty"><AudioWaveform size={24} /><strong>Aucun son en lecture</strong><span>Les lecteurs actifs apparaîtront ici.</span></div> : playingTracks.map((track) => {
+          const category = detail?.categories.find((item) => item.id === track.categoryId);
+          const color = track.color ?? category?.color ?? '#71717a';
+          return <article className="player-card" key={track.id} style={{ '--track-color': color } as React.CSSProperties}>
+            <div className="player-card-signal"><i /><i /><i /><i /></div>
+            <button onClick={() => sendOrRun({ type: 'stop', trackId: track.id }, track)} aria-label={`Arrêter ${track.title}`}><Square size={13} fill="currentColor" /></button>
+            <strong>{track.title}</strong>
+            <span>{category?.name ?? 'Sans catégorie'}{track.loop ? ' · Boucle' : ''}</span>
+          </article>;
+        })}
+      </div>
+      <div className="side-label projects-heading"><span>Spectacles</span><button onClick={createProject} aria-label="Nouveau spectacle"><FolderPlus size={17} /></button></div>
       <nav className="project-list">
         {projects.map((project) => <button key={project.id} className={project.id === selectedProjectId ? 'active' : ''} onClick={() => chooseProject(project.id)}><span>{project.name.slice(0, 1).toUpperCase()}</span>{project.name}</button>)}
       </nav>
-      {detail && <>
-        <div className="side-label category-heading"><span>Catégories</span><button onClick={createCategory} aria-label="Nouvelle catégorie"><Plus size={17} /></button></div>
-        <nav className="category-list">
-          <button className={selectedCategoryId === 'all' ? 'active' : ''} onClick={() => { setSelectedCategoryId('all'); setSidebarOpen(false); }}><i className="all-dot" />Tous les sons <em>{detail.tracks.length}</em></button>
-          {detail.categories.map((category) => <button key={category.id} className={category.id === selectedCategoryId ? 'active' : ''} onClick={() => { setSelectedCategoryId(category.id); setSidebarOpen(false); }}><i style={{ background: category.color }} />{category.name}<em>{detail.tracks.filter((track) => track.categoryId === category.id).length}</em></button>)}
-        </nav>
-      </>}
       <footer className="sidebar-footer"><button onClick={cacheOffline}><CloudDownload size={18} /><span>{offlineStatus || 'Disponible hors ligne'}</span></button><button onClick={logout}><LogOut size={18} /><span>Se déconnecter</span></button><div className="user-chip"><span>{user.displayName.slice(0, 1).toUpperCase()}</span><div><strong>{user.displayName}</strong><small>{user.email}</small></div></div></footer>
     </aside>
     {sidebarOpen && <button className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Fermer le menu" />}
@@ -226,6 +233,14 @@ export default function App() {
           {!remote && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Ajouter un son</button>}
         </div>
       </header>
+
+      {detail && <section className="category-strip">
+        <div className="category-strip-heading"><span>Catégories</span><button className="icon-button subtle" onClick={createCategory} aria-label="Nouvelle catégorie"><Plus size={17} /></button></div>
+        <nav className="category-tabs" aria-label="Catégories de sons">
+          <button className={selectedCategoryId === 'all' ? 'active' : ''} onClick={() => setSelectedCategoryId('all')} style={{ '--category-color': '#a1a1aa' } as React.CSSProperties}><span>Tous les sons</span><em>{detail.tracks.length}</em></button>
+          {detail.categories.map((category) => <button key={category.id} className={category.id === selectedCategoryId ? 'active' : ''} onClick={() => setSelectedCategoryId(category.id)} style={{ '--category-color': category.color } as React.CSSProperties}><span>{category.name}</span><em>{detail.tracks.filter((track) => track.categoryId === category.id).length}</em></button>)}
+        </nav>
+      </section>}
 
       <section className="toolbar">
         <label className="search"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un son…" /><kbd>⌘ K</kbd></label>
