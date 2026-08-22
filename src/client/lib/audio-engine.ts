@@ -1,11 +1,19 @@
 import type { MouseAction, Track } from '../types';
 
-interface Playback {
-  source: AudioBufferSourceNode;
-  gain: GainNode;
+export interface ActivePlayback {
+  id: string;
+  trackId: string;
+  sequence: number;
 }
 
-type Listener = (activeTrackIds: Set<string>) => void;
+interface Playback extends ActivePlayback {
+  source: AudioBufferSourceNode;
+  gain: GainNode;
+  stopping: boolean;
+}
+
+type Listener = (playbacks: ActivePlayback[]) => void;
+type CacheListener = (loadedTrackIds: Set<string>) => void;
 
 class AudioEngine {
   private context?: AudioContext;
@@ -13,16 +21,36 @@ class AudioEngine {
   private pending = new Map<string, Promise<AudioBuffer>>();
   private active = new Map<string, Set<Playback>>();
   private listeners = new Set<Listener>();
+  private cacheListeners = new Set<CacheListener>();
+  private playbackSequence = 0;
 
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
-    listener(new Set(this.active.keys()));
+    listener(this.getActivePlaybacks());
     return () => this.listeners.delete(listener);
   }
 
+  subscribeCache(listener: CacheListener): () => void {
+    this.cacheListeners.add(listener);
+    listener(new Set(this.buffers.keys()));
+    return () => this.cacheListeners.delete(listener);
+  }
+
+  private getActivePlaybacks(): ActivePlayback[] {
+    return [...this.active.values()]
+      .flatMap((instances) => [...instances])
+      .map(({ id, trackId, sequence }) => ({ id, trackId, sequence }))
+      .sort((a, b) => a.sequence - b.sequence);
+  }
+
   private notify(): void {
-    const ids = new Set(this.active.keys());
-    this.listeners.forEach((listener) => listener(ids));
+    const playbacks = this.getActivePlaybacks();
+    this.listeners.forEach((listener) => listener(playbacks));
+  }
+
+  private notifyCache(): void {
+    const ids = new Set(this.buffers.keys());
+    this.cacheListeners.forEach((listener) => listener(ids));
   }
 
   private async getContext(): Promise<AudioContext> {
@@ -37,13 +65,17 @@ class AudioEngine {
     const existing = this.pending.get(track.id);
     if (existing) return existing;
     const loading = (async () => {
-      const context = await this.getContext();
-      const response = await fetch(`/api/tracks/${track.id}/stream`, { credentials: 'include' });
-      if (!response.ok) throw new Error(`Impossible de charger « ${track.title} »`);
-      const decoded = await context.decodeAudioData(await response.arrayBuffer());
-      this.buffers.set(track.id, decoded);
-      this.pending.delete(track.id);
-      return decoded;
+      try {
+        const context = await this.getContext();
+        const response = await fetch(`/api/tracks/${track.id}/stream`, { credentials: 'include' });
+        if (!response.ok) throw new Error(`Impossible de charger « ${track.title} »`);
+        const decoded = await context.decodeAudioData(await response.arrayBuffer());
+        this.buffers.set(track.id, decoded);
+        this.notifyCache();
+        return decoded;
+      } finally {
+        this.pending.delete(track.id);
+      }
     })();
     this.pending.set(track.id, loading);
     return loading;
@@ -73,7 +105,8 @@ class AudioEngine {
     } else {
       gain.gain.setValueAtTime(track.volume, now);
     }
-    const playback = { source, gain };
+    const sequence = ++this.playbackSequence;
+    const playback: Playback = { id: `${track.id}:${sequence}`, trackId: track.id, sequence, source, gain, stopping: false };
     const instances = this.active.get(track.id) ?? new Set<Playback>();
     instances.add(playback);
     this.active.set(track.id, instances);
@@ -91,18 +124,34 @@ class AudioEngine {
     const context = this.context;
     const instances = this.active.get(trackId);
     if (!context || !instances) return;
-    const now = context.currentTime;
-    for (const { source, gain } of instances) {
-      gain.gain.cancelScheduledValues(now);
-      if (fadeOutMs <= 0) {
-        gain.gain.setValueAtTime(0, now);
-        source.stop(now);
-        continue;
+    for (const playback of instances) this.stopPlayback(playback, fadeOutMs);
+  }
+
+  stopInstance(playbackId: string, fadeOutMs = 250): void {
+    for (const instances of this.active.values()) {
+      const playback = [...instances].find((candidate) => candidate.id === playbackId);
+      if (playback) {
+        this.stopPlayback(playback, fadeOutMs);
+        return;
       }
-      gain.gain.setValueAtTime(gain.gain.value, now);
-      gain.gain.linearRampToValueAtTime(0, now + fadeOutMs / 1000);
-      source.stop(now + fadeOutMs / 1000 + 0.02);
     }
+  }
+
+  private stopPlayback(playback: Playback, fadeOutMs: number): void {
+    const context = this.context;
+    if (!context || playback.stopping) return;
+    playback.stopping = true;
+    const { source, gain } = playback;
+    const now = context.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    if (fadeOutMs <= 0) {
+      gain.gain.setValueAtTime(0, now);
+      source.stop(now);
+      return;
+    }
+    gain.gain.setValueAtTime(gain.gain.value, now);
+    gain.gain.linearRampToValueAtTime(0, now + fadeOutMs / 1000);
+    source.stop(now + fadeOutMs / 1000 + 0.02);
   }
 
   stopAll(tracks: Track[], fadeOutMs?: number): void {

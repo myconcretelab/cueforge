@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AudioLines, AudioWaveform, Menu, Plus, Radio,
+  AudioLines, AudioWaveform, CircleCheck, Download, GripVertical, LoaderCircle, Menu, Plus, Radio,
   Search, Settings, Settings2, Smartphone, Square, Upload, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
@@ -11,7 +11,7 @@ import { TrackDialog } from './components/TrackDialog';
 import { TrackPad } from './components/TrackPad';
 import { UploadDialog } from './components/UploadDialog';
 import { api, ApiError } from './lib/api';
-import { audioEngine } from './lib/audio-engine';
+import { audioEngine, type ActivePlayback } from './lib/audio-engine';
 import type { MouseAction, Project, ProjectDetail, RemoteCommand, Track, User } from './types';
 
 const colors = ['#f97316', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
@@ -31,7 +31,10 @@ export default function App() {
   const [selectedProjectId, setSelectedProjectId] = useState(localStorage.getItem('soundflow-project'));
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [search, setSearch] = useState('');
-  const [activeTracks, setActiveTracks] = useState<Set<string>>(new Set());
+  const [activePlaybacks, setActivePlaybacks] = useState<ActivePlayback[]>([]);
+  const [loadedTracks, setLoadedTracks] = useState<Set<string>>(new Set());
+  const [preloadProgress, setPreloadProgress] = useState<{ done: number; total: number }>();
+  const [categoryWidth, setCategoryWidth] = useState(() => readNumber('soundflow-category-width', 92));
   const [uploadOpen, setUploadOpen] = useState(false);
   const [soundShowImportOpen, setSoundShowImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -41,9 +44,11 @@ export default function App() {
   const [connected, setConnected] = useState(false);
   const [offlineStatus, setOfflineStatus] = useState('');
   const [error, setError] = useState('');
+  const categoryResize = useRef<{ x: number; width: number; latest: number } | undefined>(undefined);
   const remote = new URLSearchParams(window.location.search).get('remote') === '1';
 
-  useEffect(() => audioEngine.subscribe(setActiveTracks), []);
+  useEffect(() => audioEngine.subscribe(setActivePlaybacks), []);
+  useEffect(() => audioEngine.subscribeCache(setLoadedTracks), []);
 
   useEffect(() => {
     api.me().then(({ user: current }) => {
@@ -125,7 +130,23 @@ export default function App() {
     const matches = track.title.toLocaleLowerCase('fr').includes(normalizedSearch) || track.originalFilename.toLocaleLowerCase('fr').includes(normalizedSearch);
     return inCategory && matches;
   }), [detail?.tracks, isSearching, normalizedSearch, selectedCategoryId]);
-  const playingTracks = useMemo(() => (detail?.tracks ?? []).filter((track) => activeTracks.has(track.id)), [activeTracks, detail?.tracks]);
+  const activeTrackIds = useMemo(() => new Set(activePlaybacks.map((playback) => playback.trackId)), [activePlaybacks]);
+  const playingTracks = useMemo(() => {
+    const occurrences = new Map<string, number>();
+    return activePlaybacks.flatMap((playback) => {
+      const track = detail?.tracks.find((candidate) => candidate.id === playback.trackId);
+      if (!track) return [];
+      const occurrence = (occurrences.get(track.id) ?? 0) + 1;
+      occurrences.set(track.id, occurrence);
+      return [{ playback, track, occurrence }];
+    });
+  }, [activePlaybacks, detail?.tracks]);
+  const tracksToPreload = useMemo(() => {
+    if (!detail) return [];
+    if (isSearching || selectedCategoryId === 'all') return detail.tracks;
+    return detail.tracks.filter((track) => track.categoryId === selectedCategoryId);
+  }, [detail, isSearching, selectedCategoryId]);
+  const preloadedInCategory = tracksToPreload.filter((track) => loadedTracks.has(track.id)).length;
 
   const sendOrRun = useCallback((command: RemoteCommand, track?: Track) => {
     if (remote && detail) {
@@ -214,6 +235,25 @@ export default function App() {
     } catch { setOfflineStatus('Téléchargement interrompu'); }
   }
 
+  async function preloadCategory() {
+    const remaining = tracksToPreload.filter((track) => !loadedTracks.has(track.id));
+    if (!remaining.length) return;
+    setPreloadProgress({ done: tracksToPreload.length - remaining.length, total: tracksToPreload.length });
+    let done = tracksToPreload.length - remaining.length;
+    try {
+      for (let index = 0; index < remaining.length; index += 3) {
+        const batch = remaining.slice(index, index + 3);
+        await Promise.all(batch.map((track) => audioEngine.preload(track)));
+        done += batch.length;
+        setPreloadProgress({ done, total: tracksToPreload.length });
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Préchargement interrompu.');
+    } finally {
+      setPreloadProgress(undefined);
+    }
+  }
+
   async function logout() {
     audioEngine.stopAll(detail?.tracks ?? []);
     await api.logout();
@@ -235,14 +275,14 @@ export default function App() {
       </section>}
       <div className="side-label player-heading"><span>En lecture</span><em>{playingTracks.length}</em>{playingTracks.length > 0 && <button onClick={() => sendOrRun({ type: 'stop-all' })} aria-label="Tout arrêter"><Square size={13} fill="currentColor" /></button>}</div>
       <div className="now-playing-list">
-        {playingTracks.length === 0 ? <div className="players-empty"><AudioWaveform size={24} /><strong>Aucun son en lecture</strong><span>Les lecteurs actifs apparaîtront ici.</span></div> : playingTracks.map((track) => {
+        {playingTracks.length === 0 ? <div className="players-empty"><AudioWaveform size={24} /><strong>Aucun son en lecture</strong><span>Les lecteurs actifs apparaîtront ici.</span></div> : playingTracks.map(({ playback, track, occurrence }) => {
           const category = detail?.categories.find((item) => item.id === track.categoryId);
           const color = track.color ?? category?.color ?? '#71717a';
-          return <article className="player-card" key={track.id} style={{ '--track-color': color } as React.CSSProperties}>
+          return <article className="player-card" key={playback.id} style={{ '--track-color': color } as React.CSSProperties}>
             <div className="player-card-signal"><i /><i /><i /><i /></div>
-            <button onClick={() => sendOrRun({ type: 'stop', trackId: track.id }, track)} aria-label={`Arrêter ${track.title}`}><Square size={13} fill="currentColor" /></button>
+            <button onClick={() => audioEngine.stopInstance(playback.id, track.fadeOutMs)} aria-label={`Arrêter cette lecture de ${track.title}`}><Square size={13} fill="currentColor" /></button>
             <strong>{track.title}</strong>
-            <span>{category?.name ?? 'Sans catégorie'}{track.loop ? ' · Boucle' : ''}</span>
+            <span>{category?.name ?? 'Sans catégorie'}{occurrence > 1 ? ` · Lecture ${occurrence}` : ''}{track.loop ? ' · Boucle' : ''}</span>
           </article>;
         })}
       </div>
@@ -267,14 +307,29 @@ export default function App() {
 
       {detail && <section className="category-strip">
         <div className="category-strip-heading"><span>Catégories</span><button className="icon-button subtle" onClick={createCategory} aria-label="Nouvelle catégorie"><Plus size={17} /></button></div>
-        <nav className="category-tabs" aria-label="Catégories de sons">
-          <button className={selectedCategoryId === 'all' || isSearching ? 'active' : ''} onClick={() => { setSelectedCategoryId('all'); setSearch(''); }} style={{ '--category-color': '#a1a1aa' } as React.CSSProperties}><span>Tous les sons</span><em>{detail.tracks.length}</em></button>
-          {detail.categories.map((category) => <button key={category.id} className={!isSearching && category.id === selectedCategoryId ? 'active' : ''} onClick={() => { setSelectedCategoryId(category.id); setSearch(''); }} style={{ '--category-color': category.color } as React.CSSProperties}><span>{category.name}</span><em>{detail.tracks.filter((track) => track.categoryId === category.id).length}</em></button>)}
-        </nav>
+        <div className="category-tabs-row" style={{ '--category-tab-width': `${categoryWidth}px` } as React.CSSProperties}>
+          <nav className="category-tabs" aria-label="Catégories de sons">
+            <button className={selectedCategoryId === 'all' || isSearching ? 'active' : ''} onClick={() => { setSelectedCategoryId('all'); setSearch(''); }} style={{ '--category-color': '#a1a1aa' } as React.CSSProperties}><span>Tous les sons</span><em>{detail.tracks.length}</em></button>
+            {detail.categories.map((category) => <button key={category.id} className={!isSearching && category.id === selectedCategoryId ? 'active' : ''} onClick={() => { setSelectedCategoryId(category.id); setSearch(''); }} style={{ '--category-color': category.color } as React.CSSProperties}><span>{category.name}</span><em>{detail.tracks.filter((track) => track.categoryId === category.id).length}</em></button>)}
+          </nav>
+          <button className="category-resizer" aria-label="Régler la largeur des catégories" title="Glisser pour régler la largeur · Double-cliquer pour réinitialiser"
+            onDoubleClick={() => { setCategoryWidth(92); localStorage.setItem('soundflow-category-width', '92'); }}
+            onPointerDown={(event) => { categoryResize.current = { x: event.clientX, width: categoryWidth, latest: categoryWidth }; event.currentTarget.setPointerCapture(event.pointerId); }}
+            onPointerMove={(event) => { if (!categoryResize.current) return; const next = Math.min(190, Math.max(66, categoryResize.current.width + event.clientX - categoryResize.current.x)); categoryResize.current.latest = next; setCategoryWidth(next); }}
+            onPointerUp={(event) => { if (!categoryResize.current) return; event.currentTarget.releasePointerCapture(event.pointerId); localStorage.setItem('soundflow-category-width', String(categoryResize.current.latest)); categoryResize.current = undefined; }}>
+            <GripVertical size={17} />
+          </button>
+        </div>
       </section>}
 
       <section className="toolbar">
-        <label className="search"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un son…" /><kbd>⌘ K</kbd></label>
+        <div className="search-group">
+          <label className="search"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un son…" /><kbd>⌘ K</kbd></label>
+          {!remote && <button className={`button preload ${preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'is-loaded' : ''}`} onClick={() => preloadCategory()} disabled={!tracksToPreload.length || Boolean(preloadProgress) || preloadedInCategory === tracksToPreload.length} title="Précharger les sons de la catégorie affichée">
+            {preloadProgress ? <LoaderCircle className="spin" size={16} /> : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? <CircleCheck size={16} /> : <Download size={16} />}
+            <span>{preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Préchargée' : 'Précharger'}</span>
+          </button>}
+        </div>
         <div className="track-count"><span>{visibleTracks.length}</span> son{visibleTracks.length !== 1 ? 's' : ''}</div>
         <button className="button stop" onClick={() => sendOrRun({ type: 'stop-all' })}><Square size={15} fill="currentColor" />Tout arrêter <kbd>Échap</kbd></button>
       </section>
@@ -283,14 +338,14 @@ export default function App() {
         {remote && <div className="remote-banner"><Radio size={18} /><span>Mode télécommande — les sons seront joués sur la régie connectée.</span></div>}
         {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleTracks.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className="track-grid">{visibleTracks.map((track, index) => {
           const category = detail.categories.find((item) => item.id === track.categoryId);
-          return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTracks.has(track.id)} shortcut={index < 9 ? index + 1 : undefined}
+          return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} loaded={loadedTracks.has(track.id)} shortcut={index < 9 ? index + 1 : undefined}
             onPrimary={() => runTrackAction(detail.project.leftClickAction ?? 'start', track)}
             onSecondary={() => runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
             onEdit={() => setEditingTrack(track)} />;
         })}</div>}
       </section>
 
-      <footer className="statusbar"><span><i className={connected ? 'live' : ''} />{remote ? 'Contrôleur' : 'Lecteur principal'}</span><span><Settings2 size={14} /> Web Audio · {activeTracks.size} actif{activeTracks.size !== 1 ? 's' : ''}</span></footer>
+      <footer className="statusbar"><span><i className={connected ? 'live' : ''} />{remote ? 'Contrôleur' : 'Lecteur principal'}</span><span><Settings2 size={14} /> Web Audio · {activePlaybacks.length} actif{activePlaybacks.length !== 1 ? 's' : ''}</span></footer>
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
@@ -313,4 +368,11 @@ function readCache<T>(key: string): T | undefined {
   } catch {
     return undefined;
   }
+}
+
+function readNumber(key: string, fallback: number): number {
+  const stored = localStorage.getItem(key);
+  if (stored === null) return fallback;
+  const value = Number(stored);
+  return Number.isFinite(value) ? Math.min(190, Math.max(66, value)) : fallback;
 }
