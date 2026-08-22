@@ -4,6 +4,9 @@ export interface ActivePlayback {
   id: string;
   trackId: string;
   sequence: number;
+  startedAtMs: number;
+  durationMs: number;
+  loop: boolean;
 }
 
 interface Playback extends ActivePlayback {
@@ -39,7 +42,7 @@ class AudioEngine {
   private getActivePlaybacks(): ActivePlayback[] {
     return [...this.active.values()]
       .flatMap((instances) => [...instances])
-      .map(({ id, trackId, sequence }) => ({ id, trackId, sequence }))
+      .map(({ id, trackId, sequence, startedAtMs, durationMs, loop }) => ({ id, trackId, sequence, startedAtMs, durationMs, loop }))
       .sort((a, b) => a.sequence - b.sequence);
   }
 
@@ -106,7 +109,17 @@ class AudioEngine {
       gain.gain.setValueAtTime(track.volume, now);
     }
     const sequence = ++this.playbackSequence;
-    const playback: Playback = { id: `${track.id}:${sequence}`, trackId: track.id, sequence, source, gain, stopping: false };
+    const playback: Playback = {
+      id: `${track.id}:${sequence}`,
+      trackId: track.id,
+      sequence,
+      startedAtMs: performance.now(),
+      durationMs: Math.max(10, (endAt - startAt) * 1_000),
+      loop: track.loop,
+      source,
+      gain,
+      stopping: false,
+    };
     const instances = this.active.get(track.id) ?? new Set<Playback>();
     instances.add(playback);
     this.active.set(track.id, instances);

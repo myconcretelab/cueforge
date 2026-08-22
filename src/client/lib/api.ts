@@ -1,4 +1,4 @@
-import type { Category, MouseAction, Project, ProjectDetail, SoundShowAnalysis, Track, User } from '../types';
+import type { Category, KeyAction, MouseAction, Project, ProjectDetail, SoundShowAnalysis, Track, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -32,7 +32,7 @@ export const api = {
     method: 'POST', body: JSON.stringify({ name }),
   }),
   project: (id: string) => request<ProjectDetail>(`/api/projects/${id}`),
-  updateMouseActions: (projectId: string, input: { leftClickAction?: MouseAction; rightClickAction?: MouseAction }) =>
+  updateProjectActions: (projectId: string, input: { leftClickAction?: MouseAction; rightClickAction?: MouseAction; escapeKeyAction?: KeyAction; backspaceKeyAction?: KeyAction }) =>
     request<{ project: Project }>(`/api/projects/${projectId}/mouse-actions`, { method: 'PATCH', body: JSON.stringify(input) }),
   createCategory: (projectId: string, name: string, color: string, position?: number) =>
     request<{ category: Category }>(`/api/projects/${projectId}/categories`, {
@@ -41,6 +41,8 @@ export const api = {
   uploadTrack: (form: FormData) => request<{ track: Track }>('/api/tracks/upload', { method: 'POST', body: form }),
   updateTrack: (id: string, input: Partial<Pick<Track, 'title' | 'categoryId' | 'volume' | 'loop' | 'fadeInMs' | 'fadeOutMs' | 'startTimeMs' | 'endTimeMs'>>) =>
     request<{ track: Track }>(`/api/tracks/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+  reorderTrack: (id: string, input: { categoryId: string | null; beforeTrackId?: string | null }) =>
+    request<{ tracks: Track[] }>(`/api/tracks/${id}/reorder`, { method: 'PATCH', body: JSON.stringify(input) }),
   deleteTrack: (id: string) => request<void>(`/api/tracks/${id}`, { method: 'DELETE' }),
   analyzeSoundShow: (file: File) => {
     const form = new FormData();

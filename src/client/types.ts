@@ -5,6 +5,7 @@ export interface User {
 }
 
 export type MouseAction = 'start' | 'crossfade' | 'fade-in' | 'replace' | 'stop' | 'none';
+export type KeyAction = 'stop-all' | 'none';
 
 export interface Project {
   id: string;
@@ -12,6 +13,8 @@ export interface Project {
   ownerId: string;
   leftClickAction: MouseAction;
   rightClickAction: MouseAction;
+  escapeKeyAction: KeyAction;
+  backspaceKeyAction: KeyAction;
   createdAt: string;
   updatedAt: string;
 }

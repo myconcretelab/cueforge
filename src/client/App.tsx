@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AudioLines, AudioWaveform, CircleCheck, Download, GripVertical, LoaderCircle, Menu, Plus, Radio,
+  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Download, GripVertical, LoaderCircle, Menu, Plus, Radio,
   Search, Settings, Settings2, Smartphone, Square, Upload, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
@@ -12,7 +12,7 @@ import { TrackPad } from './components/TrackPad';
 import { UploadDialog } from './components/UploadDialog';
 import { api, ApiError } from './lib/api';
 import { audioEngine, type ActivePlayback } from './lib/audio-engine';
-import type { MouseAction, Project, ProjectDetail, RemoteCommand, Track, User } from './types';
+import type { KeyAction, MouseAction, Project, ProjectDetail, RemoteCommand, Track, User } from './types';
 
 const colors = ['#f97316', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
 const mouseActions: Array<{ value: MouseAction; label: string }> = [
@@ -34,7 +34,12 @@ export default function App() {
   const [activePlaybacks, setActivePlaybacks] = useState<ActivePlayback[]>([]);
   const [loadedTracks, setLoadedTracks] = useState<Set<string>>(new Set());
   const [preloadProgress, setPreloadProgress] = useState<{ done: number; total: number }>();
-  const [categoryWidth, setCategoryWidth] = useState(() => readNumber('soundflow-category-width', 92));
+  const [categoryWidth, setCategoryWidth] = useState(() => readNumber('soundflow-category-width', 112));
+  const [reorderMode, setReorderMode] = useState(false);
+  const [draggedTrackId, setDraggedTrackId] = useState<string>();
+  const [dropTrackId, setDropTrackId] = useState<string>();
+  const [dropCategoryId, setDropCategoryId] = useState<string>();
+  const [reordering, setReordering] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [soundShowImportOpen, setSoundShowImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -131,6 +136,7 @@ export default function App() {
     return inCategory && matches;
   }), [detail?.tracks, isSearching, normalizedSearch, selectedCategoryId]);
   const activeTrackIds = useMemo(() => new Set(activePlaybacks.map((playback) => playback.trackId)), [activePlaybacks]);
+  const latestPlaybackByTrack = useMemo(() => new Map(activePlaybacks.map((playback) => [playback.trackId, playback])), [activePlaybacks]);
   const playingTracks = useMemo(() => {
     const occurrences = new Map<string, number>();
     return activePlaybacks.flatMap((playback) => {
@@ -147,6 +153,10 @@ export default function App() {
     return detail.tracks.filter((track) => track.categoryId === selectedCategoryId);
   }, [detail, isSearching, selectedCategoryId]);
   const preloadedInCategory = tracksToPreload.filter((track) => loadedTracks.has(track.id)).length;
+  const stopKeyLabels = detail ? [
+    (detail.project.escapeKeyAction ?? 'stop-all') === 'stop-all' ? 'Échap' : '',
+    (detail.project.backspaceKeyAction ?? 'stop-all') === 'stop-all' ? '⌫' : '',
+  ].filter(Boolean).join(' · ') : '';
 
   const sendOrRun = useCallback((command: RemoteCommand, track?: Track) => {
     if (remote && detail) {
@@ -168,17 +178,25 @@ export default function App() {
   }, [detail, remote, socket]);
 
   useEffect(() => {
-    if (remote || !detail) return;
+    if (!detail) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
-      if (event.key === 'Escape') sendOrRun({ type: 'stop-all' });
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
+      const keyAction = event.key === 'Escape' ? detail.project.escapeKeyAction ?? 'stop-all'
+        : event.key === 'Backspace' ? detail.project.backspaceKeyAction ?? 'stop-all' : undefined;
+      if (keyAction) {
+        event.preventDefault();
+        if (keyAction === 'stop-all') {
+          sendOrRun({ type: 'stop-all' });
+        }
+        return;
+      }
       const index = Number(event.key) - 1;
       const track = visibleTracks[index];
       if (index >= 0 && index < 9 && track) sendOrRun({ type: 'play', trackId: track.id }, track);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [detail, remote, sendOrRun, visibleTracks]);
+  }, [detail, sendOrRun, visibleTracks]);
 
   async function createProject() {
     const name = window.prompt('Nom du nouveau spectacle');
@@ -204,15 +222,53 @@ export default function App() {
     if (!detail) return;
     const input = side === 'left' ? { leftClickAction: action } : { rightClickAction: action };
     try {
-      const { project } = await api.updateMouseActions(detail.project.id, input);
+      const { project } = await api.updateProjectActions(detail.project.id, input);
       setDetail((current) => current ? { ...current, project } : current);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Configuration impossible.'); }
+  }
+
+  async function updateKeyAction(key: 'escape' | 'backspace', action: KeyAction) {
+    if (!detail) return;
+    const input = key === 'escape' ? { escapeKeyAction: action } : { backspaceKeyAction: action };
+    try {
+      const { project } = await api.updateProjectActions(detail.project.id, input);
+      setDetail((current) => current ? { ...current, project } : current);
+      setProjects((current) => current.map((candidate) => candidate.id === project.id ? project : candidate));
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Configuration impossible.'); }
+  }
+
+  async function reorderTrack(trackId: string, categoryId: string | null, beforeTrackId?: string) {
+    if (!detail || reordering || trackId === beforeTrackId) return;
+    const previousTracks = detail.tracks;
+    const moving = previousTracks.find((track) => track.id === trackId);
+    if (!moving) return;
+    const reordered = previousTracks.filter((track) => track.id !== trackId);
+    let destinationIndex = beforeTrackId ? reordered.findIndex((track) => track.id === beforeTrackId) : -1;
+    if (destinationIndex < 0) destinationIndex = reordered.reduce((last, track, index) => track.categoryId === categoryId ? index + 1 : last, reordered.length);
+    reordered.splice(destinationIndex, 0, { ...moving, categoryId });
+    const optimistic = reordered.map((track, position) => ({ ...track, position }));
+    setDetail((current) => current ? { ...current, tracks: optimistic } : current);
+    setReordering(true);
+    try {
+      const result = await api.reorderTrack(trackId, { categoryId, beforeTrackId });
+      setDetail((current) => current ? { ...current, tracks: result.tracks } : current);
+      localStorage.setItem(`soundflow-detail:${detail.project.id}`, JSON.stringify({ ...detail, tracks: result.tracks }));
+    } catch (cause) {
+      setDetail((current) => current ? { ...current, tracks: previousTracks } : current);
+      setError(cause instanceof Error ? cause.message : 'Réorganisation impossible.');
+    } finally {
+      setReordering(false);
+      setDraggedTrackId(undefined);
+      setDropTrackId(undefined);
+      setDropCategoryId(undefined);
+    }
   }
 
   function chooseProject(id: string) {
     audioEngine.stopAll(detail?.tracks ?? []);
     setSelectedProjectId(id);
     setSelectedCategoryId('all');
+    setReorderMode(false);
     setSidebarOpen(false);
     localStorage.setItem('soundflow-project', id);
   }
@@ -310,12 +366,16 @@ export default function App() {
         <div className="category-tabs-row" style={{ '--category-tab-width': `${categoryWidth}px` } as React.CSSProperties}>
           <nav className="category-tabs" aria-label="Catégories de sons">
             <button className={selectedCategoryId === 'all' || isSearching ? 'active' : ''} onClick={() => { setSelectedCategoryId('all'); setSearch(''); }} style={{ '--category-color': '#a1a1aa' } as React.CSSProperties}><span>Tous les sons</span><em>{detail.tracks.length}</em></button>
-            {detail.categories.map((category) => <button key={category.id} className={!isSearching && category.id === selectedCategoryId ? 'active' : ''} onClick={() => { setSelectedCategoryId(category.id); setSearch(''); }} style={{ '--category-color': category.color } as React.CSSProperties}><span>{category.name}</span><em>{detail.tracks.filter((track) => track.categoryId === category.id).length}</em></button>)}
+            {detail.categories.map((category) => <button key={category.id} className={`${!isSearching && category.id === selectedCategoryId ? 'active' : ''} ${dropCategoryId === category.id ? 'is-drop-target' : ''}`} onClick={() => { setSelectedCategoryId(category.id); setSearch(''); }}
+              onDragOver={(event) => { if (!reorderMode || !draggedTrackId) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropCategoryId(category.id); setDropTrackId(undefined); }}
+              onDragLeave={() => setDropCategoryId((current) => current === category.id ? undefined : current)}
+              onDrop={(event) => { event.preventDefault(); if (draggedTrackId) reorderTrack(draggedTrackId, category.id).catch(() => undefined); }}
+              style={{ '--category-color': category.color } as React.CSSProperties}><span>{category.name}</span><em>{detail.tracks.filter((track) => track.categoryId === category.id).length}</em></button>)}
           </nav>
           <button className="category-resizer" aria-label="Régler la largeur des catégories" title="Glisser pour régler la largeur · Double-cliquer pour réinitialiser"
-            onDoubleClick={() => { setCategoryWidth(92); localStorage.setItem('soundflow-category-width', '92'); }}
+            onDoubleClick={() => { setCategoryWidth(112); localStorage.setItem('soundflow-category-width', '112'); }}
             onPointerDown={(event) => { categoryResize.current = { x: event.clientX, width: categoryWidth, latest: categoryWidth }; event.currentTarget.setPointerCapture(event.pointerId); }}
-            onPointerMove={(event) => { if (!categoryResize.current) return; const next = Math.min(190, Math.max(66, categoryResize.current.width + event.clientX - categoryResize.current.x)); categoryResize.current.latest = next; setCategoryWidth(next); }}
+            onPointerMove={(event) => { if (!categoryResize.current) return; const next = Math.min(220, Math.max(82, categoryResize.current.width + event.clientX - categoryResize.current.x)); categoryResize.current.latest = next; setCategoryWidth(next); }}
             onPointerUp={(event) => { if (!categoryResize.current) return; event.currentTarget.releasePointerCapture(event.pointerId); localStorage.setItem('soundflow-category-width', String(categoryResize.current.latest)); categoryResize.current = undefined; }}>
             <GripVertical size={17} />
           </button>
@@ -329,19 +389,26 @@ export default function App() {
             {preloadProgress ? <LoaderCircle className="spin" size={16} /> : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? <CircleCheck size={16} /> : <Download size={16} />}
             <span>{preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Préchargée' : 'Précharger'}</span>
           </button>}
+          {!remote && <button className={`button reorder ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} disabled={reordering} title="Activer le déplacement des morceaux">
+            <ArrowUpDown size={16} /><span>{reordering ? 'Enregistrement…' : reorderMode ? 'Terminer' : 'Réorganiser'}</span>
+          </button>}
         </div>
         <div className="track-count"><span>{visibleTracks.length}</span> son{visibleTracks.length !== 1 ? 's' : ''}</div>
-        <button className="button stop" onClick={() => sendOrRun({ type: 'stop-all' })}><Square size={15} fill="currentColor" />Tout arrêter <kbd>Échap</kbd></button>
+        <button className="button stop" onClick={() => sendOrRun({ type: 'stop-all' })}><Square size={15} fill="currentColor" />Tout arrêter {stopKeyLabels && <kbd>{stopKeyLabels}</kbd>}</button>
       </section>
 
       <section className="soundboard">
         {remote && <div className="remote-banner"><Radio size={18} /><span>Mode télécommande — les sons seront joués sur la régie connectée.</span></div>}
         {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleTracks.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className="track-grid">{visibleTracks.map((track, index) => {
           const category = detail.categories.find((item) => item.id === track.categoryId);
-          return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} loaded={loadedTracks.has(track.id)} shortcut={index < 9 ? index + 1 : undefined}
+          return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playback={latestPlaybackByTrack.get(track.id)} loaded={loadedTracks.has(track.id)} reorderEnabled={reorderMode} dropTarget={dropTrackId === track.id} shortcut={index < 9 ? index + 1 : undefined}
             onPrimary={() => runTrackAction(detail.project.leftClickAction ?? 'start', track)}
             onSecondary={() => runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
-            onEdit={() => setEditingTrack(track)} />;
+            onEdit={() => { if (!reorderMode) setEditingTrack(track); }}
+            onDragStart={(event) => { if (!reorderMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', track.id); setDraggedTrackId(track.id); }}
+            onDragOver={(event) => { if (!reorderMode || !draggedTrackId || draggedTrackId === track.id) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropTrackId(track.id); setDropCategoryId(undefined); }}
+            onDrop={(event) => { event.preventDefault(); if (draggedTrackId && draggedTrackId !== track.id) reorderTrack(draggedTrackId, track.categoryId, track.id).catch(() => undefined); }}
+            onDragEnd={() => { setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} />;
         })}</div>}
       </section>
 
@@ -349,7 +416,7 @@ export default function App() {
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
-    {settingsOpen && <SettingsDialog user={user} projects={projects} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onCacheOffline={cacheOffline} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {settingsOpen && <SettingsDialog user={user} projects={projects} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
     {error && <Toast message={error} onClose={() => setError('')} />}
@@ -374,5 +441,5 @@ function readNumber(key: string, fallback: number): number {
   const stored = localStorage.getItem(key);
   if (stored === null) return fallback;
   const value = Number(stored);
-  return Number.isFinite(value) ? Math.min(190, Math.max(66, value)) : fallback;
+  return Number.isFinite(value) ? Math.min(220, Math.max(82, value)) : fallback;
 }

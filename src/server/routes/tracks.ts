@@ -5,7 +5,7 @@ import { pipeline } from 'node:stream/promises';
 import { Readable, Transform } from 'node:stream';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { db } from '../db/index.js';
@@ -13,6 +13,7 @@ import { categories, projects, tracks } from '../db/schema.js';
 import { requireUser } from '../services/auth.js';
 import { ownsProject } from '../services/ownership.js';
 import { parseByteRange } from '../services/range.js';
+import { reorderTracks } from '../services/reorder.js';
 
 const acceptedMimeTypes = new Set([
   'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/vnd.wave', 'audio/ogg', 'audio/flac',
@@ -245,6 +246,39 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     }
     const [track] = await db.update(tracks).set(input).where(eq(tracks.id, id)).returning();
     return { track };
+  });
+
+  app.patch('/api/tracks/:id/reorder', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+    const existingTrack = await ownedTrack(user.id, id);
+    if (!existingTrack) return reply.code(404).send({ error: 'Son introuvable.' });
+    const input = z.object({
+      categoryId: z.string().uuid().nullable(),
+      beforeTrackId: z.string().uuid().nullable().optional(),
+    }).parse(request.body);
+    if (input.categoryId && !(await categoryBelongsToProject(input.categoryId, existingTrack.projectId))) {
+      return reply.code(400).send({ error: 'Catégorie invalide pour ce projet.' });
+    }
+
+    const projectTracks = await db.select().from(tracks)
+      .where(eq(tracks.projectId, existingTrack.projectId))
+      .orderBy(asc(tracks.position), asc(tracks.createdAt));
+    const target = input.beforeTrackId ? projectTracks.find((track) => track.id === input.beforeTrackId) : undefined;
+    if (input.beforeTrackId && !target) return reply.code(400).send({ error: 'Position de destination invalide.' });
+    if (target && target.categoryId !== input.categoryId) return reply.code(400).send({ error: 'La destination ne correspond pas à la catégorie.' });
+
+    const positioned = reorderTracks(projectTracks, id, input.categoryId, input.beforeTrackId);
+
+    await db.transaction(async (transaction) => {
+      for (const track of positioned) {
+        await transaction.update(tracks)
+          .set({ position: track.position, ...(track.id === id ? { categoryId: input.categoryId } : {}) })
+          .where(eq(tracks.id, track.id));
+      }
+    });
+    return { tracks: positioned };
   });
 
   app.delete('/api/tracks/:id', async (request, reply) => {

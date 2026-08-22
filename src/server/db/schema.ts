@@ -31,6 +31,8 @@ export const projects = pgTable('projects', {
   name: text('name').notNull(),
   leftClickAction: text('left_click_action').notNull().default('start'),
   rightClickAction: text('right_click_action').notNull().default('crossfade'),
+  escapeKeyAction: text('escape_key_action').notNull().default('stop-all'),
+  backspaceKeyAction: text('backspace_key_action').notNull().default('stop-all'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [index('projects_owner_id_idx').on(table.ownerId)]);

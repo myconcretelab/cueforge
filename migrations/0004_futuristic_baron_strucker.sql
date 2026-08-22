@@ -1,0 +1,2 @@
+ALTER TABLE "projects" ADD COLUMN "escape_key_action" text DEFAULT 'stop-all' NOT NULL;--> statement-breakpoint
+ALTER TABLE "projects" ADD COLUMN "backspace_key_action" text DEFAULT 'stop-all' NOT NULL;
