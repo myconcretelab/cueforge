@@ -12,7 +12,10 @@ const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 
-const parsed = schema.safeParse(process.env);
+const parsed = schema.safeParse({
+  ...process.env,
+  HOST: process.env.HOST ?? process.env.IP,
+});
 
 if (!parsed.success) {
   throw new Error(`Configuration invalide: ${parsed.error.message}`);
