@@ -225,12 +225,33 @@ class AudioEngine {
   setInstanceLoop(playbackId: string, loop: boolean): void {
     const playback = this.findPlayback(playbackId);
     if (!playback || playback.stopping || playback.loop === loop) return;
-    if (!playback.paused) this.capturePosition(playback);
+    if (!playback.paused) this.capturePosition(playback, true);
     if (playback.loop && !loop) {
       playback.elapsedMs = Math.max(0, playback.positionSeconds - playback.startAtSeconds) * 1_000;
     }
     playback.loop = loop;
     if (!playback.paused) this.startPlaybackSource(playback);
+    this.notify();
+  }
+
+  seekInstance(playbackId: string, progress: number): void {
+    const playback = this.findPlayback(playbackId);
+    if (!playback || playback.stopping) return;
+    const boundedProgress = Math.min(1, Math.max(0, progress));
+    const wasPaused = playback.paused;
+    if (!wasPaused) this.capturePosition(playback, true);
+    const playableSeconds = Math.max(.01, playback.endAtSeconds - playback.startAtSeconds);
+    const sourceProgress = playback.loop ? Math.min(.999_999, boundedProgress) : boundedProgress;
+    playback.positionSeconds = playback.startAtSeconds + playableSeconds * sourceProgress;
+    playback.elapsedMs = playback.durationMs * sourceProgress;
+    playback.resumedAtMs = performance.now();
+    if (!wasPaused) {
+      if (!playback.loop && boundedProgress >= 1) {
+        this.finishPlayback(playback, true);
+        return;
+      }
+      this.startPlaybackSource(playback);
+    }
     this.notify();
   }
 
@@ -338,11 +359,11 @@ class AudioEngine {
     else source.start(0, playback.positionSeconds, Math.max(.01, playback.endAtSeconds - playback.positionSeconds));
   }
 
-  private capturePosition(playback: Playback): void {
+  private capturePosition(playback: Playback, preserveVolumeTransition = false): void {
     const source = playback.source;
     if (!source) return;
     const nowMs = performance.now();
-    const currentVolume = playbackVolumeAt(playback, nowMs);
+    const currentVolume = preserveVolumeTransition ? undefined : playbackVolumeAt(playback, nowMs);
     const elapsedSeconds = Math.max(0, nowMs - playback.resumedAtMs) / 1_000;
     playback.elapsedMs += elapsedSeconds * 1_000;
     if (playback.loop) {
@@ -357,15 +378,17 @@ class AudioEngine {
     source.onended = null;
     try { source.stop(); } catch { /* La source peut déjà être terminée. */ }
     const context = this.context;
-    if (context) {
+    if (context && currentVolume !== undefined) {
       const now = context.currentTime;
       playback.gain.gain.cancelScheduledValues(now);
       playback.gain.gain.setValueAtTime(currentVolume, now);
     }
-    playback.volume = currentVolume;
-    playback.volumeFrom = currentVolume;
-    playback.volumeTransitionStartedAtMs = nowMs;
-    playback.volumeTransitionDurationMs = 0;
+    if (currentVolume !== undefined) {
+      playback.volume = currentVolume;
+      playback.volumeFrom = currentVolume;
+      playback.volumeTransitionStartedAtMs = nowMs;
+      playback.volumeTransitionDurationMs = 0;
+    }
   }
 
   private currentElapsedMs(playback: Playback): number {

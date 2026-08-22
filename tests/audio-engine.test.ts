@@ -88,11 +88,17 @@ describe('audio player instance controls', () => {
     audioEngine.togglePauseInstance(playbackId!);
     expect(latest[0]?.paused).toBe(true);
 
+    audioEngine.seekInstance(playbackId!, .5);
+    expect(latest[0]?.elapsedMs).toBe(30_000);
+
     audioEngine.setInstanceLoop(playbackId!, true);
     expect(latest[0]?.loop).toBe(true);
 
     audioEngine.togglePauseInstance(playbackId!);
     expect(latest[0]?.paused).toBe(false);
+
+    audioEngine.seekInstance(playbackId!, .25);
+    expect(latest[0]?.elapsedMs).toBe(15_000);
 
     audioEngine.stopInstance(playbackId!, 500);
     expect(latest[0]).toMatchObject({ fadingOut: true, volume: 0, volumeTransitionDurationMs: 500 });

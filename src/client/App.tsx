@@ -424,6 +424,7 @@ export default function App() {
             <div className="player-card-signal"><i /><i /><i /><i /></div>
             <div className="player-card-copy"><strong>{track.title}</strong><span>{category?.name ?? 'Sans catégorie'}{occurrence > 1 ? ` · Lecture ${occurrence}` : ''}</span></div>
             <div className="player-card-time"><span>{formatPlaybackDuration(positionMs)}</span><span>−{formatPlaybackDuration(Math.max(0, playback.durationMs - positionMs))}</span></div>
+            <input className="player-card-seek" type="range" min="0" max={playback.durationMs} step="10" value={Math.round(positionMs)} disabled={playback.fadingOut} onChange={(event) => audioEngine.seekInstance(playback.id, Number(event.target.value) / playback.durationMs)} aria-label={`Position de lecture de ${track.title}`} title="Cliquer ou glisser pour déplacer la lecture" />
             <PlaybackVolumeControl playback={playback} title={track.title} />
             <div className="player-card-controls">
               <button className={playback.loop ? 'active' : ''} disabled={playback.fadingOut} onClick={() => audioEngine.setInstanceLoop(playback.id, !playback.loop)} aria-label={playback.loop ? `Désactiver la boucle de ${track.title}` : `Jouer ${track.title} en boucle`} title="Boucle"><Repeat2 size={15} /></button>
