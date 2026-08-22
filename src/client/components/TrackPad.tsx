@@ -31,7 +31,7 @@ export function TrackPad({ track, color, active, playbacks, historyProgress, loa
       <span className="play-disc">{active ? <AudioWaveform size={18} /> : <Play size={18} fill="currentColor" />}</span>
       <span className="track-title">{track.title}</span>
     </button>
-    {(historyProgress > 0 || playbacks.length > 0) && <span className="track-progress" aria-hidden="true">
+    {(historyProgress > 0 || playbacks.length > 0) && <span className={`track-progress ${playbacks.length > 0 ? 'is-playing' : ''}`} aria-hidden="true">
       {historyProgress > 0 && <i className="history" style={{ transform: `scaleX(${historyProgress})` }} />}
       {playbacks.map((playback) => <i className="active" key={playback.id} style={{
         '--progress-duration': `${playback.durationMs}ms`,

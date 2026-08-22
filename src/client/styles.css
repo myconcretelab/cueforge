@@ -191,10 +191,11 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .track-trigger { flex: 1; min-width: 0; padding: 14px 12px 10px; display: flex; flex-direction: column; align-items: flex-start; border: 0; background: transparent; cursor: pointer; text-align: left; }
 .play-disc { width: 36px; height: 36px; margin-bottom: 14px; display: grid; place-items: center; border-radius: 50%; color: #09090b; background: var(--track-color); box-shadow: 0 7px 24px color-mix(in srgb, var(--track-color) 20%, transparent); }
 .track-title { width: calc(100% - 2px); overflow: hidden; color: #fafafa; display: -webkit-box; font-size: .8rem; font-weight: 700; line-height: 1.3; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.track-progress { position: absolute; z-index: 3; right: 0; bottom: 29px; left: 0; height: 3px; overflow: hidden; background: rgba(249,115,22,.12); pointer-events: none; }
+.track-progress { position: absolute; z-index: 3; right: 0; bottom: 29px; left: 0; height: 3px; overflow: hidden; background: transparent; pointer-events: none; }
+.track-progress.is-playing { background: color-mix(in srgb, var(--track-color) 14%, transparent); }
 .track-progress i { position: absolute; inset: 0; width: 100%; height: 100%; display: block; transform-origin: left center; }
-.track-progress i.history { background: rgba(249,115,22,.68); }
-.track-progress i.active { background: var(--orange); transform: scaleX(0); animation: track-progress var(--progress-duration) linear var(--progress-delay) var(--progress-iterations) forwards; }
+.track-progress i.history { background: color-mix(in srgb, var(--track-color) 72%, transparent); }
+.track-progress i.active { background: var(--track-color); transform: scaleX(0); animation: track-progress var(--progress-duration) linear var(--progress-delay) var(--progress-iterations) forwards; }
 @keyframes track-progress { to { transform: scaleX(1); } }
 .track-meta { min-height: 30px; padding: 0 11px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); color: #71717a; font-size: .61rem; }
 .track-meta span { display: inline-flex; align-items: center; gap: 5px; }
