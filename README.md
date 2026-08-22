@@ -55,7 +55,7 @@ PUBLIC_URL=https://<votre-domaine>
 
 ```bash
 cd /home/<compte>/soundflow
-npm ci
+npm ci --include=optional
 npm run build
 npm run db:migrate
 npm prune --omit=dev
