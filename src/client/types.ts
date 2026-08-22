@@ -85,6 +85,32 @@ export interface SoundShowAnalysis {
   warnings: string[];
 }
 
+export type FreesoundLicenseFilter = 'compatible' | 'cc0' | 'by';
+
+export interface FreesoundSound {
+  id: number;
+  name: string;
+  username: string;
+  durationSeconds: number;
+  previewUrl: string;
+  pageUrl: string;
+  tags: string[];
+  license: {
+    code: 'cc0' | 'by';
+    label: string;
+    url: string;
+    attributionRequired: boolean;
+  };
+}
+
+export interface FreesoundSearchResult {
+  count: number;
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+  results: FreesoundSound[];
+}
+
 export type RemoteCommand =
   | { type: 'play'; trackId: string }
   | { type: 'stop'; trackId: string }

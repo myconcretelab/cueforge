@@ -13,6 +13,7 @@ import { authRoutes } from './routes/auth.js';
 import { projectRoutes } from './routes/projects.js';
 import { trackRoutes } from './routes/tracks.js';
 import { importRoutes } from './routes/imports.js';
+import { freesoundRoutes } from './routes/freesound.js';
 
 export async function buildApp() {
   const app = Fastify({ logger: true, trustProxy: true });
@@ -32,6 +33,7 @@ export async function buildApp() {
   await app.register(projectRoutes);
   await app.register(trackRoutes);
   await app.register(importRoutes);
+  await app.register(freesoundRoutes);
 
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ZodError) {

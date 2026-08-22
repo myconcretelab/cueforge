@@ -52,6 +52,7 @@ DATABASE_URL=postgresql://<utilisateur>:<mot-de-passe>@postgresql-<compte>.alway
 SESSION_SECRET=<une-valeur-aleatoire-d-au-moins-32-caracteres>
 STORAGE_PATH=/home/<compte>/soundflow/storage
 PUBLIC_URL=https://<votre-domaine>
+FREESOUND_API_KEY=<clé-api-freesound>
 ```
 
 5. Depuis SSH, préparer l’application :
@@ -73,6 +74,8 @@ node /home/<compte>/soundflow/dist/server/index.js
 Le serveur utilise automatiquement les variables `IP` et `PORT` fournies par Alwaysdata. Dans les réglages avancés du site, mettre le temps d’inactivité à `0` afin de conserver les connexions WebSocket. Activer HTTPS et vérifier que `PUBLIC_URL` contient exactement l’origine publique.
 
 Les fichiers audio résident dans `STORAGE_PATH`, jamais dans PostgreSQL. Ils sont servis uniquement après contrôle de la session et avec prise en charge des requêtes HTTP `Range`.
+
+La recherche Freesound utilise `FREESOUND_API_KEY` exclusivement côté serveur. Les préécoutes sont diffusées directement depuis Freesound, sans être enregistrées dans le spectacle ; seuls les résultats CC0 et CC BY sont proposés et leur attribution reste visible.
 
 ## Structure
 

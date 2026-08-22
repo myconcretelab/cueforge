@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Columns3, Download, GripVertical, History, LoaderCircle, Menu, Plus, Radio,
-  RotateCcw, Search, Settings, Settings2, Smartphone, Square, Upload, Wifi, WifiOff, X,
+  RotateCcw, Search, Settings, Settings2, Smartphone, Square, Upload, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
+import { FreesoundDialog } from './components/FreesoundDialog';
 import { SoundShowImportDialog } from './components/SoundShowImportDialog';
 import { SettingsDialog } from './components/SettingsDialog';
 import { TrackDialog } from './components/TrackDialog';
@@ -48,6 +49,7 @@ export default function App() {
   const [mobileColumns, setMobileColumns] = useState(() => readNumberRange('soundflow-track-columns-mobile', 2, 1, 3));
   const [uploadOpen, setUploadOpen] = useState(false);
   const [soundShowImportOpen, setSoundShowImportOpen] = useState(false);
+  const [freesoundOpen, setFreesoundOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingTrack, setEditingTrack] = useState<Track>();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -131,7 +133,10 @@ export default function App() {
     connection.on('disconnect', () => setConnected(false));
     if (!remote) connection.on('remote-command', (command: RemoteCommand) => {
       const currentTracks = detail?.tracks ?? [];
-      if (command.type === 'stop-all') return audioEngine.stopAll(currentTracks);
+      if (command.type === 'stop-all') {
+        window.dispatchEvent(new Event('soundflow:stop-temporary-audio'));
+        return audioEngine.stopAll(currentTracks);
+      }
       const track = currentTracks.find((candidate) => candidate.id === command.trackId);
       if (!track) return;
       if (command.type === 'run-action') audioEngine.runAction(command.action, track, currentTracks).catch((cause) => setError(cause.message));
@@ -178,7 +183,10 @@ export default function App() {
       socket?.emit('remote-command', { projectId: detail.project.id, command });
       return;
     }
-    if (command.type === 'stop-all') audioEngine.stopAll(detail?.tracks ?? []);
+    if (command.type === 'stop-all') {
+      window.dispatchEvent(new Event('soundflow:stop-temporary-audio'));
+      audioEngine.stopAll(detail?.tracks ?? []);
+    }
     else if (command.type === 'stop' && track) audioEngine.stop(track.id, track.fadeOutMs);
     else if (command.type === 'play' && track) audioEngine.play(track).catch((cause) => setError(cause.message));
   }, [detail, remote, socket]);
@@ -420,6 +428,7 @@ export default function App() {
       <section className="dashboard" aria-label="Tableau de bord des morceaux">
         <label className="search"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un son…" /><kbd>⌘ K</kbd></label>
         <div className="dashboard-actions">
+          {!remote && <button className="dashboard-button freesound-launch" onClick={() => setFreesoundOpen(true)} aria-label="Rechercher sur Freesound" title="Rechercher sur Freesound"><Waves size={18} /></button>}
           {!remote && <button className={`dashboard-button ${preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'is-loaded' : ''}`} onClick={() => preloadCategory()} disabled={!tracksToPreload.length || Boolean(preloadProgress) || preloadedInCategory === tracksToPreload.length}
             aria-label={preloadProgress ? `Préchargement ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie préchargée' : 'Précharger la catégorie'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : 'Précharger la catégorie'}>
             {preloadProgress ? <LoaderCircle className="spin" size={18} /> : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? <CircleCheck size={18} /> : <Download size={18} />}
@@ -460,8 +469,9 @@ export default function App() {
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
-    {settingsOpen && <SettingsDialog user={user} projects={projects} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {settingsOpen && <SettingsDialog user={user} projects={projects} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
+    {freesoundOpen && <FreesoundDialog initialQuery={search} onClose={() => setFreesoundOpen(false)} />}
     {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
     {error && <Toast message={error} onClose={() => setError('')} />}
   </div>;

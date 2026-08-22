@@ -9,6 +9,10 @@ const schema = z.object({
   HOST: z.string().default('127.0.0.1'),
   PORT: z.coerce.number().int().positive().default(8100),
   PUBLIC_URL: z.string().url().default('http://localhost:5173'),
+  FREESOUND_API_KEY: z.preprocess(
+    (value) => value === '' ? undefined : value,
+    z.string().trim().min(1).optional(),
+  ),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 

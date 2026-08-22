@@ -1,4 +1,4 @@
-import type { Category, KeyAction, MouseAction, Project, ProjectDetail, SoundShowAnalysis, Track, User } from '../types';
+import type { Category, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Project, ProjectDetail, SoundShowAnalysis, Track, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -52,4 +52,13 @@ export const api = {
   importRemoteTrack: (input: Record<string, unknown>) => request<{ track: Track }>('/api/tracks/import-remote', {
     method: 'POST', body: JSON.stringify(input),
   }),
+  searchFreesound: (input: { query: string; license: FreesoundLicenseFilter; maxDuration?: number; page?: number }, signal?: AbortSignal) => {
+    const parameters = new URLSearchParams({
+      q: input.query,
+      license: input.license,
+      page: String(input.page ?? 1),
+    });
+    if (input.maxDuration) parameters.set('maxDuration', String(input.maxDuration));
+    return request<FreesoundSearchResult>(`/api/freesound/search?${parameters}`, { signal });
+  },
 };

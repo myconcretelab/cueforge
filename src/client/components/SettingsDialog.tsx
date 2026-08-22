@@ -1,4 +1,4 @@
-import { CloudDownload, FileArchive, FolderPlus, Keyboard, LogOut, Settings2, X } from 'lucide-react';
+import { CloudDownload, FileArchive, FolderPlus, Keyboard, LogOut, Settings2, Waves, X } from 'lucide-react';
 import type { KeyAction, Project, User } from '../types';
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
   onChooseProject: (id: string) => void;
   onCreateProject: () => void;
   onImportSoundShow: () => void;
+  onOpenFreesound: () => void;
   onCacheOffline: () => void;
   onUpdateKeyAction: (key: 'escape' | 'backspace', action: KeyAction) => void;
   onLogout: () => void;
@@ -20,7 +21,7 @@ const keyActions: Array<{ value: KeyAction; label: string }> = [
   { value: 'none', label: 'Aucune action' },
 ];
 
-export function SettingsDialog({ user, projects, selectedProjectId, offlineStatus, onChooseProject, onCreateProject, onImportSoundShow, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
+export function SettingsDialog({ user, projects, selectedProjectId, offlineStatus, onChooseProject, onCreateProject, onImportSoundShow, onOpenFreesound, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="dialog settings-dialog">
@@ -31,7 +32,7 @@ export function SettingsDialog({ user, projects, selectedProjectId, offlineStatu
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><FileArchive size={16} /><div><strong>Bibliothèque</strong><span>Importez ou préparez les médias de ce spectacle.</span></div></div>
-        <div className="settings-actions"><button className="button ghost" onClick={onImportSoundShow}><FileArchive size={17} />Importer SoundShow</button><button className="button ghost" onClick={onCacheOffline}><CloudDownload size={17} />{offlineStatus || 'Rendre disponible hors ligne'}</button></div>
+        <div className="settings-actions"><button className="button ghost" onClick={onImportSoundShow}><FileArchive size={17} />Importer SoundShow</button><button className="button ghost" onClick={onOpenFreesound}><Waves size={17} />Rechercher sur Freesound</button><button className="button ghost" onClick={onCacheOffline}><CloudDownload size={17} />{offlineStatus || 'Rendre disponible hors ligne'}</button></div>
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><Keyboard size={16} /><div><strong>Raccourcis d’arrêt</strong><span>Définissez le comportement des touches globales.</span></div></div>
