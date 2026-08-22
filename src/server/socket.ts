@@ -9,6 +9,11 @@ const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('play'), trackId: z.string().uuid() }),
   z.object({ type: z.literal('stop'), trackId: z.string().uuid() }),
   z.object({ type: z.literal('stop-all') }),
+  z.object({
+    type: z.literal('run-action'),
+    trackId: z.string().uuid(),
+    action: z.enum(['start', 'crossfade', 'fade-in', 'replace', 'stop', 'none']),
+  }),
 ]);
 
 export function registerSocketServer(app: FastifyInstance): Server {

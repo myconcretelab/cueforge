@@ -7,6 +7,7 @@ import { requireUser } from '../services/auth.js';
 import { ownsProject } from '../services/ownership.js';
 
 const idParams = z.object({ id: z.string().uuid() });
+const mouseActionSchema = z.enum(['start', 'crossfade', 'fade-in', 'replace', 'stop', 'none']);
 
 export async function projectRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/projects', async (request, reply) => {
@@ -38,6 +39,19 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       db.select().from(tracks).where(eq(tracks.projectId, id)).orderBy(asc(tracks.position), asc(tracks.createdAt)),
     ]);
     return { project, categories: projectCategories, tracks: projectTracks };
+  });
+
+  app.patch('/api/projects/:id/mouse-actions', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    const { id } = idParams.parse(request.params);
+    if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    const input = z.object({
+      leftClickAction: mouseActionSchema.optional(),
+      rightClickAction: mouseActionSchema.optional(),
+    }).refine((value) => value.leftClickAction || value.rightClickAction, { message: 'Sélectionnez une action.' }).parse(request.body);
+    const [project] = await db.update(projects).set({ ...input, updatedAt: new Date() }).where(eq(projects.id, id)).returning();
+    return { project };
   });
 
   app.post('/api/projects/:id/categories', async (request, reply) => {

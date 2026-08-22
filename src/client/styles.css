@@ -83,8 +83,14 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .side-label button { padding: 0; border: 0; color: #71717a; background: transparent; cursor: pointer; }
 .side-label button:hover { color: var(--orange); }
 .player-heading button { color: #f87171; }
-.now-playing-list { min-height: 160px; max-height: 42vh; padding: 0 9px 8px; display: grid; align-content: start; gap: 8px; overflow: auto; }
-.players-empty { min-height: 145px; padding: 18px; display: grid; place-content: center; justify-items: center; gap: 7px; border: 1px dashed var(--border); border-radius: 12px; color: #55555d; text-align: center; }
+.mouse-actions { padding-bottom: 9px; border-bottom: 1px solid var(--border); }
+.mouse-actions .side-label { padding-top: 15px; }
+.mouse-actions label { padding: 0 9px 6px; display: grid; grid-template-columns: 82px minmax(0, 1fr); align-items: center; gap: 7px; color: #71717a; font-size: .65rem; }
+.mouse-actions label > span { display: flex; align-items: center; gap: 6px; }
+.mouse-actions label i { width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 6px; color: #d4d4d8; background: var(--surface-2); font-size: .6rem; font-style: normal; font-weight: 800; }
+.mouse-actions select { height: 32px; padding: 0 8px; border-radius: 8px; color: #d4d4d8; font-size: .68rem; }
+.now-playing-list { min-height: 120px; max-height: 34vh; padding: 0 9px 8px; display: grid; align-content: start; gap: 8px; overflow: auto; }
+.players-empty { min-height: 105px; padding: 14px; display: grid; place-content: center; justify-items: center; gap: 6px; border: 1px dashed var(--border); border-radius: 12px; color: #55555d; text-align: center; }
 .players-empty strong { color: #898991; font-size: .75rem; }
 .players-empty span { max-width: 160px; color: #5f5f67; font-size: .65rem; line-height: 1.4; }
 .player-card { --track-color: #71717a; position: relative; min-height: 92px; padding: 14px; display: grid; align-content: end; gap: 4px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--track-color) 32%, var(--border)); border-radius: 12px; background: linear-gradient(145deg, color-mix(in srgb, var(--track-color) 14%, var(--surface-2)), var(--surface-2) 70%); }

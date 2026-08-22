@@ -29,6 +29,8 @@ export const projects = pgTable('projects', {
   id: uuid('id').primaryKey().defaultRandom(),
   ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  leftClickAction: text('left_click_action').notNull().default('start'),
+  rightClickAction: text('right_click_action').notNull().default('crossfade'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [index('projects_owner_id_idx').on(table.ownerId)]);

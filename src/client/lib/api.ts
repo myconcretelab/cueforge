@@ -1,4 +1,4 @@
-import type { Category, Project, ProjectDetail, SoundShowAnalysis, Track, User } from '../types';
+import type { Category, MouseAction, Project, ProjectDetail, SoundShowAnalysis, Track, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -32,6 +32,8 @@ export const api = {
     method: 'POST', body: JSON.stringify({ name }),
   }),
   project: (id: string) => request<ProjectDetail>(`/api/projects/${id}`),
+  updateMouseActions: (projectId: string, input: { leftClickAction?: MouseAction; rightClickAction?: MouseAction }) =>
+    request<{ project: Project }>(`/api/projects/${projectId}/mouse-actions`, { method: 'PATCH', body: JSON.stringify(input) }),
   createCategory: (projectId: string, name: string, color: string, position?: number) =>
     request<{ category: Category }>(`/api/projects/${projectId}/categories`, {
       method: 'POST', body: JSON.stringify({ name, color, position }),

@@ -4,10 +4,14 @@ export interface User {
   displayName: string;
 }
 
+export type MouseAction = 'start' | 'crossfade' | 'fade-in' | 'replace' | 'stop' | 'none';
+
 export interface Project {
   id: string;
   name: string;
   ownerId: string;
+  leftClickAction: MouseAction;
+  rightClickAction: MouseAction;
   createdAt: string;
   updatedAt: string;
 }
@@ -81,4 +85,5 @@ export interface SoundShowAnalysis {
 export type RemoteCommand =
   | { type: 'play'; trackId: string }
   | { type: 'stop'; trackId: string }
-  | { type: 'stop-all' };
+  | { type: 'stop-all' }
+  | { type: 'run-action'; trackId: string; action: MouseAction };

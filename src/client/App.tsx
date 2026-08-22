@@ -11,9 +11,17 @@ import { TrackPad } from './components/TrackPad';
 import { UploadDialog } from './components/UploadDialog';
 import { api, ApiError } from './lib/api';
 import { audioEngine } from './lib/audio-engine';
-import type { Project, ProjectDetail, RemoteCommand, Track, User } from './types';
+import type { MouseAction, Project, ProjectDetail, RemoteCommand, Track, User } from './types';
 
 const colors = ['#f97316', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
+const mouseActions: Array<{ value: MouseAction; label: string }> = [
+  { value: 'start', label: 'Démarrer' },
+  { value: 'crossfade', label: 'Fondu enchaîné' },
+  { value: 'fade-in', label: "Fondu d'entrée" },
+  { value: 'replace', label: 'Remplacer' },
+  { value: 'stop', label: 'Arrêter' },
+  { value: 'none', label: 'Aucune action' },
+];
 
 export default function App() {
   const [user, setUser] = useState<User | null>();
@@ -101,7 +109,8 @@ export default function App() {
       if (command.type === 'stop-all') return audioEngine.stopAll(currentTracks);
       const track = currentTracks.find((candidate) => candidate.id === command.trackId);
       if (!track) return;
-      if (command.type === 'play') audioEngine.play(track).catch((cause) => setError(cause.message));
+      if (command.type === 'run-action') audioEngine.runAction(command.action, track, currentTracks).catch((cause) => setError(cause.message));
+      else if (command.type === 'play') audioEngine.play(track).catch((cause) => setError(cause.message));
       else audioEngine.stop(track.id, track.fadeOutMs);
     });
     return () => { connection.disconnect(); setSocket(undefined); setConnected(false); };
@@ -122,6 +131,15 @@ export default function App() {
     if (command.type === 'stop-all') audioEngine.stopAll(detail?.tracks ?? []);
     else if (command.type === 'stop' && track) audioEngine.stop(track.id, track.fadeOutMs);
     else if (command.type === 'play' && track) audioEngine.play(track).catch((cause) => setError(cause.message));
+  }, [detail, remote, socket]);
+
+  const runTrackAction = useCallback((action: MouseAction, track: Track) => {
+    if (action === 'none') return;
+    if (remote && detail) {
+      socket?.emit('remote-command', { projectId: detail.project.id, command: { type: 'run-action', trackId: track.id, action } satisfies RemoteCommand });
+      return;
+    }
+    audioEngine.runAction(action, track, detail?.tracks ?? []).catch((cause) => setError(cause.message));
   }, [detail, remote, socket]);
 
   useEffect(() => {
@@ -155,6 +173,15 @@ export default function App() {
       await api.createCategory(detail.project.id, name, colors[detail.categories.length % colors.length]);
       await refreshProject();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Création impossible.'); }
+  }
+
+  async function updateMouseAction(side: 'left' | 'right', action: MouseAction) {
+    if (!detail) return;
+    const input = side === 'left' ? { leftClickAction: action } : { rightClickAction: action };
+    try {
+      const { project } = await api.updateMouseActions(detail.project.id, input);
+      setDetail((current) => current ? { ...current, project } : current);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Configuration impossible.'); }
   }
 
   function chooseProject(id: string) {
@@ -197,6 +224,11 @@ export default function App() {
   return <div className={`app-shell ${remote ? 'remote-mode' : ''}`}>
     <aside className={sidebarOpen ? 'sidebar open' : 'sidebar'}>
       <header className="brand"><span className="brand-mark small"><AudioLines /></span><strong>SoundFlow</strong><button className="icon-button sidebar-close" onClick={() => setSidebarOpen(false)}><X /></button></header>
+      {detail && <section className="mouse-actions">
+        <div className="side-label"><span>Actions souris</span></div>
+        <label><span><i>G</i>Clic gauche</span><select value={detail.project.leftClickAction ?? 'start'} onChange={(event) => updateMouseAction('left', event.target.value as MouseAction)}>{mouseActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
+        <label><span><i>D</i>Clic droit</span><select value={detail.project.rightClickAction ?? 'crossfade'} onChange={(event) => updateMouseAction('right', event.target.value as MouseAction)}>{mouseActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
+      </section>}
       <div className="side-label player-heading"><span>En lecture</span><em>{playingTracks.length}</em>{playingTracks.length > 0 && <button onClick={() => sendOrRun({ type: 'stop-all' })} aria-label="Tout arrêter"><Square size={13} fill="currentColor" /></button>}</div>
       <div className="now-playing-list">
         {playingTracks.length === 0 ? <div className="players-empty"><AudioWaveform size={24} /><strong>Aucun son en lecture</strong><span>Les lecteurs actifs apparaîtront ici.</span></div> : playingTracks.map((track) => {
@@ -252,9 +284,9 @@ export default function App() {
         {remote && <div className="remote-banner"><Radio size={18} /><span>Mode télécommande — les sons seront joués sur la régie connectée.</span></div>}
         {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleTracks.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className="track-grid">{visibleTracks.map((track, index) => {
           const category = detail.categories.find((item) => item.id === track.categoryId);
-          return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTracks.has(track.id)} remote={remote} shortcut={index < 9 ? index + 1 : undefined}
-            onPlay={() => sendOrRun({ type: 'play', trackId: track.id }, track)}
-            onStop={() => sendOrRun({ type: 'stop', trackId: track.id }, track)}
+          return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTracks.has(track.id)} shortcut={index < 9 ? index + 1 : undefined}
+            onPrimary={() => runTrackAction(detail.project.leftClickAction ?? 'start', track)}
+            onSecondary={() => runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
             onEdit={() => setEditingTrack(track)} />;
         })}</div>}
       </section>

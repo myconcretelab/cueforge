@@ -1,4 +1,4 @@
-import type { Track } from '../types';
+import type { MouseAction, Track } from '../types';
 
 interface Playback {
   source: AudioBufferSourceNode;
@@ -53,7 +53,7 @@ class AudioEngine {
     await this.load(track);
   }
 
-  async play(track: Track): Promise<void> {
+  async play(track: Track, fadeInMs = track.fadeInMs): Promise<void> {
     const [context, buffer] = await Promise.all([this.getContext(), this.load(track)]);
     const source = context.createBufferSource();
     const gain = context.createGain();
@@ -67,9 +67,9 @@ class AudioEngine {
     }
     source.connect(gain).connect(context.destination);
     const now = context.currentTime;
-    if (track.fadeInMs > 0) {
+    if (fadeInMs > 0) {
       gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(track.volume, now + track.fadeInMs / 1000);
+      gain.gain.linearRampToValueAtTime(track.volume, now + fadeInMs / 1000);
     } else {
       gain.gain.setValueAtTime(track.volume, now);
     }
@@ -94,14 +94,30 @@ class AudioEngine {
     const now = context.currentTime;
     for (const { source, gain } of instances) {
       gain.gain.cancelScheduledValues(now);
+      if (fadeOutMs <= 0) {
+        gain.gain.setValueAtTime(0, now);
+        source.stop(now);
+        continue;
+      }
       gain.gain.setValueAtTime(gain.gain.value, now);
       gain.gain.linearRampToValueAtTime(0, now + fadeOutMs / 1000);
       source.stop(now + fadeOutMs / 1000 + 0.02);
     }
   }
 
-  stopAll(tracks: Track[]): void {
-    for (const track of tracks) this.stop(track.id, track.fadeOutMs);
+  stopAll(tracks: Track[], fadeOutMs?: number): void {
+    for (const track of tracks) this.stop(track.id, fadeOutMs ?? track.fadeOutMs);
+  }
+
+  async runAction(action: MouseAction, track: Track, projectTracks: Track[]): Promise<void> {
+    if (action === 'none') return;
+    if (action === 'stop') return this.stop(track.id, track.fadeOutMs);
+    if (action === 'start') return this.play(track);
+    if (action === 'fade-in') return this.play(track, track.fadeInMs > 0 ? track.fadeInMs : 1_200);
+    await this.load(track);
+    if (action === 'replace') this.stopAll(projectTracks, 0);
+    else this.stopAll(projectTracks);
+    await this.play(track);
   }
 }
 
