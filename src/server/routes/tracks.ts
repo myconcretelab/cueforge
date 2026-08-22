@@ -238,6 +238,11 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     if (input.categoryId && !(await categoryBelongsToProject(input.categoryId, existingTrack.projectId))) {
       return reply.code(400).send({ error: 'Catégorie invalide pour ce projet.' });
     }
+    const nextStartTimeMs = input.startTimeMs ?? existingTrack.startTimeMs;
+    const nextEndTimeMs = input.endTimeMs === undefined ? existingTrack.endTimeMs : input.endTimeMs;
+    if (nextEndTimeMs !== null && nextEndTimeMs <= nextStartTimeMs) {
+      return reply.code(400).send({ error: 'La fin du son doit être située après son début.' });
+    }
     const [track] = await db.update(tracks).set(input).where(eq(tracks.id, id)).returning();
     return { track };
   });
