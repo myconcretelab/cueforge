@@ -48,6 +48,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     const input = z.object({
       name: z.string().trim().min(1).max(80),
       color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#8b5cf6'),
+      position: z.number().int().min(0).default(0),
     }).parse(request.body);
     const [category] = await db.insert(categories).values({ projectId: id, ...input }).returning();
     return reply.code(201).send({ category });

@@ -1,4 +1,4 @@
-import type { Category, Project, ProjectDetail, Track, User } from '../types';
+import type { Category, Project, ProjectDetail, SoundShowAnalysis, Track, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -32,12 +32,20 @@ export const api = {
     method: 'POST', body: JSON.stringify({ name }),
   }),
   project: (id: string) => request<ProjectDetail>(`/api/projects/${id}`),
-  createCategory: (projectId: string, name: string, color: string) =>
+  createCategory: (projectId: string, name: string, color: string, position?: number) =>
     request<{ category: Category }>(`/api/projects/${projectId}/categories`, {
-      method: 'POST', body: JSON.stringify({ name, color }),
+      method: 'POST', body: JSON.stringify({ name, color, position }),
     }),
   uploadTrack: (form: FormData) => request<{ track: Track }>('/api/tracks/upload', { method: 'POST', body: form }),
-  updateTrack: (id: string, input: Partial<Pick<Track, 'title' | 'categoryId' | 'volume' | 'loop' | 'fadeInMs' | 'fadeOutMs'>>) =>
+  updateTrack: (id: string, input: Partial<Pick<Track, 'title' | 'categoryId' | 'volume' | 'loop' | 'fadeInMs' | 'fadeOutMs' | 'startTimeMs' | 'endTimeMs'>>) =>
     request<{ track: Track }>(`/api/tracks/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
   deleteTrack: (id: string) => request<void>(`/api/tracks/${id}`, { method: 'DELETE' }),
+  analyzeSoundShow: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<{ analysis: SoundShowAnalysis }>('/api/imports/soundshow/analyze', { method: 'POST', body: form });
+  },
+  importRemoteTrack: (input: Record<string, unknown>) => request<{ track: Track }>('/api/tracks/import-remote', {
+    method: 'POST', body: JSON.stringify(input),
+  }),
 };

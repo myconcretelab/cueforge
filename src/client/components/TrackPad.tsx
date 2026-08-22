@@ -24,7 +24,7 @@ export function TrackPad({ track, color, active, remote, shortcut, onPlay, onSto
       <span className="track-file">{track.originalFilename}</span>
     </button>
     <div className="track-meta">
-      <span>{track.durationMs ? formatDuration(track.durationMs) : '—:—'}</span>
+      <span>{track.durationMs ? formatDuration((track.endTimeMs ?? track.durationMs) - track.startTimeMs) : '—:—'}</span>
       <span>{track.loop && <InfinityIcon size={15} />}{shortcut ? `Touche ${shortcut}` : `${Math.round(track.volume * 100)} %`}</span>
     </div>
   </article>;

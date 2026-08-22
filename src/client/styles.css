@@ -141,6 +141,35 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .dialog footer { padding-top: 4px; display: flex; justify-content: flex-end; gap: 9px; }
 .dialog footer.spread { justify-content: space-between; }
 .dialog footer span { display: flex; gap: 9px; }
+.soundshow-dialog { width: min(680px, 100%); }
+.import-explainer { padding: 20px; display: flex; align-items: center; gap: 16px; border: 1px dashed #3f3f46; border-radius: 12px; color: var(--orange); background: #101012; }
+.import-explainer strong { color: #e4e4e7; }
+.import-explainer p { margin-top: 5px; color: #71717a; font-size: .76rem; line-height: 1.45; }
+.import-actions { display: flex; gap: 9px; }
+.selection-summary, .analysis-title { padding: 13px 15px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border: 1px solid var(--border); border-radius: 10px; background: #101012; }
+.selection-summary strong, .analysis-title strong { font-size: .82rem; }
+.selection-summary span, .analysis-title span { overflow: hidden; color: #71717a; font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
+.analysis-title > div { min-width: 0; display: grid; gap: 4px; }
+.import-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.import-stats div { padding: 13px 10px; display: grid; gap: 3px; border: 1px solid var(--border); border-radius: 10px; background: #101012; text-align: center; }
+.import-stats strong { color: #fafafa; font-size: 1rem; }
+.import-stats span { color: #71717a; font-size: .65rem; }
+.import-stats .warning strong { color: #fbbf24; }
+.button.wide { width: 100%; }
+.missing-list { border: 1px solid rgba(251,191,36,.2); border-radius: 10px; color: #fbbf24; background: rgba(251,191,36,.05); }
+.missing-list summary { padding: 11px 13px; display: flex; align-items: center; gap: 7px; cursor: pointer; font-size: .75rem; }
+.missing-list > span { padding: 6px 13px; display: grid; color: #d4d4d8; font-size: .72rem; }
+.missing-list > span:last-child { padding-bottom: 12px; }
+.missing-list small { margin-top: 2px; overflow: hidden; color: #71717a; text-overflow: ellipsis; white-space: nowrap; }
+.import-warning { color: #fbbf24; font-size: .72rem; }
+.progress { position: relative; height: 28px; overflow: hidden; border: 1px solid var(--border); border-radius: 8px; background: #101012; }
+.progress i { position: absolute; inset: 0 auto 0 0; background: var(--orange-soft); transition: width .2s; }
+.progress span { position: relative; height: 100%; display: grid; place-items: center; color: #d4d4d8; font-size: .7rem; }
+.import-result { padding: 18px 0 8px; display: grid; justify-items: center; gap: 10px; text-align: center; }
+.import-result > svg { color: #4ade80; }
+.import-result p, .import-result small { color: #a1a1aa; }
+.import-result small { max-width: 100%; overflow-wrap: anywhere; }
+.import-result .button { margin-top: 8px; }
 .drop-zone { min-height: 145px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; border: 1px dashed #3f3f46; border-radius: 12px; color: #71717a; background: #101012; cursor: pointer; }
 .drop-zone:hover, .drop-zone.has-file { border-color: var(--orange); color: var(--orange); background: var(--orange-soft); }
 .drop-zone strong { color: #e4e4e7; font-size: .88rem; }
@@ -168,6 +197,8 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
   .menu-button { display: grid; }
   .topbar { padding: 0 16px; }
   .top-actions .connection, .remote-button { display: none; }
+  .import-button { width: 41px; padding: 0; font-size: 0; }
+  .import-button svg { margin: 0; }
   .toolbar { padding: 15px 16px; flex-wrap: wrap; }
   .search { width: 100%; order: 3; }
   .track-count { margin-left: 0; }
@@ -188,4 +219,7 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
   .dialog footer.spread { align-items: stretch; flex-direction: column-reverse; }
   .dialog footer.spread > span { display: grid; grid-template-columns: 1fr 1fr; }
   .field-row { grid-template-columns: 1fr; }
+  .import-actions { display: grid; }
+  .import-stats { grid-template-columns: 1fr 1fr; }
+  .analysis-title { align-items: flex-start; flex-direction: column; }
 }

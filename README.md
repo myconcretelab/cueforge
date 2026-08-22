@@ -7,6 +7,7 @@ SoundFlow est une régie son web inspirée de SoundShow. Les médias sont stock�
 - premier compte administrateur unique, sessions sécurisées et mots de passe dérivés avec `scrypt` ;
 - plusieurs spectacles, catégories colorées et recherche ;
 - import MP3, WAV, OGG, FLAC et AAC jusqu’à 250 Mo ;
+- import complet d’un projet SoundShow `.ssp` avec catégories, couleurs, boucles et points d’entrée/sortie ;
 - lecture polyphonique, boucles, volume et fondus ;
 - raccourcis `1` à `9` et arrêt général avec `Échap` ;
 - télécommande temps réel via WebSocket ;
@@ -82,9 +83,12 @@ storage/          médias locaux, ignorés par Git
 public/           manifeste, icône et service worker
 ```
 
+## Importer un projet SoundShow
+
+Dans la régie, utiliser **Importer SoundShow**, puis sélectionner le dossier qui contient le fichier `.ssp`. Après l’analyse, les fichiers trouvés sont envoyés individuellement afin d’afficher la progression et de pouvoir importer de gros projets. Si le projet référence des médias situés ailleurs, utiliser **Ajouter un dossier de médias externe** avant de lancer l’import. Les médias Freesound manquants peuvent être récupérés directement depuis leur URL d’origine.
+
 ## Limites connues de cette première version
 
 - un téléphone contrôleur doit se connecter avec le même compte ;
-- les points d’entrée/sortie, playlists et séquences ne sont pas encore implémentés ;
+- les playlists et séquences SoundShow sont détectées mais ne sont pas encore recréées ;
 - le routage vers plusieurs périphériques audio dépend fortement du navigateur ;
-- l’import direct d’un projet SoundShow `.ssp` sera ajouté dans une prochaine étape.

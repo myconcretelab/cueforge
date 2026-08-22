@@ -59,6 +59,12 @@ class AudioEngine {
     const gain = context.createGain();
     source.buffer = buffer;
     source.loop = track.loop;
+    const startAt = Math.min(track.startTimeMs / 1000, Math.max(0, buffer.duration - 0.01));
+    const endAt = track.endTimeMs ? Math.min(track.endTimeMs / 1000, buffer.duration) : buffer.duration;
+    if (track.loop) {
+      source.loopStart = startAt;
+      source.loopEnd = Math.max(startAt + 0.01, endAt);
+    }
     source.connect(gain).connect(context.destination);
     const now = context.currentTime;
     if (track.fadeInMs > 0) {
@@ -76,7 +82,8 @@ class AudioEngine {
       if (!instances.size) this.active.delete(track.id);
       this.notify();
     };
-    source.start();
+    if (track.loop) source.start(0, startAt);
+    else source.start(0, startAt, Math.max(0.01, endAt - startAt));
     this.notify();
   }
 

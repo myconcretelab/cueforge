@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  AudioLines, CloudDownload, FolderPlus, LogOut, Menu, Plus, Radio,
+  AudioLines, CloudDownload, FileArchive, FolderPlus, LogOut, Menu, Plus, Radio,
   Search, Settings2, Smartphone, Square, Upload, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
+import { SoundShowImportDialog } from './components/SoundShowImportDialog';
 import { TrackDialog } from './components/TrackDialog';
 import { TrackPad } from './components/TrackPad';
 import { UploadDialog } from './components/UploadDialog';
@@ -23,6 +24,7 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [activeTracks, setActiveTracks] = useState<Set<string>>(new Set());
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [soundShowImportOpen, setSoundShowImportOpen] = useState(false);
   const [editingTrack, setEditingTrack] = useState<Track>();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [socket, setSocket] = useState<Socket>();
@@ -220,6 +222,7 @@ export default function App() {
             if (remote) url.searchParams.delete('remote'); else url.searchParams.set('remote', '1');
             window.location.href = url.toString();
           }}>{remote ? <Radio size={17} /> : <Smartphone size={17} />}{remote ? 'Ouvrir la régie' : 'Télécommande'}</button>
+          {!remote && <button className="button ghost import-button" onClick={() => setSoundShowImportOpen(true)}><FileArchive size={17} />Importer SoundShow</button>}
           {!remote && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Ajouter un son</button>}
         </div>
       </header>
@@ -234,7 +237,7 @@ export default function App() {
         {remote && <div className="remote-banner"><Radio size={18} /><span>Mode télécommande — les sons seront joués sur la régie connectée.</span></div>}
         {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleTracks.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className="track-grid">{visibleTracks.map((track, index) => {
           const category = detail.categories.find((item) => item.id === track.categoryId);
-          return <TrackPad key={track.id} track={track} color={category?.color ?? '#71717a'} active={activeTracks.has(track.id)} remote={remote} shortcut={index < 9 ? index + 1 : undefined}
+          return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTracks.has(track.id)} remote={remote} shortcut={index < 9 ? index + 1 : undefined}
             onPlay={() => sendOrRun({ type: 'play', trackId: track.id }, track)}
             onStop={() => sendOrRun({ type: 'stop', trackId: track.id }, track)}
             onEdit={() => setEditingTrack(track)} />;
@@ -245,6 +248,7 @@ export default function App() {
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
+    {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
     {error && <Toast message={error} onClose={() => setError('')} />}
   </div>;

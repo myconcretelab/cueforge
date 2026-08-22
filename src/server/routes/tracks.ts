@@ -2,6 +2,7 @@ import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
+import { Readable, Transform } from 'node:stream';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { and, eq } from 'drizzle-orm';
@@ -14,12 +15,36 @@ import { ownsProject } from '../services/ownership.js';
 import { parseByteRange } from '../services/range.js';
 
 const acceptedMimeTypes = new Set([
-  'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/flac', 'audio/mp4', 'audio/x-m4a', 'audio/aac',
+  'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/vnd.wave', 'audio/ogg', 'audio/flac',
+  'audio/x-flac', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/x-aac', 'application/ogg',
 ]);
+const acceptedExtensions = new Set(['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac']);
+const maxAudioBytes = 250 * 1024 * 1024;
+
+const importedMetadataSchema = z.object({
+  projectId: z.string().uuid(),
+  categoryId: z.string().uuid().optional(),
+  title: z.string().trim().min(1).max(160),
+  durationMs: z.coerce.number().int().positive().optional(),
+  startTimeMs: z.coerce.number().int().min(0).default(0),
+  endTimeMs: z.coerce.number().int().positive().optional(),
+  fadeInMs: z.coerce.number().int().min(0).max(60_000).default(0),
+  fadeOutMs: z.coerce.number().int().min(0).max(60_000).default(400),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  description: z.string().max(5_000).optional(),
+  copyrightText: z.string().max(20_000).optional(),
+  sourceUrl: z.string().url().optional(),
+  sourceId: z.string().max(200).optional(),
+  position: z.coerce.number().int().min(0).default(0),
+});
 
 function extensionFor(filename: string): string {
   const extension = path.extname(filename).toLowerCase().replace(/[^.a-z0-9]/g, '');
   return extension.slice(0, 8) || '.audio';
+}
+
+function isAcceptedAudio(mimeType: string, filename: string): boolean {
+  return acceptedMimeTypes.has(mimeType) || (mimeType === 'application/octet-stream' && acceptedExtensions.has(path.extname(filename).toLowerCase()));
 }
 
 async function ownedTrack(userId: string, trackId: string) {
@@ -55,7 +80,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
           part.file.resume();
           continue;
         }
-        if (!acceptedMimeTypes.has(part.mimetype)) {
+        if (!isAcceptedAudio(part.mimetype, part.filename)) {
           part.file.resume();
           return reply.code(415).send({ error: 'Format audio non pris en charge.' });
         }
@@ -66,12 +91,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
         uploaded = { key, originalFilename: part.filename, mimeType: part.mimetype, size: info.size };
       }
 
-      const input = z.object({
-        projectId: z.string().uuid(),
-        categoryId: z.string().uuid().optional(),
-        title: z.string().trim().min(1).max(160),
-        durationMs: z.coerce.number().int().positive().optional(),
-      }).parse(fields);
+      const input = importedMetadataSchema.parse(fields);
       if (!uploaded) return reply.code(400).send({ error: 'Fichier audio manquant.' });
       if (!(await ownsProject(user.id, input.projectId))) {
         await unlink(path.join(config.STORAGE_PATH, uploaded.key));
@@ -87,6 +107,17 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
         categoryId: input.categoryId,
         title: input.title,
         durationMs: input.durationMs,
+        startTimeMs: input.startTimeMs,
+        endTimeMs: input.endTimeMs,
+        fadeInMs: input.fadeInMs,
+        fadeOutMs: input.fadeOutMs,
+        loop: fields.loop === 'true',
+        color: input.color,
+        description: input.description,
+        copyrightText: input.copyrightText,
+        sourceUrl: input.sourceUrl,
+        sourceId: input.sourceId,
+        position: input.position,
         originalFilename: uploaded.originalFilename,
         storageKey: uploaded.key,
         mimeType: uploaded.mimeType,
@@ -95,6 +126,70 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(201).send({ track });
     } catch (error) {
       if (uploaded) await unlink(path.join(config.STORAGE_PATH, uploaded.key)).catch(() => undefined);
+      throw error;
+    }
+  });
+
+  app.post('/api/tracks/import-remote', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    const input = importedMetadataSchema.extend({
+      url: z.string().url(),
+      loop: z.boolean().default(false),
+    }).parse(request.body);
+    if (!(await ownsProject(user.id, input.projectId))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    if (input.categoryId && !(await categoryBelongsToProject(input.categoryId, input.projectId))) {
+      return reply.code(400).send({ error: 'Catégorie invalide pour ce projet.' });
+    }
+    const remoteUrl = new URL(input.url);
+    if (remoteUrl.protocol !== 'https:' || remoteUrl.hostname !== 'cdn.freesound.org') {
+      return reply.code(400).send({ error: 'Seuls les médias distants Freesound sont autorisés.' });
+    }
+
+    const response = await fetch(remoteUrl, { redirect: 'error', signal: AbortSignal.timeout(90_000) });
+    if (!response.ok || !response.body) return reply.code(502).send({ error: 'Téléchargement Freesound impossible.' });
+    const mimeType = response.headers.get('content-type')?.split(';')[0] ?? 'audio/mpeg';
+    if (!isAcceptedAudio(mimeType, remoteUrl.pathname)) return reply.code(415).send({ error: 'Format Freesound non pris en charge.' });
+    const announcedSize = Number(response.headers.get('content-length') ?? 0);
+    if (announcedSize > maxAudioBytes) return reply.code(413).send({ error: 'Le fichier dépasse 250 Mo.' });
+
+    await mkdir(config.STORAGE_PATH, { recursive: true });
+    const key = `${randomUUID()}${extensionFor(remoteUrl.pathname)}`;
+    const destination = path.join(config.STORAGE_PATH, key);
+    let downloaded = 0;
+    const limiter = new Transform({
+      transform(chunk: Buffer, _encoding, callback) {
+        downloaded += chunk.length;
+        callback(downloaded > maxAudioBytes ? new Error('Fichier distant trop volumineux.') : null, chunk);
+      },
+    });
+    try {
+      await pipeline(Readable.from(response.body as AsyncIterable<Uint8Array>), limiter, createWriteStream(destination, { flags: 'wx' }));
+      const [track] = await db.insert(tracks).values({
+        projectId: input.projectId,
+        categoryId: input.categoryId,
+        title: input.title,
+        originalFilename: path.basename(remoteUrl.pathname) || `${input.title}.mp3`,
+        storageKey: key,
+        mimeType,
+        sizeBytes: downloaded,
+        durationMs: input.durationMs,
+        startTimeMs: input.startTimeMs,
+        endTimeMs: input.endTimeMs,
+        fadeInMs: input.fadeInMs,
+        fadeOutMs: input.fadeOutMs,
+        volume: 1,
+        loop: input.loop,
+        color: input.color,
+        description: input.description,
+        copyrightText: input.copyrightText,
+        sourceUrl: input.sourceUrl ?? input.url,
+        sourceId: input.sourceId,
+        position: input.position,
+      }).returning();
+      return reply.code(201).send({ track });
+    } catch (error) {
+      await unlink(destination).catch(() => undefined);
       throw error;
     }
   });
@@ -137,6 +232,8 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
       loop: z.boolean().optional(),
       fadeInMs: z.number().int().min(0).max(60_000).optional(),
       fadeOutMs: z.number().int().min(0).max(60_000).optional(),
+      startTimeMs: z.number().int().min(0).optional(),
+      endTimeMs: z.number().int().positive().nullable().optional(),
     }).parse(request.body);
     if (input.categoryId && !(await categoryBelongsToProject(input.categoryId, existingTrack.projectId))) {
       return reply.code(400).send({ error: 'Catégorie invalide pour ce projet.' });
