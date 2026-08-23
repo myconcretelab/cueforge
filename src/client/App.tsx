@@ -311,6 +311,7 @@ export default function App() {
 
   const normalizedSearch = search.trim().toLocaleLowerCase('fr');
   const isSearching = normalizedSearch.length > 0;
+  const columnCategoryId = isSearching ? 'all' : selectedCategoryId;
   const visibleTracks = useMemo(() => (detail?.tracks ?? []).filter((track) => {
     const inCategory = isSearching || selectedCategoryId === 'all' || track.categoryId === selectedCategoryId;
     const matches = track.title.toLocaleLowerCase('fr').includes(normalizedSearch) || track.originalFilename.toLocaleLowerCase('fr').includes(normalizedSearch);
@@ -344,6 +345,15 @@ export default function App() {
   const currentCategory = detail?.categories.find((category) => category.id === selectedCategoryId);
   const displayedChronoMs = chronoElapsedMs + (chronoStartedAt === undefined ? 0 : Math.max(0, now - chronoStartedAt));
   const playlistPlayback = activePlaybacks.find((playback) => playback.id === playlistPlaybackId);
+  const detailProjectId = detail?.project.id;
+
+  useEffect(() => {
+    if (!detailProjectId) return;
+    const legacyDesktop = readNumberRange('soundflow-track-columns', 6, 2, 12);
+    const legacyMobile = readNumberRange('soundflow-track-columns-mobile', 2, 1, 3);
+    setDesktopColumns(readNumberRange(trackColumnsStorageKey(detailProjectId, columnCategoryId, false), legacyDesktop, 2, 12));
+    setMobileColumns(readNumberRange(trackColumnsStorageKey(detailProjectId, columnCategoryId, true), legacyMobile, 1, 3));
+  }, [columnCategoryId, detailProjectId]);
 
   const consumeNextTrackVolume = useCallback(() => {
     const multiplier = nextTrackVolume / 100;
@@ -912,12 +922,13 @@ export default function App() {
   }
 
   function updateTrackColumns(value: number) {
+    if (!detail) return;
     if (compactLayout) {
       setMobileColumns(value);
-      localStorage.setItem('soundflow-track-columns-mobile', String(value));
+      localStorage.setItem(trackColumnsStorageKey(detail.project.id, columnCategoryId, true), String(value));
     } else {
       setDesktopColumns(value);
-      localStorage.setItem('soundflow-track-columns', String(value));
+      localStorage.setItem(trackColumnsStorageKey(detail.project.id, columnCategoryId, false), String(value));
     }
   }
 
@@ -1190,6 +1201,10 @@ function readNumberRange(key: string, fallback: number, min: number, max: number
 
 function categoryStorageKey(projectId: string): string {
   return `soundflow-category:${projectId}`;
+}
+
+function trackColumnsStorageKey(projectId: string, categoryId: string, compact: boolean): string {
+  return `soundflow-track-columns:${projectId}:${categoryId}:${compact ? 'mobile' : 'desktop'}`;
 }
 
 function stopwatchStorageKey(projectId: string): string {

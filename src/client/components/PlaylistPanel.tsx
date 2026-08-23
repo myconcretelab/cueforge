@@ -54,7 +54,7 @@ export function PlaylistPanel({ items, tracks, colors, options, currentIndex, pl
     return clampPanelHeight(Number.isFinite(storedHeight) && storedHeight > 0 ? storedHeight : 320);
   });
   const resizeRef = useRef<{ startY: number; startHeight: number; latestHeight: number } | undefined>(undefined);
-  const renderedHeight = clampPanelHeight(panelHeight);
+  const renderedHeight = clampPanelHeight(optionsOpen ? Math.max(panelHeight, 560) : panelHeight);
 
   function persistHeight(height: number) {
     localStorage.setItem(panelHeightStorageKey, String(Math.round(height)));
@@ -68,7 +68,7 @@ export function PlaylistPanel({ items, tracks, colors, options, currentIndex, pl
     });
   }
 
-  return <section className="playlist-panel" style={{ '--playlist-color': options.color, '--playlist-panel-height': `${renderedHeight}px` } as React.CSSProperties}>
+  return <section className={`playlist-panel ${optionsOpen ? 'options-open' : ''}`} style={{ '--playlist-color': options.color, '--playlist-panel-height': `${renderedHeight}px` } as React.CSSProperties}>
     <div className="playlist-resizer" role="separator" aria-label="Régler la hauteur du panneau playlist" aria-orientation="horizontal" aria-valuemin={panelMinHeight} aria-valuemax={maxPanelHeight()} aria-valuenow={Math.round(renderedHeight)} tabIndex={0} title="Glisser pour régler la hauteur · Flèches haut et bas"
       onKeyDown={(event) => { if (event.key === 'ArrowUp') { event.preventDefault(); resizeWithKeyboard(1); } else if (event.key === 'ArrowDown') { event.preventDefault(); resizeWithKeyboard(-1); } }}
       onPointerDown={(event) => { resizeRef.current = { startY: event.clientY, startHeight: renderedHeight, latestHeight: renderedHeight }; event.currentTarget.setPointerCapture(event.pointerId); }}
