@@ -58,6 +58,19 @@ export const projectColors = pgTable('project_colors', {
   uniqueIndex('project_colors_project_color_idx').on(table.projectId, table.color),
 ]);
 
+export const playlists = pgTable('playlists', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  color: text('color').notNull().default('#8b5cf6'),
+  autostart: boolean('autostart').notNull().default(false),
+  loop: boolean('loop').notNull().default(false),
+  random: boolean('random').notNull().default(false),
+  position: integer('position').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [index('playlists_project_id_idx').on(table.projectId)]);
+
 export const tracks = pgTable('tracks', {
   id: uuid('id').primaryKey().defaultRandom(),
   projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
@@ -83,8 +96,17 @@ export const tracks = pgTable('tracks', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [index('tracks_project_id_idx').on(table.projectId), index('tracks_category_id_idx').on(table.categoryId)]);
 
+export const playlistItems = pgTable('playlist_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  playlistId: uuid('playlist_id').notNull().references(() => playlists.id, { onDelete: 'cascade' }),
+  trackId: uuid('track_id').notNull().references(() => tracks.id, { onDelete: 'cascade' }),
+  position: integer('position').notNull().default(0),
+}, (table) => [index('playlist_items_playlist_id_idx').on(table.playlistId), index('playlist_items_track_id_idx').on(table.trackId)]);
+
 export type User = typeof users.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type ProjectColor = typeof projectColors.$inferSelect;
+export type Playlist = typeof playlists.$inferSelect;
 export type Category = typeof categories.$inferSelect;
 export type Track = typeof tracks.$inferSelect;
+export type PlaylistItem = typeof playlistItems.$inferSelect;

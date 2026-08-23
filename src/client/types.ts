@@ -36,6 +36,20 @@ export interface ProjectColor {
   position: number;
 }
 
+export interface Playlist {
+  id: string;
+  projectId: string;
+  name: string;
+  color: string;
+  autostart: boolean;
+  loop: boolean;
+  random: boolean;
+  position: number;
+  trackIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Track {
   id: string;
   projectId: string;
@@ -63,6 +77,7 @@ export interface Track {
 export interface ProjectDetail {
   project: Project;
   colors: ProjectColor[];
+  playlists: Playlist[];
   categories: Category[];
   tracks: Track[];
 }

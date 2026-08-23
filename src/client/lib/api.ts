@@ -1,4 +1,4 @@
-import type { Category, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Project, ProjectColor, ProjectDetail, SoundShowAnalysis, Track, User } from '../types';
+import type { Category, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, SoundShowAnalysis, Track, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -46,6 +46,11 @@ export const api = {
     method: 'PATCH', body: JSON.stringify({ colorIds }),
   }),
   deleteProjectColor: (projectId: string, colorId: string) => request<void>(`/api/projects/${projectId}/colors/${colorId}`, { method: 'DELETE' }),
+  savePlaylist: (projectId: string, playlistId: string | undefined, input: Pick<Playlist, 'name' | 'color' | 'autostart' | 'loop' | 'random' | 'trackIds'>) =>
+    request<{ playlist: Playlist }>(playlistId ? `/api/projects/${projectId}/playlists/${playlistId}` : `/api/projects/${projectId}/playlists`, {
+      method: playlistId ? 'PATCH' : 'POST', body: JSON.stringify(input),
+    }),
+  deletePlaylist: (projectId: string, playlistId: string) => request<void>(`/api/projects/${projectId}/playlists/${playlistId}`, { method: 'DELETE' }),
   createCategory: (projectId: string, name: string, color: string, position?: number) =>
     request<{ category: Category }>(`/api/projects/${projectId}/categories`, {
       method: 'POST', body: JSON.stringify({ name, color, position }),

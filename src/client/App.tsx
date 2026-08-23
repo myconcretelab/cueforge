@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, GripVertical, History, LoaderCircle, Menu, Move, Pause, Play, Plus, Radio,
+  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, GripVertical, History, ListMusic, LoaderCircle, Menu, Move, Pause, Play, Plus, Radio,
   RefreshCcw, Repeat2, RotateCcw, Search, Settings, Settings2, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
 import { FreesoundDialog } from './components/FreesoundDialog';
+import { PlaylistPad } from './components/PlaylistPad';
+import { PlaylistPanel, type PlaylistOptions, type PlaylistQueueItem } from './components/PlaylistPanel';
 import { SoundShowImportDialog } from './components/SoundShowImportDialog';
 import { SettingsDialog } from './components/SettingsDialog';
 import { TrackDialog } from './components/TrackDialog';
@@ -16,7 +18,7 @@ import { audioEngine, playbackVolumeAt, type ActivePlayback } from './lib/audio-
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { parseStopwatchState, resolveCategoryId } from './lib/session-state';
-import type { Category, KeyAction, MouseAction, Project, ProjectColor, ProjectDetail, RemoteCommand, Track, User } from './types';
+import type { Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, RemoteCommand, Track, User } from './types';
 
 const colors = ['#f97316', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
 const mouseActions: Array<{ value: MouseAction; label: string }> = [
@@ -63,6 +65,14 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingTrack, setEditingTrack] = useState<Track>();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarTool, setSidebarTool] = useState<'playlist'>();
+  const [playlistItems, setPlaylistItems] = useState<PlaylistQueueItem[]>([]);
+  const [playlistOptions, setPlaylistOptions] = useState<PlaylistOptions>({ name: 'Nouvelle playlist', color: '#8b5cf6', autostart: false, loop: false, random: false });
+  const [playlistOptionsOpen, setPlaylistOptionsOpen] = useState(false);
+  const [loadedPlaylistId, setLoadedPlaylistId] = useState<string>();
+  const [playlistCurrentIndex, setPlaylistCurrentIndex] = useState(0);
+  const [playlistPlaybackId, setPlaylistPlaybackId] = useState<string>();
+  const [playlistSaving, setPlaylistSaving] = useState(false);
   const [socket, setSocket] = useState<Socket>();
   const [connected, setConnected] = useState(false);
   const [offlineStatus, setOfflineStatus] = useState('');
@@ -75,6 +85,9 @@ export default function App() {
   const categoryResize = useRef<{ x: number; width: number; latest: number } | undefined>(undefined);
   const fileDragDepth = useRef(0);
   const fileUploadBusy = useRef(false);
+  const playlistRunRef = useRef(false);
+  const ignoredPlaylistPlaybackRef = useRef<string | undefined>(undefined);
+  const playlistPlayedItemIdsRef = useRef(new Set<string>());
   const remote = new URLSearchParams(window.location.search).get('remote') === '1';
 
   useEffect(() => audioEngine.subscribe(setActivePlaybacks), []);
@@ -142,7 +155,7 @@ export default function App() {
       if (!cached) throw cause;
       result = cached;
     }
-    setDetail({ ...result, colors: result.colors ?? [] });
+    setDetail({ ...result, colors: result.colors ?? [], playlists: result.playlists ?? [] });
   }, [selectedProjectId]);
 
   const uploadDroppedFiles = useCallback(async (files: File[]) => {
@@ -294,6 +307,7 @@ export default function App() {
     const matches = track.title.toLocaleLowerCase('fr').includes(normalizedSearch) || track.originalFilename.toLocaleLowerCase('fr').includes(normalizedSearch);
     return inCategory && matches;
   }), [detail?.tracks, isSearching, normalizedSearch, selectedCategoryId]);
+  const visiblePlaylists = useMemo(() => remote ? [] : (detail?.playlists ?? []).filter((playlist) => !isSearching || playlist.name.toLocaleLowerCase('fr').includes(normalizedSearch)), [detail?.playlists, isSearching, normalizedSearch, remote]);
   const activeTrackIds = useMemo(() => new Set(activePlaybacks.map((playback) => playback.trackId)), [activePlaybacks]);
   const playbacksByTrack = useMemo(() => {
     const grouped = new Map<string, ActivePlayback[]>();
@@ -316,6 +330,7 @@ export default function App() {
   const trackColumns = compactLayout ? mobileColumns : desktopColumns;
   const currentCategory = detail?.categories.find((category) => category.id === selectedCategoryId);
   const displayedChronoMs = chronoElapsedMs + (chronoStartedAt === undefined ? 0 : Math.max(0, now - chronoStartedAt));
+  const playlistPlayback = activePlaybacks.find((playback) => playback.id === playlistPlaybackId);
 
   const consumeNextTrackVolume = useCallback(() => {
     const multiplier = nextTrackVolume / 100;
@@ -352,6 +367,179 @@ export default function App() {
     }
     audioEngine.runAction(action, track, detail?.tracks ?? [], volumeMultiplier).catch((cause) => setError(cause.message));
   }, [consumeNextTrackVolume, detail, remote, socket]);
+
+  const startPlaylistTrack = useCallback(async (track: Track, index: number, itemId: string) => {
+    playlistRunRef.current = true;
+    playlistPlayedItemIdsRef.current.add(itemId);
+    setPlaylistCurrentIndex(index);
+    try {
+      const playbackId = await audioEngine.play({ ...track, loop: false }, track.fadeInMs);
+      setPlaylistPlaybackId(playbackId);
+    } catch (cause) {
+      playlistRunRef.current = false;
+      setError(cause instanceof Error ? cause.message : 'Lecture de la playlist impossible.');
+    }
+  }, []);
+
+  const playPlaylistAt = useCallback(async (index: number) => {
+    const item = playlistItems[index];
+    const track = detail?.tracks.find((candidate) => candidate.id === item?.trackId);
+    if (!item || !track) return;
+    await startPlaylistTrack(track, index, item.id);
+  }, [detail?.tracks, playlistItems, startPlaylistTrack]);
+
+  const nextPlaylistIndex = useCallback((currentIndex: number): number | undefined => {
+    if (playlistItems.length === 0) return undefined;
+    if (playlistOptions.random) {
+      let candidates = playlistItems.map((item, index) => ({ item, index })).filter(({ item }) => !playlistPlayedItemIdsRef.current.has(item.id));
+      if (candidates.length === 0) {
+        if (!playlistOptions.loop) return undefined;
+        playlistPlayedItemIdsRef.current.clear();
+        candidates = playlistItems.map((item, index) => ({ item, index })).filter(({ index }) => playlistItems.length === 1 || index !== currentIndex);
+      }
+      return candidates[Math.floor(Math.random() * candidates.length)]?.index;
+    }
+    if (currentIndex + 1 < playlistItems.length) return currentIndex + 1;
+    return playlistOptions.loop ? 0 : undefined;
+  }, [playlistItems, playlistOptions.loop, playlistOptions.random]);
+
+  useEffect(() => {
+    if (!playlistPlaybackId || activePlaybacks.some((playback) => playback.id === playlistPlaybackId)) return;
+    if (ignoredPlaylistPlaybackRef.current === playlistPlaybackId) {
+      ignoredPlaylistPlaybackRef.current = undefined;
+      return;
+    }
+    setPlaylistPlaybackId(undefined);
+    if (!playlistRunRef.current) return;
+    const nextIndex = nextPlaylistIndex(playlistCurrentIndex);
+    if (nextIndex === undefined) {
+      playlistRunRef.current = false;
+      return;
+    }
+    playPlaylistAt(nextIndex).catch(() => undefined);
+  }, [activePlaybacks, nextPlaylistIndex, playPlaylistAt, playlistCurrentIndex, playlistPlaybackId]);
+
+  function stopPlaylistPlayback() {
+    playlistRunRef.current = false;
+    if (playlistPlaybackId) {
+      ignoredPlaylistPlaybackRef.current = playlistPlaybackId;
+      audioEngine.stopInstance(playlistPlaybackId, 0);
+    }
+    setPlaylistPlaybackId(undefined);
+  }
+
+  function playPausePlaylist() {
+    const playback = activePlaybacks.find((item) => item.id === playlistPlaybackId);
+    if (playback) {
+      audioEngine.togglePauseInstance(playback.id);
+      return;
+    }
+    playlistPlayedItemIdsRef.current.clear();
+    playPlaylistAt(Math.min(playlistCurrentIndex, Math.max(0, playlistItems.length - 1))).catch(() => undefined);
+  }
+
+  function playPlaylistItem(index: number) {
+    stopPlaylistPlayback();
+    playlistPlayedItemIdsRef.current.clear();
+    playPlaylistAt(index).catch(() => undefined);
+  }
+
+  function skipPlaylistTrack() {
+    const nextIndex = nextPlaylistIndex(playlistCurrentIndex);
+    if (nextIndex === undefined) return stopPlaylistPlayback();
+    stopPlaylistPlayback();
+    playPlaylistAt(nextIndex).catch(() => undefined);
+  }
+
+  function addTrackToPlaylist(trackId: string) {
+    if (!detail?.tracks.some((track) => track.id === trackId)) return;
+    setPlaylistItems((current) => [...current, { id: crypto.randomUUID(), trackId }]);
+  }
+
+  function movePlaylistItem(itemId: string, beforeItemId: string) {
+    setPlaylistItems((current) => {
+      const moving = current.find((item) => item.id === itemId);
+      const currentItemId = current[playlistCurrentIndex]?.id;
+      if (!moving) return current;
+      const reordered = current.filter((item) => item.id !== itemId);
+      const targetIndex = reordered.findIndex((item) => item.id === beforeItemId);
+      reordered.splice(Math.max(0, targetIndex), 0, moving);
+      if (currentItemId) setPlaylistCurrentIndex(Math.max(0, reordered.findIndex((item) => item.id === currentItemId)));
+      return reordered;
+    });
+  }
+
+  function removePlaylistItem(itemId: string) {
+    const removedIndex = playlistItems.findIndex((item) => item.id === itemId);
+    if (removedIndex < 0) return;
+    if (removedIndex === playlistCurrentIndex) stopPlaylistPlayback();
+    setPlaylistItems((current) => current.filter((item) => item.id !== itemId));
+    setPlaylistCurrentIndex((current) => Math.max(0, removedIndex < current ? current - 1 : current));
+    playlistPlayedItemIdsRef.current.delete(itemId);
+  }
+
+  function resetPlaylistEditor() {
+    playlistRunRef.current = false;
+    ignoredPlaylistPlaybackRef.current = undefined;
+    setPlaylistPlaybackId(undefined);
+    setPlaylistItems([]);
+    setLoadedPlaylistId(undefined);
+    setPlaylistCurrentIndex(0);
+    setPlaylistOptions({ name: 'Nouvelle playlist', color: detail?.colors[0]?.color ?? '#8b5cf6', autostart: false, loop: false, random: false });
+    setPlaylistOptionsOpen(false);
+    playlistPlayedItemIdsRef.current.clear();
+  }
+
+  function clearPlaylist() {
+    stopPlaylistPlayback();
+    resetPlaylistEditor();
+  }
+
+  function loadPlaylist(playlist: Playlist) {
+    stopPlaylistPlayback();
+    const items = playlist.trackIds.filter((trackId) => detail?.tracks.some((track) => track.id === trackId)).map((trackId) => ({ id: crypto.randomUUID(), trackId }));
+    setPlaylistItems(items);
+    setPlaylistOptions({ name: playlist.name, color: playlist.color, autostart: playlist.autostart, loop: playlist.loop, random: playlist.random });
+    setLoadedPlaylistId(playlist.id);
+    setPlaylistCurrentIndex(0);
+    setPlaylistOptionsOpen(false);
+    setSidebarTool('playlist');
+    playlistPlayedItemIdsRef.current.clear();
+    if (playlist.autostart && items[0]) {
+      const firstTrack = detail?.tracks.find((track) => track.id === items[0]!.trackId);
+      if (firstTrack) startPlaylistTrack(firstTrack, 0, items[0].id).catch(() => undefined);
+    }
+  }
+
+  async function saveCurrentPlaylist() {
+    if (!detail || playlistItems.length === 0) return;
+    setPlaylistSaving(true);
+    try {
+      const { playlist } = await api.savePlaylist(detail.project.id, loadedPlaylistId, {
+        ...playlistOptions,
+        name: playlistOptions.name.trim() || 'Playlist sans titre',
+        trackIds: playlistItems.map((item) => item.trackId),
+      });
+      setLoadedPlaylistId(playlist.id);
+      setPlaylistOptions((current) => ({ ...current, name: playlist.name }));
+      setDetail((current) => current ? { ...current, playlists: current.playlists.some((item) => item.id === playlist.id) ? current.playlists.map((item) => item.id === playlist.id ? playlist : item) : [...current.playlists, playlist] } : current);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Sauvegarde de la playlist impossible.');
+    } finally {
+      setPlaylistSaving(false);
+    }
+  }
+
+  async function deleteCurrentPlaylist() {
+    if (!detail || !loadedPlaylistId || !window.confirm(`Supprimer la playlist « ${playlistOptions.name} » ?`)) return;
+    try {
+      await api.deletePlaylist(detail.project.id, loadedPlaylistId);
+      setDetail((current) => current ? { ...current, playlists: current.playlists.filter((playlist) => playlist.id !== loadedPlaylistId) } : current);
+      setLoadedPlaylistId(undefined);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Suppression de la playlist impossible.');
+    }
+  }
 
   useEffect(() => {
     if (!detail) return;
@@ -504,7 +692,7 @@ export default function App() {
         const projectToDelete = await api.project(project.id).catch(() => undefined);
         deletedTrackIds = projectToDelete?.tracks.map((track) => track.id) ?? [];
       }
-      if (project.id === selectedProjectId) audioEngine.stopAll(detail?.tracks ?? [], 0);
+      if (project.id === selectedProjectId) { audioEngine.stopAll(detail?.tracks ?? [], 0); resetPlaylistEditor(); }
       await api.deleteProject(project.id);
       if (project.id === selectedProjectId) setDetail(undefined);
       audioEngine.resetHistory(deletedTrackIds);
@@ -566,6 +754,7 @@ export default function App() {
 
   function chooseProject(id: string) {
     audioEngine.stopAll(detail?.tracks ?? []);
+    resetPlaylistEditor();
     setSelectedProjectId(id);
     setSelectedCategoryId('all');
     setReorderMode(false);
@@ -642,6 +831,7 @@ export default function App() {
     if (!confirmed) return;
     window.dispatchEvent(new Event('soundflow:stop-temporary-audio'));
     audioEngine.resetProjectSession(detail.tracks);
+    resetPlaylistEditor();
     setChronoElapsedMs(0);
     setChronoStartedAt(undefined);
     localStorage.removeItem(stopwatchStorageKey(detail.project.id));
@@ -694,6 +884,7 @@ export default function App() {
   async function logout() {
     audioEngine.stopAll(detail?.tracks ?? []);
     audioEngine.resetHistory();
+    resetPlaylistEditor();
     await api.logout();
     await deleteOfflineAudio().catch(() => false);
     for (const key of Object.keys(localStorage)) if (key.startsWith('soundflow-')) localStorage.removeItem(key);
@@ -731,6 +922,9 @@ export default function App() {
           </article>;
         })}
       </div>
+      {!remote && <><nav className="sidebar-tool-tabs" aria-label="Outils de la colonne de lecture"><button className={sidebarTool === 'playlist' ? 'active' : ''} onClick={() => setSidebarTool((current) => current === 'playlist' ? undefined : 'playlist')} aria-label="Afficher la playlist" title="Playlist"><ListMusic size={17} /><em>{playlistItems.length}</em></button></nav>
+        {sidebarTool === 'playlist' && <PlaylistPanel items={playlistItems} tracks={detail?.tracks ?? []} colors={detail?.colors ?? []} options={playlistOptions} currentIndex={playlistCurrentIndex} playbackActive={Boolean(playlistPlayback)} playbackPaused={playlistPlayback?.paused ?? false} saved={Boolean(loadedPlaylistId)} saving={playlistSaving} optionsOpen={playlistOptionsOpen} onOptionsOpenChange={setPlaylistOptionsOpen} onOptionsChange={(patch) => setPlaylistOptions((current) => ({ ...current, ...patch }))} onDropTrack={addTrackToPlaylist} onMoveItem={movePlaylistItem} onRemoveItem={removePlaylistItem} onPlayItem={playPlaylistItem} onPlayPause={playPausePlaylist} onStop={stopPlaylistPlayback} onNext={skipPlaylistTrack} onSave={() => saveCurrentPlaylist().catch(() => undefined)} onDelete={() => deleteCurrentPlaylist().catch(() => undefined)} onClear={clearPlaylist} />}
+      </>}
     </aside>
     {sidebarOpen && <button className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Fermer le menu" />}
 
@@ -813,17 +1007,20 @@ export default function App() {
 
       <section className="soundboard">
         {remote && <div className="remote-banner"><Radio size={18} /><span>Mode télécommande — les sons seront joués sur la régie connectée.</span></div>}
-        {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleTracks.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className="track-grid" style={{ '--track-columns': trackColumns } as React.CSSProperties}>{visibleTracks.map((track, index) => {
+        {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleTracks.length === 0 && visiblePlaylists.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className="track-grid" style={{ '--track-columns': trackColumns } as React.CSSProperties}>
+          {visibleTracks.map((track, index) => {
           const category = detail.categories.find((item) => item.id === track.categoryId);
-          return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} dropTarget={dropTrackId === track.id} shortcut={index < 9 ? index + 1 : undefined}
+          return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={sidebarTool === 'playlist' && !remote} dropTarget={dropTrackId === track.id} shortcut={index < 9 ? index + 1 : undefined}
             onPrimary={() => runTrackAction(detail.project.leftClickAction ?? 'start', track)}
             onSecondary={() => runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
             onEdit={() => { if (!reorderMode) setEditingTrack(track); }}
-            onDragStart={(event) => { if (!reorderMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', track.id); setDraggedTrackId(track.id); }}
+            onDragStart={(event) => { if (reorderMode) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', track.id); setDraggedTrackId(track.id); } else if (sidebarTool === 'playlist') { event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('application/x-soundflow-track', track.id); } }}
             onDragOver={(event) => { if (!reorderMode || !draggedTrackId || draggedTrackId === track.id) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropTrackId(track.id); setDropCategoryId(undefined); }}
             onDrop={(event) => { event.preventDefault(); if (draggedTrackId && draggedTrackId !== track.id) reorderTrack(draggedTrackId, track.categoryId, track.id).catch(() => undefined); }}
             onDragEnd={() => { setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} />;
-        })}</div>}
+        })}
+          {visiblePlaylists.map((playlist) => <PlaylistPad key={`playlist:${playlist.id}`} playlist={playlist} onLoad={() => loadPlaylist(playlist)} />)}
+        </div>}
       </section>
 
       <footer className="statusbar"><span><i className={connected ? 'live' : ''} />{remote ? 'Contrôleur' : 'Lecteur principal'}</span><span><Settings2 size={14} /> Web Audio · {activePlaybacks.length} actif{activePlaybacks.length !== 1 ? 's' : ''}</span></footer>

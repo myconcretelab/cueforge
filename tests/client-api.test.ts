@@ -38,4 +38,17 @@ describe('client API', () => {
       body: JSON.stringify({ color: '#f97316' }),
     }));
   });
+
+  it('crée puis met à jour une playlist avec ses options', async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ playlist: { id: 'playlist-id' } }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetcher);
+    const projectId = '11111111-1111-4111-8111-111111111111';
+    const input = { name: 'Entrée public', color: '#8b5cf6', autostart: true, loop: false, random: true, trackIds: ['22222222-2222-4222-8222-222222222222'] };
+
+    await api.savePlaylist(projectId, undefined, input);
+    await api.savePlaylist(projectId, '33333333-3333-4333-8333-333333333333', input);
+
+    expect(fetcher).toHaveBeenNthCalledWith(1, `/api/projects/${projectId}/playlists`, expect.objectContaining({ method: 'POST', body: JSON.stringify(input) }));
+    expect(fetcher).toHaveBeenNthCalledWith(2, `/api/projects/${projectId}/playlists/33333333-3333-4333-8333-333333333333`, expect.objectContaining({ method: 'PATCH', body: JSON.stringify(input) }));
+  });
 });

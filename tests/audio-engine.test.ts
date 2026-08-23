@@ -81,9 +81,10 @@ describe('audio player instance controls', () => {
   });
 
   it('règle le volume, la pause et la boucle indépendamment par lecture', async () => {
-    await audioEngine.play(track, 1_000, .6);
+    const createdPlaybackId = await audioEngine.play(track, 1_000, .6);
     const playbackId = latest[0]?.id;
     expect(playbackId).toBeTruthy();
+    expect(createdPlaybackId).toBe(playbackId);
     expect(latest[0]).toMatchObject({ volume: .6, volumeFrom: 0, volumeTransitionDurationMs: 1_000, paused: false, loop: false, fadingOut: false });
     expect(playbackVolumeAt(latest[0]!, latest[0]!.volumeTransitionStartedAtMs + 500)).toBeCloseTo(.3);
 

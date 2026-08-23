@@ -150,7 +150,7 @@ class AudioEngine {
     await this.load(track);
   }
 
-  async play(track: Track, fadeInMs = track.fadeInMs, volumeMultiplier = 1): Promise<void> {
+  async play(track: Track, fadeInMs = track.fadeInMs, volumeMultiplier = 1): Promise<string> {
     const [context, buffer] = await Promise.all([this.getContext(), this.load(track)]);
     const gain = context.createGain();
     const startAt = Math.min(track.startTimeMs / 1000, Math.max(0, buffer.duration - 0.01));
@@ -194,6 +194,7 @@ class AudioEngine {
     this.active.set(track.id, instances);
     this.startPlaybackSource(playback);
     this.notify();
+    return playback.id;
   }
 
   togglePauseInstance(playbackId: string): void {
@@ -340,8 +341,8 @@ class AudioEngine {
   async runAction(action: MouseAction, track: Track, projectTracks: Track[], volumeMultiplier = 1): Promise<void> {
     if (action === 'none') return;
     if (action === 'stop') return this.stop(track.id, track.fadeOutMs);
-    if (action === 'start') return this.play(track, track.fadeInMs, volumeMultiplier);
-    if (action === 'fade-in') return this.play(track, track.fadeInMs > 0 ? track.fadeInMs : 1_200, volumeMultiplier);
+    if (action === 'start') { await this.play(track, track.fadeInMs, volumeMultiplier); return; }
+    if (action === 'fade-in') { await this.play(track, track.fadeInMs > 0 ? track.fadeInMs : 1_200, volumeMultiplier); return; }
     await this.load(track);
     if (action === 'replace') this.stopAll(projectTracks, 0);
     else this.stopAll(projectTracks);

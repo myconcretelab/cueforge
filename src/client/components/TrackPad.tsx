@@ -10,6 +10,7 @@ interface Props {
   historyProgress: number;
   loaded: boolean;
   reorderEnabled: boolean;
+  playlistDropEnabled: boolean;
   dropTarget: boolean;
   shortcut?: number;
   onPrimary: () => void;
@@ -21,9 +22,9 @@ interface Props {
   onDragEnd: () => void;
 }
 
-export function TrackPad({ track, color, active, playbacks, historyProgress, loaded, reorderEnabled, dropTarget, shortcut, onPrimary, onSecondary, onEdit, onDragStart, onDragOver, onDrop, onDragEnd }: Props) {
-  return <article className={`track-pad ${active ? 'is-active' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${dropTarget ? 'is-drop-target' : ''}`}
-    style={{ '--track-color': color } as React.CSSProperties} draggable={reorderEnabled}
+export function TrackPad({ track, color, active, playbacks, historyProgress, loaded, reorderEnabled, playlistDropEnabled, dropTarget, shortcut, onPrimary, onSecondary, onEdit, onDragStart, onDragOver, onDrop, onDragEnd }: Props) {
+  return <article className={`track-pad ${active ? 'is-active' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${playlistDropEnabled ? 'playlist-drag-enabled' : ''} ${dropTarget ? 'is-drop-target' : ''}`}
+    style={{ '--track-color': color } as React.CSSProperties} draggable={reorderEnabled || playlistDropEnabled}
     onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}>
     {loaded && <span className="track-loaded" title="Disponible hors ligne" aria-label="Disponible hors ligne"><CircleCheck size={15} /></span>}
     <button className="icon-button subtle track-edit" onClick={onEdit} aria-label={`Modifier ${track.title}`}><MoreHorizontal size={18} /></button>
