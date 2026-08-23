@@ -17,7 +17,7 @@ import { api, ApiError } from './lib/api';
 import { audioEngine, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
-import { parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
+import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
 import type { Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, RemoteCommand, Track, User } from './types';
 
 const colors = ['#f97316', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
@@ -262,8 +262,7 @@ export default function App() {
   useEffect(() => {
     if (!detail) return;
     const storageKey = categoryStorageKey(detail.project.id);
-    const storedCategoryId = localStorage.getItem(storageKey);
-    const categoryId = resolveCategoryId(detail.categories.map((category) => category.id), storedCategoryId === 'all' ? null : storedCategoryId);
+    const categoryId = resolveCategoryId(detail.categories.filter((category) => !categoryIsFavorites(category.name)).map((category) => category.id), localStorage.getItem(storageKey));
     setSelectedCategoryId(categoryId);
     localStorage.setItem(storageKey, categoryId);
   }, [detail]);
@@ -346,6 +345,7 @@ export default function App() {
   const preloadedInCategory = tracksToPreload.filter((track) => offlineTrackIds.has(track.id)).length;
   const trackColumns = compactLayout ? mobileColumns : desktopColumns;
   const currentCategory = detail?.categories.find((category) => category.id === selectedCategoryId);
+  const displayedCategories = detail?.categories.filter((category) => !categoryIsFavorites(category.name)) ?? [];
   const displayedChronoMs = chronoElapsedMs + (chronoStartedAt === undefined ? 0 : Math.max(0, now - chronoStartedAt));
   const playlistPlayback = activePlaybacks.find((playback) => playback.id === playlistPlaybackId);
   const detailProjectId = detail?.project.id;
@@ -1103,7 +1103,8 @@ export default function App() {
         <div className="category-strip-heading"><span>{categoryManageMode ? 'Glissez les catégories pour les réordonner' : 'Catégories'}</span><div><button className={`icon-button subtle category-manage-toggle ${categoryManageMode ? 'active' : ''}`} onClick={() => { setCategoryManageMode((current) => !current); setReorderMode(false); setDraggedCategoryId(undefined); setDropCategoryOrderId(undefined); setDropCategoryAfter(false); }} aria-label={categoryManageMode ? 'Terminer la gestion des catégories' : 'Gérer les catégories'} title={categoryManageMode ? 'Terminer' : 'Réordonner ou supprimer'}><ArrowUpDown size={16} /></button><button className="icon-button subtle" onClick={createCategory} aria-label="Nouvelle catégorie"><Plus size={17} /></button></div></div>
         <div className="category-tabs-row" style={{ '--category-tab-width': `${categoryWidth}px` } as React.CSSProperties}>
           <nav className="category-tabs" aria-label="Catégories de sons" onDragOver={(event) => { if (!categoryManageMode || !draggedCategoryId) return; event.preventDefault(); }} onDrop={(event) => { if (!categoryManageMode || !draggedCategoryId || event.target !== event.currentTarget) return; event.preventDefault(); reorderCategories(draggedCategoryId).catch(() => undefined); }}>
-            {detail.categories.map((category) => <div key={category.id} className={`category-tab-shell ${categoryManageMode ? 'is-managing' : ''} ${dropCategoryOrderId === category.id ? `is-order-target ${dropCategoryAfter ? 'drop-after' : 'drop-before'}` : ''}`} style={{ '--category-color': category.color } as React.CSSProperties} draggable={categoryManageMode}
+            <button className={`category-tab category-tab-all ${selectedCategoryId === 'all' || isSearching ? 'active' : ''}`} onClick={() => selectCategory('all')} style={{ '--category-color': '#a1a1aa' } as React.CSSProperties}><span>Tous les sons</span><em className="category-tab-count">{detail.tracks.length}</em></button>
+            {displayedCategories.map((category) => <div key={category.id} className={`category-tab-shell ${categoryManageMode ? 'is-managing' : ''} ${dropCategoryOrderId === category.id ? `is-order-target ${dropCategoryAfter ? 'drop-after' : 'drop-before'}` : ''}`} style={{ '--category-color': category.color } as React.CSSProperties} draggable={categoryManageMode}
               onDragStart={(event) => { if (!categoryManageMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', category.id); setDraggedCategoryId(category.id); }}
               onDragOver={(event) => { if (!categoryManageMode || !draggedCategoryId || draggedCategoryId === category.id) return; event.preventDefault(); event.stopPropagation(); const bounds = event.currentTarget.getBoundingClientRect(); setDropCategoryOrderId(category.id); setDropCategoryAfter(event.clientX > bounds.left + bounds.width / 2); }}
               onDragLeave={() => setDropCategoryOrderId((current) => current === category.id ? undefined : current)}

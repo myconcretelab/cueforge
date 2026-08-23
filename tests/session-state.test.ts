@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseStopwatchState, playlistIsVisible, resolveCategoryId } from '../src/client/lib/session-state.js';
+import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from '../src/client/lib/session-state.js';
 
 describe('restauration de session', () => {
   it('ouvre la première catégorie sans préférence, puis restaure la sélection enregistrée', () => {
@@ -20,5 +20,11 @@ describe('restauration de session', () => {
     expect(playlistIsVisible('category-1', 'category-2', false)).toBe(false);
     expect(playlistIsVisible('category-1', 'all', false)).toBe(true);
     expect(playlistIsVisible('category-1', 'category-2', true)).toBe(true);
+  });
+
+  it('identifie uniquement les onglets de favoris à masquer', () => {
+    expect(categoryIsFavorites('Favoris')).toBe(true);
+    expect(categoryIsFavorites(' favorites ')).toBe(true);
+    expect(categoryIsFavorites('Tous les sons')).toBe(false);
   });
 });

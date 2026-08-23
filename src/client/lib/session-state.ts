@@ -9,6 +9,11 @@ export function resolveCategoryId(categoryIds: string[], storedCategoryId: strin
   return categoryIds[0] ?? 'all';
 }
 
+export function categoryIsFavorites(name: string): boolean {
+  const normalized = name.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr');
+  return ['favori', 'favoris', 'favorite', 'favorites'].includes(normalized);
+}
+
 export function playlistIsVisible(categoryId: string | null | undefined, selectedCategoryId: string, isSearching: boolean): boolean {
   return isSearching || selectedCategoryId === 'all' || categoryId === selectedCategoryId;
 }
