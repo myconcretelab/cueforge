@@ -49,6 +49,9 @@ export default function App() {
   const [draggedTrackId, setDraggedTrackId] = useState<string>();
   const [dropTrackId, setDropTrackId] = useState<string>();
   const [dropCategoryId, setDropCategoryId] = useState<string>();
+  const [draggedPlaylistId, setDraggedPlaylistId] = useState<string>();
+  const [dropPlaylistId, setDropPlaylistId] = useState<string>();
+  const [dropPlaylistAfter, setDropPlaylistAfter] = useState(false);
   const [categoryManageMode, setCategoryManageMode] = useState(false);
   const [draggedCategoryId, setDraggedCategoryId] = useState<string>();
   const [dropCategoryOrderId, setDropCategoryOrderId] = useState<string>();
@@ -67,7 +70,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarTool, setSidebarTool] = useState<'playlist'>();
   const [playlistItems, setPlaylistItems] = useState<PlaylistQueueItem[]>([]);
-  const [playlistOptions, setPlaylistOptions] = useState<PlaylistOptions>({ name: 'Nouvelle playlist', color: '#8b5cf6', autostart: false, loop: false, random: false });
+  const [playlistOptions, setPlaylistOptions] = useState<PlaylistOptions>({ name: 'Nouvelle playlist', color: '#8b5cf6', autostart: false, loop: false, random: false, gapMs: 0, crossfadeMs: 0 });
   const [playlistOptionsOpen, setPlaylistOptionsOpen] = useState(false);
   const [loadedPlaylistId, setLoadedPlaylistId] = useState<string>();
   const [playlistCurrentIndex, setPlaylistCurrentIndex] = useState(0);
@@ -86,6 +89,8 @@ export default function App() {
   const fileDragDepth = useRef(0);
   const fileUploadBusy = useRef(false);
   const playlistRunRef = useRef(false);
+  const playlistTransitioningRef = useRef(false);
+  const playlistAdvanceTimerRef = useRef<number | undefined>(undefined);
   const ignoredPlaylistPlaybackRef = useRef<string | undefined>(undefined);
   const playlistPlayedItemIdsRef = useRef(new Set<string>());
   const remote = new URLSearchParams(window.location.search).get('remote') === '1';
@@ -100,6 +105,9 @@ export default function App() {
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(timer);
+  }, []);
+  useEffect(() => () => {
+    if (playlistAdvanceTimerRef.current !== undefined) window.clearTimeout(playlistAdvanceTimerRef.current);
   }, []);
   useEffect(() => {
     const query = window.matchMedia('(max-width: 560px)');
@@ -350,6 +358,10 @@ export default function App() {
       return;
     }
     if (preparedCommand.type === 'stop-all' || preparedCommand.type === 'stop-all-immediate') {
+      playlistRunRef.current = false;
+      playlistTransitioningRef.current = false;
+      clearPlaylistAdvanceTimer();
+      setPlaylistPlaybackId(undefined);
       window.dispatchEvent(new Event('soundflow:stop-temporary-audio'));
       audioEngine.stopAll(detail?.tracks ?? [], preparedCommand.type === 'stop-all-immediate' ? 0 : undefined);
     }
@@ -368,24 +380,26 @@ export default function App() {
     audioEngine.runAction(action, track, detail?.tracks ?? [], volumeMultiplier).catch((cause) => setError(cause.message));
   }, [consumeNextTrackVolume, detail, remote, socket]);
 
-  const startPlaylistTrack = useCallback(async (track: Track, index: number, itemId: string) => {
+  const startPlaylistTrack = useCallback(async (track: Track, index: number, itemId: string, fadeInMs = track.fadeInMs): Promise<string | undefined> => {
     playlistRunRef.current = true;
     playlistPlayedItemIdsRef.current.add(itemId);
     setPlaylistCurrentIndex(index);
     try {
-      const playbackId = await audioEngine.play({ ...track, loop: false }, track.fadeInMs);
+      const playbackId = await audioEngine.play({ ...track, loop: false }, fadeInMs);
       setPlaylistPlaybackId(playbackId);
+      return playbackId;
     } catch (cause) {
       playlistRunRef.current = false;
       setError(cause instanceof Error ? cause.message : 'Lecture de la playlist impossible.');
+      return undefined;
     }
   }, []);
 
-  const playPlaylistAt = useCallback(async (index: number) => {
+  const playPlaylistAt = useCallback(async (index: number, fadeInMs?: number): Promise<string | undefined> => {
     const item = playlistItems[index];
     const track = detail?.tracks.find((candidate) => candidate.id === item?.trackId);
     if (!item || !track) return;
-    await startPlaylistTrack(track, index, item.id);
+    return startPlaylistTrack(track, index, item.id, fadeInMs);
   }, [detail?.tracks, playlistItems, startPlaylistTrack]);
 
   const nextPlaylistIndex = useCallback((currentIndex: number): number | undefined => {
@@ -405,6 +419,7 @@ export default function App() {
 
   useEffect(() => {
     if (!playlistPlaybackId || activePlaybacks.some((playback) => playback.id === playlistPlaybackId)) return;
+    if (playlistTransitioningRef.current) return;
     if (ignoredPlaylistPlaybackRef.current === playlistPlaybackId) {
       ignoredPlaylistPlaybackRef.current = undefined;
       return;
@@ -416,11 +431,52 @@ export default function App() {
       playlistRunRef.current = false;
       return;
     }
+    if (playlistOptions.gapMs > 0) {
+      playlistAdvanceTimerRef.current = window.setTimeout(() => {
+        playlistAdvanceTimerRef.current = undefined;
+        if (playlistRunRef.current) playPlaylistAt(nextIndex).catch(() => undefined);
+      }, playlistOptions.gapMs);
+      return;
+    }
     playPlaylistAt(nextIndex).catch(() => undefined);
-  }, [activePlaybacks, nextPlaylistIndex, playPlaylistAt, playlistCurrentIndex, playlistPlaybackId]);
+  }, [activePlaybacks, nextPlaylistIndex, playPlaylistAt, playlistCurrentIndex, playlistOptions.gapMs, playlistPlaybackId]);
+
+  useEffect(() => {
+    if (!playlistPlayback || playlistPlayback.paused || playlistPlayback.fadingOut || playlistOptions.crossfadeMs <= 0 || playlistTransitioningRef.current) return;
+    const nextIndex = nextPlaylistIndex(playlistCurrentIndex);
+    if (nextIndex === undefined) return;
+    const nextItem = playlistItems[nextIndex];
+    const nextTrack = detail?.tracks.find((track) => track.id === nextItem?.trackId);
+    if (!nextItem || !nextTrack) return;
+    audioEngine.preload(nextTrack).catch(() => undefined);
+    const elapsedMs = playlistPlayback.elapsedMs + Math.max(0, performance.now() - playlistPlayback.resumedAtMs);
+    const remainingMs = Math.max(0, playlistPlayback.durationMs - elapsedMs);
+    const crossfadeMs = Math.min(playlistOptions.crossfadeMs, playlistPlayback.durationMs, remainingMs);
+    const timer = window.setTimeout(() => {
+      if (!playlistRunRef.current || playlistTransitioningRef.current) return;
+      playlistTransitioningRef.current = true;
+      const outgoingPlaybackId = playlistPlayback.id;
+      playPlaylistAt(nextIndex, crossfadeMs).then((nextPlaybackId) => {
+        if (nextPlaybackId) audioEngine.stopInstance(outgoingPlaybackId, crossfadeMs);
+        else {
+          audioEngine.stopInstance(outgoingPlaybackId, 0);
+          setPlaylistPlaybackId(undefined);
+        }
+      }).finally(() => { playlistTransitioningRef.current = false; });
+    }, Math.max(0, remainingMs - crossfadeMs));
+    return () => window.clearTimeout(timer);
+  }, [detail?.tracks, nextPlaylistIndex, playPlaylistAt, playlistCurrentIndex, playlistItems, playlistOptions.crossfadeMs, playlistPlayback]);
+
+  function clearPlaylistAdvanceTimer() {
+    if (playlistAdvanceTimerRef.current === undefined) return;
+    window.clearTimeout(playlistAdvanceTimerRef.current);
+    playlistAdvanceTimerRef.current = undefined;
+  }
 
   function stopPlaylistPlayback() {
     playlistRunRef.current = false;
+    playlistTransitioningRef.current = false;
+    clearPlaylistAdvanceTimer();
     if (playlistPlaybackId) {
       ignoredPlaylistPlaybackRef.current = playlistPlaybackId;
       audioEngine.stopInstance(playlistPlaybackId, 0);
@@ -434,6 +490,7 @@ export default function App() {
       audioEngine.togglePauseInstance(playback.id);
       return;
     }
+    clearPlaylistAdvanceTimer();
     playlistPlayedItemIdsRef.current.clear();
     playPlaylistAt(Math.min(playlistCurrentIndex, Math.max(0, playlistItems.length - 1))).catch(() => undefined);
   }
@@ -486,12 +543,14 @@ export default function App() {
 
   function resetPlaylistEditor() {
     playlistRunRef.current = false;
+    playlistTransitioningRef.current = false;
+    clearPlaylistAdvanceTimer();
     ignoredPlaylistPlaybackRef.current = undefined;
     setPlaylistPlaybackId(undefined);
     setPlaylistItems([]);
     setLoadedPlaylistId(undefined);
     setPlaylistCurrentIndex(0);
-    setPlaylistOptions({ name: 'Nouvelle playlist', color: detail?.colors[0]?.color ?? '#8b5cf6', autostart: false, loop: false, random: false });
+    setPlaylistOptions({ name: 'Nouvelle playlist', color: detail?.colors[0]?.color ?? '#8b5cf6', autostart: false, loop: false, random: false, gapMs: 0, crossfadeMs: 0 });
     setPlaylistOptionsOpen(false);
     playlistPlayedItemIdsRef.current.clear();
   }
@@ -505,7 +564,7 @@ export default function App() {
     stopPlaylistPlayback();
     const items = playlist.trackIds.filter((trackId) => detail?.tracks.some((track) => track.id === trackId)).map((trackId) => ({ id: crypto.randomUUID(), trackId }));
     setPlaylistItems(items);
-    setPlaylistOptions({ name: playlist.name, color: playlist.color, autostart: playlist.autostart, loop: playlist.loop, random: playlist.random });
+    setPlaylistOptions({ name: playlist.name, color: playlist.color, autostart: playlist.autostart, loop: playlist.loop, random: playlist.random, gapMs: playlist.gapMs ?? 0, crossfadeMs: playlist.crossfadeMs ?? 0 });
     setLoadedPlaylistId(playlist.id);
     setPlaylistCurrentIndex(0);
     setPlaylistOptionsOpen(false);
@@ -758,6 +817,33 @@ export default function App() {
     }
   }
 
+  async function reorderPlaylist(playlistId: string, targetPlaylistId: string, afterTarget: boolean) {
+    if (!detail || reordering || playlistId === targetPlaylistId) return;
+    const previousPlaylists = detail.playlists;
+    const moving = previousPlaylists.find((playlist) => playlist.id === playlistId);
+    if (!moving) return;
+    const reordered = previousPlaylists.filter((playlist) => playlist.id !== playlistId);
+    const targetIndex = reordered.findIndex((playlist) => playlist.id === targetPlaylistId);
+    const destinationIndex = targetIndex < 0 ? -1 : targetIndex + (afterTarget ? 1 : 0);
+    if (destinationIndex < 0) return;
+    reordered.splice(destinationIndex, 0, moving);
+    const optimistic = reordered.map((playlist, position) => ({ ...playlist, position }));
+    setDetail((current) => current ? { ...current, playlists: optimistic } : current);
+    setReordering(true);
+    try {
+      await api.reorderPlaylists(detail.project.id, optimistic.map((playlist) => playlist.id));
+      localStorage.setItem(`soundflow-detail:${detail.project.id}`, JSON.stringify({ ...detail, playlists: optimistic }));
+    } catch (cause) {
+      setDetail((current) => current ? { ...current, playlists: previousPlaylists } : current);
+      setError(cause instanceof Error ? cause.message : 'Réorganisation des playlists impossible.');
+    } finally {
+      setReordering(false);
+      setDraggedPlaylistId(undefined);
+      setDropPlaylistId(undefined);
+      setDropPlaylistAfter(false);
+    }
+  }
+
   function chooseProject(id: string) {
     audioEngine.stopAll(detail?.tracks ?? []);
     resetPlaylistEditor();
@@ -994,10 +1080,7 @@ export default function App() {
             aria-label={preloadProgress ? `Mise hors ligne ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'}>
             {preloadProgress ? <LoaderCircle className="spin" size={18} /> : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? <CircleCheck size={18} /> : <Download size={18} />}
           </button>}
-          {!remote && <button className="dashboard-button playlist-add-category" onClick={addCategoryToPlaylist} disabled={!tracksToPreload.length}
-            aria-label={currentCategory ? `Ajouter les ${tracksToPreload.length} morceaux de ${currentCategory.name} à la playlist` : `Ajouter les ${tracksToPreload.length} morceaux à la playlist`}
-            title={currentCategory ? `Ajouter toute la catégorie « ${currentCategory.name} » à la playlist` : 'Ajouter tous les morceaux à la playlist'}><ListPlus size={19} /></button>}
-          {!remote && <button className={`dashboard-button ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setCategoryManageMode(false); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} disabled={reordering}
+          {!remote && <button className={`dashboard-button ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setCategoryManageMode(false); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); setDraggedPlaylistId(undefined); setDropPlaylistId(undefined); setDropPlaylistAfter(false); }} disabled={reordering}
             aria-label={reordering ? 'Enregistrement de la réorganisation' : reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'} title={reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'}><span className="reorder-mode-icon" aria-hidden="true"><SquareDashed size={20} /><Move size={12} /></span></button>}
           <div className="dashboard-control">
             <button className={`dashboard-button ${columnsOpen ? 'active' : ''}`} onClick={() => { setColumnsOpen((current) => !current); setHistoryOpen(false); }} aria-label="Régler le nombre de colonnes" title="Nombre de colonnes"><Columns3 size={18} /></button>
@@ -1010,6 +1093,9 @@ export default function App() {
               <button onClick={() => resetPlaybackProgress('project')}><RotateCcw size={15} /><span><strong>Tout le spectacle</strong><small>{detail?.tracks.length ?? 0} morceaux</small></span></button>
             </div>}
           </div>}
+          {!remote && <button className="dashboard-button playlist-add-category" onClick={addCategoryToPlaylist} disabled={!tracksToPreload.length}
+            aria-label={currentCategory ? `Ajouter les ${tracksToPreload.length} morceaux de ${currentCategory.name} à la playlist` : `Ajouter les ${tracksToPreload.length} morceaux à la playlist`}
+            title={currentCategory ? `Ajouter toute la catégorie « ${currentCategory.name} » à la playlist` : 'Ajouter tous les morceaux à la playlist'}><ListPlus size={19} /></button>}
           <div className="track-count"><span>{visibleTracks.length}</span><small>son{visibleTracks.length !== 1 ? 's' : ''}</small></div>
         </div>
       </section>
@@ -1028,7 +1114,11 @@ export default function App() {
             onDrop={(event) => { event.preventDefault(); if (draggedTrackId && draggedTrackId !== track.id) reorderTrack(draggedTrackId, track.categoryId, track.id).catch(() => undefined); }}
             onDragEnd={() => { setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} />;
         })}
-          {visiblePlaylists.map((playlist) => <PlaylistPad key={`playlist:${playlist.id}`} playlist={playlist} onLoad={() => loadPlaylist(playlist)} />)}
+          {visiblePlaylists.map((playlist) => <PlaylistPad key={`playlist:${playlist.id}`} playlist={playlist} reorderEnabled={reorderMode} dropTarget={dropPlaylistId === playlist.id} dropAfter={dropPlaylistAfter} onLoad={() => loadPlaylist(playlist)}
+            onDragStart={(event) => { if (!reorderMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-soundflow-playlist', playlist.id); setDraggedPlaylistId(playlist.id); }}
+            onDragOver={(event) => { if (!reorderMode || !draggedPlaylistId || draggedPlaylistId === playlist.id) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; const bounds = event.currentTarget.getBoundingClientRect(); setDropPlaylistId(playlist.id); setDropPlaylistAfter(event.clientX > bounds.left + bounds.width / 2); }}
+            onDrop={(event) => { if (!draggedPlaylistId || draggedPlaylistId === playlist.id) return; event.preventDefault(); const bounds = event.currentTarget.getBoundingClientRect(); reorderPlaylist(draggedPlaylistId, playlist.id, event.clientX > bounds.left + bounds.width / 2).catch(() => undefined); }}
+            onDragEnd={() => { setDraggedPlaylistId(undefined); setDropPlaylistId(undefined); setDropPlaylistAfter(false); }} />)}
         </div>}
       </section>
 

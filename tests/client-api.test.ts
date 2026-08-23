@@ -43,12 +43,23 @@ describe('client API', () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ playlist: { id: 'playlist-id' } }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     vi.stubGlobal('fetch', fetcher);
     const projectId = '11111111-1111-4111-8111-111111111111';
-    const input = { name: 'Entrée public', color: '#8b5cf6', autostart: true, loop: false, random: true, trackIds: ['22222222-2222-4222-8222-222222222222'] };
+    const input = { name: 'Entrée public', color: '#8b5cf6', autostart: true, loop: false, random: true, gapMs: 0, crossfadeMs: 1_500, trackIds: ['22222222-2222-4222-8222-222222222222'] };
 
     await api.savePlaylist(projectId, undefined, input);
     await api.savePlaylist(projectId, '33333333-3333-4333-8333-333333333333', input);
 
     expect(fetcher).toHaveBeenNthCalledWith(1, `/api/projects/${projectId}/playlists`, expect.objectContaining({ method: 'POST', body: JSON.stringify(input) }));
     expect(fetcher).toHaveBeenNthCalledWith(2, `/api/projects/${projectId}/playlists/33333333-3333-4333-8333-333333333333`, expect.objectContaining({ method: 'PATCH', body: JSON.stringify(input) }));
+  });
+
+  it('enregistre le nouvel ordre des cartes playlist', async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ playlistIds: ['playlist-b', 'playlist-a'] }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetcher);
+    const projectId = '11111111-1111-4111-8111-111111111111';
+    const playlistIds = ['playlist-b', 'playlist-a'];
+
+    await api.reorderPlaylists(projectId, playlistIds);
+
+    expect(fetcher).toHaveBeenCalledWith(`/api/projects/${projectId}/playlists/reorder`, expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ playlistIds }) }));
   });
 });

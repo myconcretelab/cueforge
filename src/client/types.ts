@@ -44,6 +44,8 @@ export interface Playlist {
   autostart: boolean;
   loop: boolean;
   random: boolean;
+  gapMs: number;
+  crossfadeMs: number;
   position: number;
   trackIds: string[];
   createdAt: string;

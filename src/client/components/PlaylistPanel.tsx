@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
-import { GripHorizontal, GripVertical, ListMusic, LoaderCircle, Pause, Play, Repeat2, Save, Shuffle, SkipForward, SlidersHorizontal, Square, Trash2, X, Zap } from 'lucide-react';
+import { Blend, Clock3, GripHorizontal, GripVertical, ListMusic, LoaderCircle, Pause, Play, Repeat2, Save, Shuffle, SkipForward, SlidersHorizontal, Square, Trash2, X, Zap } from 'lucide-react';
 import type { ProjectColor, Track } from '../types';
 
 export interface PlaylistQueueItem { id: string; trackId: string }
-export interface PlaylistOptions { name: string; color: string; autostart: boolean; loop: boolean; random: boolean }
+export interface PlaylistOptions { name: string; color: string; autostart: boolean; loop: boolean; random: boolean; gapMs: number; crossfadeMs: number }
 
 interface Props {
   items: PlaylistQueueItem[];
@@ -41,6 +41,11 @@ function maxPanelHeight() {
 
 function clampPanelHeight(height: number) {
   return Math.min(maxPanelHeight(), Math.max(panelMinHeight, height));
+}
+
+function formatTransitionDuration(durationMs: number) {
+  if (durationMs === 0) return 'Aucun';
+  return `${(durationMs / 1_000).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} s`;
 }
 
 export function PlaylistPanel({ items, tracks, colors, options, currentIndex, playbackActive, playbackPaused, saved, saving, optionsOpen, onOptionsOpenChange, onOptionsChange, onDropTrack, onMoveItem, onRemoveItem, onPlayItem, onPlayPause, onStop, onNext, onSave, onDelete, onClear }: Props) {
@@ -85,6 +90,10 @@ export function PlaylistPanel({ items, tracks, colors, options, currentIndex, pl
         <label><input type="checkbox" checked={options.autostart} onChange={(event) => onOptionsChange({ autostart: event.target.checked })} /><Zap size={13} />Autostart</label>
         <label><input type="checkbox" checked={options.loop} onChange={(event) => onOptionsChange({ loop: event.target.checked })} /><Repeat2 size={13} />Boucle</label>
         <label><input type="checkbox" checked={options.random} onChange={(event) => onOptionsChange({ random: event.target.checked })} /><Shuffle size={13} />Aléatoire</label>
+      </div>
+      <div className="playlist-transition-options">
+        <label><span><Clock3 size={13} />Blanc entre les titres<strong>{formatTransitionDuration(options.gapMs)}</strong></span><input type="range" min="0" max="10000" step="250" value={options.gapMs} onChange={(event) => { const gapMs = Number(event.target.value); onOptionsChange({ gapMs, ...(gapMs > 0 ? { crossfadeMs: 0 } : {}) }); }} /></label>
+        <label><span><Blend size={13} />Mix par fondu enchaîné<strong>{formatTransitionDuration(options.crossfadeMs)}</strong></span><input type="range" min="0" max="10000" step="250" value={options.crossfadeMs} onChange={(event) => { const crossfadeMs = Number(event.target.value); onOptionsChange({ crossfadeMs, ...(crossfadeMs > 0 ? { gapMs: 0 } : {}) }); }} /></label>
       </div>
       {saved && <button type="button" className="playlist-delete-saved" onClick={onDelete}><Trash2 size={13} />Supprimer la playlist enregistrée</button>}
     </div>}

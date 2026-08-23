@@ -66,6 +66,8 @@ export const playlists = pgTable('playlists', {
   autostart: boolean('autostart').notNull().default(false),
   loop: boolean('loop').notNull().default(false),
   random: boolean('random').notNull().default(false),
+  gapMs: integer('gap_ms').notNull().default(0),
+  crossfadeMs: integer('crossfade_ms').notNull().default(0),
   position: integer('position').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
