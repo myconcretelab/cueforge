@@ -13,6 +13,8 @@ import { TrackPad } from './components/TrackPad';
 import { UploadDialog } from './components/UploadDialog';
 import { api, ApiError } from './lib/api';
 import { audioEngine, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
+import { cachedTrackIds, cacheTrackOffline, deleteOfflineAudio } from './lib/offline-audio';
+import { parseStopwatchState, resolveCategoryId } from './lib/session-state';
 import type { Category, KeyAction, MouseAction, Project, ProjectDetail, RemoteCommand, Track, User } from './types';
 
 const colors = ['#f97316', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
@@ -35,7 +37,7 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [activePlaybacks, setActivePlaybacks] = useState<ActivePlayback[]>([]);
   const [playbackHistory, setPlaybackHistory] = useState<Map<string, number>>(new Map());
-  const [loadedTracks, setLoadedTracks] = useState<Set<string>>(new Set());
+  const [offlineTrackIds, setOfflineTrackIds] = useState<Set<string>>(new Set());
   const [preloadProgress, setPreloadProgress] = useState<{ done: number; total: number }>();
   const [categoryWidth, setCategoryWidth] = useState(() => readNumber('soundflow-category-width', 112));
   const [reorderMode, setReorderMode] = useState(false);
@@ -62,7 +64,7 @@ export default function App() {
   const [connected, setConnected] = useState(false);
   const [offlineStatus, setOfflineStatus] = useState('');
   const [error, setError] = useState('');
-  const [nextTrackVolume, setNextTrackVolume] = useState(() => localStorage.getItem('soundflow-keep-next-volume') === 'true' ? readNumberRange('soundflow-next-volume', 100, 0, 100) : 100);
+  const [nextTrackVolume, setNextTrackVolume] = useState(() => readNumberRange('soundflow-next-volume', 100, 0, 100));
   const [keepNextTrackVolume, setKeepNextTrackVolume] = useState(() => localStorage.getItem('soundflow-keep-next-volume') === 'true');
   const [now, setNow] = useState(() => Date.now());
   const [chronoElapsedMs, setChronoElapsedMs] = useState(0);
@@ -71,8 +73,12 @@ export default function App() {
   const remote = new URLSearchParams(window.location.search).get('remote') === '1';
 
   useEffect(() => audioEngine.subscribe(setActivePlaybacks), []);
-  useEffect(() => audioEngine.subscribeCache(setLoadedTracks), []);
   useEffect(() => audioEngine.subscribeHistory(setPlaybackHistory), []);
+  useEffect(() => {
+    const persistProgress = () => audioEngine.persistActiveProgress();
+    window.addEventListener('pagehide', persistProgress);
+    return () => window.removeEventListener('pagehide', persistProgress);
+  }, []);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(timer);
@@ -137,6 +143,43 @@ export default function App() {
   useEffect(() => { refreshProject().catch((cause) => setError(cause.message)); }, [refreshProject]);
 
   useEffect(() => {
+    if (!selectedProjectId) {
+      setChronoElapsedMs(0);
+      setChronoStartedAt(undefined);
+      return;
+    }
+    const restored = parseStopwatchState(localStorage.getItem(stopwatchStorageKey(selectedProjectId)));
+    setChronoElapsedMs(restored.elapsedMs);
+    setChronoStartedAt(restored.startedAt);
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    if (!detail) return;
+    const storageKey = categoryStorageKey(detail.project.id);
+    const categoryId = resolveCategoryId(detail.categories.map((category) => category.id), localStorage.getItem(storageKey));
+    setSelectedCategoryId(categoryId);
+    localStorage.setItem(storageKey, categoryId);
+  }, [detail]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!detail) {
+      setOfflineTrackIds(new Set());
+      return;
+    }
+    cachedTrackIds(detail.tracks.map((track) => track.id)).then((trackIds) => {
+      if (cancelled) return;
+      setOfflineTrackIds(trackIds);
+      if (detail.tracks.length > 0 && trackIds.size === detail.tracks.length) setOfflineStatus('Projet disponible hors ligne');
+      else if (trackIds.size > 0) setOfflineStatus(`${trackIds.size}/${detail.tracks.length} sons hors ligne`);
+      else setOfflineStatus('');
+    }).catch(() => {
+      if (!cancelled) setOfflineTrackIds(new Set());
+    });
+    return () => { cancelled = true; };
+  }, [detail]);
+
+  useEffect(() => {
     if (!selectedProjectId || !user) return;
     const connection = io({ withCredentials: true });
     setSocket(connection);
@@ -185,10 +228,10 @@ export default function App() {
   }, [activePlaybacks, detail?.tracks]);
   const tracksToPreload = useMemo(() => {
     if (!detail) return [];
-    if (isSearching || selectedCategoryId === 'all') return detail.tracks;
+    if (selectedCategoryId === 'all') return detail.tracks;
     return detail.tracks.filter((track) => track.categoryId === selectedCategoryId);
-  }, [detail, isSearching, selectedCategoryId]);
-  const preloadedInCategory = tracksToPreload.filter((track) => loadedTracks.has(track.id)).length;
+  }, [detail, selectedCategoryId]);
+  const preloadedInCategory = tracksToPreload.filter((track) => offlineTrackIds.has(track.id)).length;
   const trackColumns = compactLayout ? mobileColumns : desktopColumns;
   const currentCategory = detail?.categories.find((category) => category.id === selectedCategoryId);
   const displayedChronoMs = chronoElapsedMs + (chronoStartedAt === undefined ? 0 : Math.max(0, now - chronoStartedAt));
@@ -277,7 +320,10 @@ export default function App() {
     if (!window.confirm(`Supprimer la catégorie « ${category.name} » ?${consequence}`)) return;
     try {
       await api.deleteCategory(detail.project.id, category.id);
-      if (selectedCategoryId === category.id) setSelectedCategoryId('all');
+      if (selectedCategoryId === category.id) {
+        localStorage.removeItem(categoryStorageKey(detail.project.id));
+        setSelectedCategoryId('all');
+      }
       await refreshProject();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Suppression de la catégorie impossible.'); }
   }
@@ -386,18 +432,21 @@ export default function App() {
     localStorage.setItem('soundflow-project', id);
   }
 
+  function selectCategory(categoryId: string) {
+    setSelectedCategoryId(categoryId);
+    setSearch('');
+    if (detail) localStorage.setItem(categoryStorageKey(detail.project.id), categoryId);
+  }
+
   async function cacheOffline() {
     if (!detail || !('caches' in window)) return setOfflineStatus('Cache indisponible dans ce navigateur.');
     setOfflineStatus(`0/${detail.tracks.length}`);
     try {
-      const cache = await caches.open('soundflow-audio-v1');
       let done = 0;
       for (const track of detail.tracks) {
-        const request = new Request(`/api/tracks/${track.id}/stream`, { credentials: 'include' });
-        const response = await fetch(request);
-        if (!response.ok) throw new Error(track.title);
-        await cache.put(request, response);
+        await cacheTrackOffline(track.id);
         done += 1;
+        setOfflineTrackIds((current) => new Set(current).add(track.id));
         setOfflineStatus(`${done}/${detail.tracks.length}`);
       }
       setOfflineStatus('Projet disponible hors ligne');
@@ -405,19 +454,23 @@ export default function App() {
   }
 
   async function preloadCategory() {
-    const remaining = tracksToPreload.filter((track) => !loadedTracks.has(track.id));
+    const remaining = tracksToPreload.filter((track) => !offlineTrackIds.has(track.id));
     if (!remaining.length) return;
     setPreloadProgress({ done: tracksToPreload.length - remaining.length, total: tracksToPreload.length });
     let done = tracksToPreload.length - remaining.length;
     try {
       for (let index = 0; index < remaining.length; index += 3) {
         const batch = remaining.slice(index, index + 3);
-        await Promise.all(batch.map((track) => audioEngine.preload(track)));
+        await Promise.all(batch.map(async (track) => {
+          await cacheTrackOffline(track.id);
+          setOfflineTrackIds((current) => new Set(current).add(track.id));
+          await audioEngine.preload(track);
+        }));
         done += batch.length;
         setPreloadProgress({ done, total: tracksToPreload.length });
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Préchargement interrompu.');
+      setError(cause instanceof Error ? cause.message : 'Mise à disposition hors ligne interrompue.');
     } finally {
       setPreloadProgress(undefined);
     }
@@ -444,16 +497,22 @@ export default function App() {
 
   function toggleChrono() {
     if (chronoStartedAt !== undefined) {
-      setChronoElapsedMs((elapsed) => elapsed + Date.now() - chronoStartedAt);
+      const elapsedMs = chronoElapsedMs + Date.now() - chronoStartedAt;
+      setChronoElapsedMs(elapsedMs);
       setChronoStartedAt(undefined);
+      persistStopwatch(selectedProjectId, elapsedMs);
     } else {
-      setChronoStartedAt(Date.now());
+      const startedAt = Date.now();
+      setChronoStartedAt(startedAt);
+      persistStopwatch(selectedProjectId, chronoElapsedMs, startedAt);
     }
   }
 
   function resetChrono() {
     setChronoElapsedMs(0);
-    if (chronoStartedAt !== undefined) setChronoStartedAt(Date.now());
+    const startedAt = chronoStartedAt === undefined ? undefined : Date.now();
+    if (startedAt !== undefined) setChronoStartedAt(startedAt);
+    persistStopwatch(selectedProjectId, 0, startedAt);
   }
 
   function toggleRemoteMode() {
@@ -466,7 +525,7 @@ export default function App() {
     audioEngine.stopAll(detail?.tracks ?? []);
     audioEngine.resetHistory();
     await api.logout();
-    await caches.delete('soundflow-audio-v1').catch(() => false);
+    await deleteOfflineAudio().catch(() => false);
     for (const key of Object.keys(localStorage)) if (key.startsWith('soundflow-')) localStorage.removeItem(key);
     setUser(null); setDetail(undefined); setProjects([]);
   }
@@ -514,7 +573,7 @@ export default function App() {
         <div className="topbar-console">
           <section className="console-module next-volume" title="Ce multiplicateur s'applique au prochain son, puis revient à 100 %.">
             <span><Volume2 size={14} />Son suivant</span>
-            <div className="next-volume-control"><input type="range" min="0" max="100" value={nextTrackVolume} aria-label="Volume du son suivant" onChange={(event) => { const value = Number(event.target.value); setNextTrackVolume(value); if (keepNextTrackVolume) localStorage.setItem('soundflow-next-volume', String(value)); }} /><strong>{nextTrackVolume} %</strong><button type="button" className={`console-volume-lock ${keepNextTrackVolume ? 'active' : ''}`} role="switch" aria-checked={keepNextTrackVolume} aria-label="Conserver le volume pour les sons suivants" title={keepNextTrackVolume ? 'Volume conservé après chaque lancement' : 'Réinitialiser à 100 % après le prochain lancement'} onClick={() => { const next = !keepNextTrackVolume; setKeepNextTrackVolume(next); localStorage.setItem('soundflow-keep-next-volume', String(next)); if (next) localStorage.setItem('soundflow-next-volume', String(nextTrackVolume)); else localStorage.removeItem('soundflow-next-volume'); }}><i /></button></div>
+            <div className="next-volume-control"><input type="range" min="0" max="100" value={nextTrackVolume} aria-label="Volume du son suivant" onChange={(event) => { const value = Number(event.target.value); setNextTrackVolume(value); localStorage.setItem('soundflow-next-volume', String(value)); }} /><strong>{nextTrackVolume} %</strong><button type="button" className={`console-volume-lock ${keepNextTrackVolume ? 'active' : ''}`} role="switch" aria-checked={keepNextTrackVolume} aria-label="Conserver le volume pour les sons suivants" title={keepNextTrackVolume ? 'Volume conservé après chaque lancement' : 'Réinitialiser à 100 % après le prochain lancement'} onClick={() => { const next = !keepNextTrackVolume; setKeepNextTrackVolume(next); localStorage.setItem('soundflow-keep-next-volume', String(next)); localStorage.setItem('soundflow-next-volume', String(nextTrackVolume)); }}><i /></button></div>
           </section>
           <section className="console-module stopwatch">
             <span><Timer size={14} />Chrono</span>
@@ -532,14 +591,14 @@ export default function App() {
         <div className="category-strip-heading"><span>{categoryManageMode ? 'Glissez les catégories pour les réordonner' : 'Catégories'}</span><div><button className={`icon-button subtle category-manage-toggle ${categoryManageMode ? 'active' : ''}`} onClick={() => { setCategoryManageMode((current) => !current); setReorderMode(false); setDraggedCategoryId(undefined); setDropCategoryOrderId(undefined); setDropCategoryAfter(false); }} aria-label={categoryManageMode ? 'Terminer la gestion des catégories' : 'Gérer les catégories'} title={categoryManageMode ? 'Terminer' : 'Réordonner ou supprimer'}><ArrowUpDown size={16} /></button><button className="icon-button subtle" onClick={createCategory} aria-label="Nouvelle catégorie"><Plus size={17} /></button></div></div>
         <div className="category-tabs-row" style={{ '--category-tab-width': `${categoryWidth}px` } as React.CSSProperties}>
           <nav className="category-tabs" aria-label="Catégories de sons" onDragOver={(event) => { if (!categoryManageMode || !draggedCategoryId) return; event.preventDefault(); }} onDrop={(event) => { if (!categoryManageMode || !draggedCategoryId || event.target !== event.currentTarget) return; event.preventDefault(); reorderCategories(draggedCategoryId).catch(() => undefined); }}>
-            <button className={`category-tab category-tab-all ${selectedCategoryId === 'all' || isSearching ? 'active' : ''}`} onClick={() => { setSelectedCategoryId('all'); setSearch(''); }} style={{ '--category-color': '#a1a1aa' } as React.CSSProperties}><span>Tous les sons</span><em className="category-tab-count">{detail.tracks.length}</em></button>
+            <button className={`category-tab category-tab-all ${selectedCategoryId === 'all' || isSearching ? 'active' : ''}`} onClick={() => selectCategory('all')} style={{ '--category-color': '#a1a1aa' } as React.CSSProperties}><span>Tous les sons</span><em className="category-tab-count">{detail.tracks.length}</em></button>
             {detail.categories.map((category) => <div key={category.id} className={`category-tab-shell ${categoryManageMode ? 'is-managing' : ''} ${dropCategoryOrderId === category.id ? `is-order-target ${dropCategoryAfter ? 'drop-after' : 'drop-before'}` : ''}`} style={{ '--category-color': category.color } as React.CSSProperties} draggable={categoryManageMode}
               onDragStart={(event) => { if (!categoryManageMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', category.id); setDraggedCategoryId(category.id); }}
               onDragOver={(event) => { if (!categoryManageMode || !draggedCategoryId || draggedCategoryId === category.id) return; event.preventDefault(); event.stopPropagation(); const bounds = event.currentTarget.getBoundingClientRect(); setDropCategoryOrderId(category.id); setDropCategoryAfter(event.clientX > bounds.left + bounds.width / 2); }}
               onDragLeave={() => setDropCategoryOrderId((current) => current === category.id ? undefined : current)}
               onDrop={(event) => { if (!categoryManageMode || !draggedCategoryId) return; event.preventDefault(); event.stopPropagation(); const bounds = event.currentTarget.getBoundingClientRect(); reorderCategories(draggedCategoryId, category.id, event.clientX > bounds.left + bounds.width / 2).catch(() => undefined); }}
               onDragEnd={() => { setDraggedCategoryId(undefined); setDropCategoryOrderId(undefined); setDropCategoryAfter(false); }}>
-              <button className={`category-tab ${!isSearching && category.id === selectedCategoryId ? 'active' : ''} ${dropCategoryId === category.id ? 'is-drop-target' : ''}`} onClick={() => { setSelectedCategoryId(category.id); setSearch(''); }}
+              <button className={`category-tab ${!isSearching && category.id === selectedCategoryId ? 'active' : ''} ${dropCategoryId === category.id ? 'is-drop-target' : ''}`} onClick={() => selectCategory(category.id)}
                 onDragOver={(event) => { if (!reorderMode || !draggedTrackId) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropCategoryId(category.id); setDropTrackId(undefined); }}
                 onDragLeave={() => setDropCategoryId((current) => current === category.id ? undefined : current)}
                 onDrop={(event) => { if (!reorderMode || !draggedTrackId) return; event.preventDefault(); event.stopPropagation(); reorderTrack(draggedTrackId, category.id).catch(() => undefined); }}>
@@ -563,7 +622,7 @@ export default function App() {
         <div className="dashboard-actions">
           {!remote && <button className="dashboard-button freesound-launch" onClick={() => setFreesoundOpen(true)} aria-label="Rechercher sur Freesound" title="Rechercher sur Freesound"><Waves size={18} /></button>}
           {!remote && <button className={`dashboard-button ${preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'is-loaded' : ''}`} onClick={() => preloadCategory()} disabled={!tracksToPreload.length || Boolean(preloadProgress) || preloadedInCategory === tracksToPreload.length}
-            aria-label={preloadProgress ? `Préchargement ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie préchargée' : 'Précharger la catégorie'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : 'Précharger la catégorie'}>
+            aria-label={preloadProgress ? `Mise hors ligne ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'}>
             {preloadProgress ? <LoaderCircle className="spin" size={18} /> : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? <CircleCheck size={18} /> : <Download size={18} />}
           </button>}
           {!remote && <button className={`dashboard-button ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setCategoryManageMode(false); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} disabled={reordering}
@@ -587,7 +646,7 @@ export default function App() {
         {remote && <div className="remote-banner"><Radio size={18} /><span>Mode télécommande — les sons seront joués sur la régie connectée.</span></div>}
         {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleTracks.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className="track-grid" style={{ '--track-columns': trackColumns } as React.CSSProperties}>{visibleTracks.map((track, index) => {
           const category = detail.categories.find((item) => item.id === track.categoryId);
-          return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={loadedTracks.has(track.id)} reorderEnabled={reorderMode} dropTarget={dropTrackId === track.id} shortcut={index < 9 ? index + 1 : undefined}
+          return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} dropTarget={dropTrackId === track.id} shortcut={index < 9 ? index + 1 : undefined}
             onPrimary={() => runTrackAction(detail.project.leftClickAction ?? 'start', track)}
             onSecondary={() => runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
             onEdit={() => { if (!reorderMode) setEditingTrack(track); }}
@@ -636,6 +695,19 @@ function readNumberRange(key: string, fallback: number, min: number, max: number
   if (stored === null) return fallback;
   const value = Number(stored);
   return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+}
+
+function categoryStorageKey(projectId: string): string {
+  return `soundflow-category:${projectId}`;
+}
+
+function stopwatchStorageKey(projectId: string): string {
+  return `soundflow-stopwatch:${projectId}`;
+}
+
+function persistStopwatch(projectId: string | null, elapsedMs: number, startedAt?: number): void {
+  if (!projectId) return;
+  localStorage.setItem(stopwatchStorageKey(projectId), JSON.stringify({ elapsedMs, startedAt }));
 }
 
 function formatPlaybackDuration(ms: number): string {

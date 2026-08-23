@@ -1,4 +1,5 @@
 import type { MouseAction, Track } from '../types';
+import { fetchTrackAudio } from './offline-audio';
 
 export interface ActivePlayback {
   id: string;
@@ -69,6 +70,12 @@ class AudioEngine {
     this.notifyHistory();
   }
 
+  persistActiveProgress(): void {
+    for (const instances of this.active.values()) {
+      for (const playback of instances) this.recordProgress(playback, this.currentElapsedMs(playback) / playback.durationMs);
+    }
+  }
+
   private getActivePlaybacks(): ActivePlayback[] {
     return [...this.active.values()]
       .flatMap((instances) => [...instances])
@@ -124,7 +131,7 @@ class AudioEngine {
     const loading = (async () => {
       try {
         const context = await this.getContext();
-        const response = await fetch(`/api/tracks/${track.id}/stream`, { credentials: 'include' });
+        const response = await fetchTrackAudio(track.id);
         if (!response.ok) throw new Error(`Impossible de charger « ${track.title} »`);
         const decoded = await context.decodeAudioData(await response.arrayBuffer());
         this.buffers.set(track.id, decoded);

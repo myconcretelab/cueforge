@@ -62,16 +62,21 @@ const track: Track = {
 
 describe('audio player instance controls', () => {
   let latest: ActivePlayback[] = [];
+  let latestHistory = new Map<string, number>();
   let unsubscribe: (() => void) | undefined;
+  let unsubscribeHistory: (() => void) | undefined;
 
   beforeAll(() => {
     vi.stubGlobal('AudioContext', FakeAudioContext);
     vi.stubGlobal('fetch', vi.fn(async () => new Response(new ArrayBuffer(8), { status: 200 })));
+    audioEngine.resetHistory([track.id]);
     unsubscribe = audioEngine.subscribe((playbacks) => { latest = playbacks; });
+    unsubscribeHistory = audioEngine.subscribeHistory((history) => { latestHistory = history; });
   });
 
   afterAll(() => {
     unsubscribe?.();
+    unsubscribeHistory?.();
     vi.unstubAllGlobals();
   });
 
@@ -99,6 +104,9 @@ describe('audio player instance controls', () => {
 
     audioEngine.seekInstance(playbackId!, .25);
     expect(latest[0]?.elapsedMs).toBe(15_000);
+
+    audioEngine.persistActiveProgress();
+    expect(latestHistory.get(track.id)).toBeCloseTo(.25, 1);
 
     audioEngine.stopInstance(playbackId!, 500);
     expect(latest[0]).toMatchObject({ fadingOut: true, volume: 0, volumeTransitionDurationMs: 500 });

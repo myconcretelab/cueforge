@@ -10,6 +10,8 @@ SoundFlow est une régie son web inspirée de SoundShow. Les médias sont stock�
 - recherche Freesound avec filtres de durée minimale et maximale, préécoute, renommage et import dans la catégorie choisie ;
 - import complet d’un projet SoundShow `.ssp` avec catégories, couleurs, boucles et points d’entrée/sortie ;
 - lecture polyphonique, navigation dans le morceau, boucles, volume limité à 100 % et fondus animés, avec commandes indépendantes et arrêt en fondu pour chaque instance en lecture ;
+- progression de lecture, catégorie active, chronomètre et réglages d'affichage restaurés après actualisation ;
+- mise à disposition hors ligne des sons par catégorie, conservée après actualisation ;
 - console d'en-tête avec volume du prochain son réinitialisable ou verrouillable, chronomètre et horloge ;
 - actions configurables par spectacle pour les clics gauche et droit : démarrer, fondu enchaîné, fondu d’entrée, remplacer, arrêter ou aucune action ;
 - éditeur graphique de forme d’onde avec poignées début/fin, zoom jusqu’à 64× et préécoute de la sélection ;
