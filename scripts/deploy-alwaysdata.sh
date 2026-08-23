@@ -63,7 +63,6 @@ printf '%s\n' "$site_environment" | ssh "$ALWAYSDATA_ACCOUNT@$ALWAYSDATA_SSH_HOS
   npm ci --include=dev --include=optional --loglevel=warn
   npm run build
   npm run db:migrate
-  npm prune --omit=dev --no-package-lock --loglevel=warn
   test -f dist/server/index.js
   test -f dist/client/index.html
   test -z \"\$(git status --porcelain)\"
