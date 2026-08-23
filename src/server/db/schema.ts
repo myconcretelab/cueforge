@@ -61,6 +61,7 @@ export const projectColors = pgTable('project_colors', {
 export const playlists = pgTable('playlists', {
   id: uuid('id').primaryKey().defaultRandom(),
   projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
   name: text('name').notNull(),
   color: text('color').notNull().default('#8b5cf6'),
   autostart: boolean('autostart').notNull().default(false),
@@ -71,7 +72,7 @@ export const playlists = pgTable('playlists', {
   position: real('position').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [index('playlists_project_id_idx').on(table.projectId)]);
+}, (table) => [index('playlists_project_id_idx').on(table.projectId), index('playlists_category_id_idx').on(table.categoryId)]);
 
 export const tracks = pgTable('tracks', {
   id: uuid('id').primaryKey().defaultRandom(),

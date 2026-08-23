@@ -9,6 +9,10 @@ export function resolveCategoryId(categoryIds: string[], storedCategoryId: strin
   return categoryIds[0] ?? 'all';
 }
 
+export function playlistIsVisible(categoryId: string | null | undefined, selectedCategoryId: string, isSearching: boolean): boolean {
+  return isSearching || selectedCategoryId === 'all' || categoryId === selectedCategoryId;
+}
+
 export function parseStopwatchState(value: string | null): StopwatchState {
   if (!value) return { elapsedMs: 0 };
   try {

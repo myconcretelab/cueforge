@@ -17,7 +17,7 @@ import { api, ApiError } from './lib/api';
 import { audioEngine, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
-import { parseStopwatchState, resolveCategoryId } from './lib/session-state';
+import { parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
 import type { Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, RemoteCommand, Track, User } from './types';
 
 const colors = ['#f97316', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
@@ -262,7 +262,8 @@ export default function App() {
   useEffect(() => {
     if (!detail) return;
     const storageKey = categoryStorageKey(detail.project.id);
-    const categoryId = resolveCategoryId(detail.categories.map((category) => category.id), localStorage.getItem(storageKey));
+    const storedCategoryId = localStorage.getItem(storageKey);
+    const categoryId = resolveCategoryId(detail.categories.map((category) => category.id), storedCategoryId === 'all' ? null : storedCategoryId);
     setSelectedCategoryId(categoryId);
     localStorage.setItem(storageKey, categoryId);
   }, [detail]);
@@ -317,7 +318,9 @@ export default function App() {
     const matches = track.title.toLocaleLowerCase('fr').includes(normalizedSearch) || track.originalFilename.toLocaleLowerCase('fr').includes(normalizedSearch);
     return inCategory && matches;
   }), [detail?.tracks, isSearching, normalizedSearch, selectedCategoryId]);
-  const visiblePlaylists = useMemo(() => remote ? [] : (detail?.playlists ?? []).filter((playlist) => !isSearching || playlist.name.toLocaleLowerCase('fr').includes(normalizedSearch)), [detail?.playlists, isSearching, normalizedSearch, remote]);
+  const visiblePlaylists = useMemo(() => remote ? [] : (detail?.playlists ?? []).filter((playlist) =>
+    playlistIsVisible(playlist.categoryId, selectedCategoryId, isSearching)
+    && (!isSearching || playlist.name.toLocaleLowerCase('fr').includes(normalizedSearch))), [detail?.playlists, isSearching, normalizedSearch, remote, selectedCategoryId]);
   const visibleBoardItems = useMemo(() => [
     ...visibleTracks.map((track) => ({ kind: 'track' as const, id: track.id, position: track.position, track })),
     ...visiblePlaylists.map((playlist) => ({ kind: 'playlist' as const, id: playlist.id, position: playlist.position, playlist })),
@@ -598,6 +601,7 @@ export default function App() {
       const { playlist } = await api.savePlaylist(detail.project.id, loadedPlaylistId, {
         ...playlistOptions,
         name: playlistOptions.name.trim() || 'Playlist sans titre',
+        categoryId: currentCategory?.id ?? detail.categories[0]?.id ?? null,
         trackIds: playlistItems.map((item) => item.trackId),
       });
       setLoadedPlaylistId(playlist.id);
@@ -840,20 +844,23 @@ export default function App() {
     const orderedItems = visibleBoardItems.filter((item) => item.kind !== 'playlist' || item.id !== playlistId);
     const targetIndex = orderedItems.findIndex((item) => item.kind === targetKind && item.id === targetId);
     if (targetIndex < 0) return;
+    const target = orderedItems[targetIndex]!;
+    const categoryId = target.kind === 'track' ? target.track.categoryId : target.playlist.categoryId;
+    const movedPlaylist = { ...moving, categoryId };
     const destinationIndex = targetIndex + (afterTarget ? 1 : 0);
-    orderedItems.splice(destinationIndex, 0, { kind: 'playlist', id: moving.id, position: moving.position, playlist: moving });
+    orderedItems.splice(destinationIndex, 0, { kind: 'playlist', id: movedPlaylist.id, position: movedPlaylist.position, playlist: movedPlaylist });
     const movingIndex = orderedItems.findIndex((item) => item.kind === 'playlist' && item.id === playlistId);
     const previousPosition = orderedItems[movingIndex - 1]?.position;
     const nextPosition = orderedItems[movingIndex + 1]?.position;
     const position = previousPosition === undefined ? (nextPosition ?? 0) - 1
       : nextPosition === undefined ? previousPosition + 1
         : previousPosition + (nextPosition - previousPosition) / 2;
-    const optimistic = previousPlaylists.map((playlist) => playlist.id === playlistId ? { ...playlist, position } : playlist)
+    const optimistic = previousPlaylists.map((playlist) => playlist.id === playlistId ? { ...playlist, categoryId, position } : playlist)
       .sort((first, second) => first.position - second.position);
     setDetail((current) => current ? { ...current, playlists: optimistic } : current);
     setReordering(true);
     try {
-      await api.positionPlaylist(detail.project.id, playlistId, position);
+      await api.positionPlaylist(detail.project.id, playlistId, position, categoryId);
       localStorage.setItem(`soundflow-detail:${detail.project.id}`, JSON.stringify({ ...detail, playlists: optimistic }));
     } catch (cause) {
       setDetail((current) => current ? { ...current, playlists: previousPlaylists } : current);
@@ -864,6 +871,32 @@ export default function App() {
       setDropPlaylistId(undefined);
       setDropPlaylistTrackId(undefined);
       setDropPlaylistAfter(false);
+    }
+  }
+
+  async function movePlaylistToCategory(playlistId: string, categoryId: string) {
+    if (!detail || reordering) return;
+    const previousPlaylists = detail.playlists;
+    const moving = previousPlaylists.find((playlist) => playlist.id === playlistId);
+    if (!moving || moving.categoryId === categoryId) return;
+    const positions = [
+      ...detail.tracks.filter((track) => track.categoryId === categoryId).map((track) => track.position),
+      ...detail.playlists.filter((playlist) => playlist.categoryId === categoryId && playlist.id !== playlistId).map((playlist) => playlist.position),
+    ];
+    const position = Math.max(-1, ...positions) + 1;
+    const optimistic = previousPlaylists.map((playlist) => playlist.id === playlistId ? { ...playlist, categoryId, position } : playlist);
+    setDetail((current) => current ? { ...current, playlists: optimistic } : current);
+    setReordering(true);
+    try {
+      await api.positionPlaylist(detail.project.id, playlistId, position, categoryId);
+      localStorage.setItem(`soundflow-detail:${detail.project.id}`, JSON.stringify({ ...detail, playlists: optimistic }));
+    } catch (cause) {
+      setDetail((current) => current ? { ...current, playlists: previousPlaylists } : current);
+      setError(cause instanceof Error ? cause.message : 'Déplacement de la playlist impossible.');
+    } finally {
+      setReordering(false);
+      setDraggedPlaylistId(undefined);
+      setDropCategoryId(undefined);
     }
   }
 
@@ -1070,7 +1103,6 @@ export default function App() {
         <div className="category-strip-heading"><span>{categoryManageMode ? 'Glissez les catégories pour les réordonner' : 'Catégories'}</span><div><button className={`icon-button subtle category-manage-toggle ${categoryManageMode ? 'active' : ''}`} onClick={() => { setCategoryManageMode((current) => !current); setReorderMode(false); setDraggedCategoryId(undefined); setDropCategoryOrderId(undefined); setDropCategoryAfter(false); }} aria-label={categoryManageMode ? 'Terminer la gestion des catégories' : 'Gérer les catégories'} title={categoryManageMode ? 'Terminer' : 'Réordonner ou supprimer'}><ArrowUpDown size={16} /></button><button className="icon-button subtle" onClick={createCategory} aria-label="Nouvelle catégorie"><Plus size={17} /></button></div></div>
         <div className="category-tabs-row" style={{ '--category-tab-width': `${categoryWidth}px` } as React.CSSProperties}>
           <nav className="category-tabs" aria-label="Catégories de sons" onDragOver={(event) => { if (!categoryManageMode || !draggedCategoryId) return; event.preventDefault(); }} onDrop={(event) => { if (!categoryManageMode || !draggedCategoryId || event.target !== event.currentTarget) return; event.preventDefault(); reorderCategories(draggedCategoryId).catch(() => undefined); }}>
-            <button className={`category-tab category-tab-all ${selectedCategoryId === 'all' || isSearching ? 'active' : ''}`} onClick={() => selectCategory('all')} style={{ '--category-color': '#a1a1aa' } as React.CSSProperties}><span>Tous les sons</span><em className="category-tab-count">{detail.tracks.length}</em></button>
             {detail.categories.map((category) => <div key={category.id} className={`category-tab-shell ${categoryManageMode ? 'is-managing' : ''} ${dropCategoryOrderId === category.id ? `is-order-target ${dropCategoryAfter ? 'drop-after' : 'drop-before'}` : ''}`} style={{ '--category-color': category.color } as React.CSSProperties} draggable={categoryManageMode}
               onDragStart={(event) => { if (!categoryManageMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', category.id); setDraggedCategoryId(category.id); }}
               onDragOver={(event) => { if (!categoryManageMode || !draggedCategoryId || draggedCategoryId === category.id) return; event.preventDefault(); event.stopPropagation(); const bounds = event.currentTarget.getBoundingClientRect(); setDropCategoryOrderId(category.id); setDropCategoryAfter(event.clientX > bounds.left + bounds.width / 2); }}
@@ -1078,9 +1110,9 @@ export default function App() {
               onDrop={(event) => { if (!categoryManageMode || !draggedCategoryId) return; event.preventDefault(); event.stopPropagation(); const bounds = event.currentTarget.getBoundingClientRect(); reorderCategories(draggedCategoryId, category.id, event.clientX > bounds.left + bounds.width / 2).catch(() => undefined); }}
               onDragEnd={() => { setDraggedCategoryId(undefined); setDropCategoryOrderId(undefined); setDropCategoryAfter(false); }}>
               <button className={`category-tab ${!isSearching && category.id === selectedCategoryId ? 'active' : ''} ${dropCategoryId === category.id ? 'is-drop-target' : ''}`} onClick={() => selectCategory(category.id)}
-                onDragOver={(event) => { if (!reorderMode || !draggedTrackId) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropCategoryId(category.id); setDropTrackId(undefined); }}
+                onDragOver={(event) => { if (!reorderMode || (!draggedTrackId && !draggedPlaylistId)) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropCategoryId(category.id); setDropTrackId(undefined); setDropPlaylistId(undefined); setDropPlaylistTrackId(undefined); }}
                 onDragLeave={() => setDropCategoryId((current) => current === category.id ? undefined : current)}
-                onDrop={(event) => { if (!reorderMode || !draggedTrackId) return; event.preventDefault(); event.stopPropagation(); reorderTrack(draggedTrackId, category.id).catch(() => undefined); }}>
+                onDrop={(event) => { if (!reorderMode || (!draggedTrackId && !draggedPlaylistId)) return; event.preventDefault(); event.stopPropagation(); if (draggedPlaylistId) movePlaylistToCategory(draggedPlaylistId, category.id).catch(() => undefined); else if (draggedTrackId) reorderTrack(draggedTrackId, category.id).catch(() => undefined); }}>
                 <span>{category.name}</span><em className="category-tab-count">{detail.tracks.filter((track) => track.categoryId === category.id).length}</em>
               </button>
               {categoryManageMode && <><GripVertical className="category-order-handle" size={15} aria-hidden="true" /><button className="category-delete" onClick={(event) => { event.stopPropagation(); deleteCategory(category).catch(() => undefined); }} aria-label={`Supprimer la catégorie ${category.name}`} title="Supprimer"><Trash2 size={14} /></button></>}

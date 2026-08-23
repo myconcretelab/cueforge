@@ -46,12 +46,12 @@ export const api = {
     method: 'PATCH', body: JSON.stringify({ colorIds }),
   }),
   deleteProjectColor: (projectId: string, colorId: string) => request<void>(`/api/projects/${projectId}/colors/${colorId}`, { method: 'DELETE' }),
-  savePlaylist: (projectId: string, playlistId: string | undefined, input: Pick<Playlist, 'name' | 'color' | 'autostart' | 'loop' | 'random' | 'gapMs' | 'crossfadeMs' | 'trackIds'>) =>
+  savePlaylist: (projectId: string, playlistId: string | undefined, input: Pick<Playlist, 'name' | 'color' | 'autostart' | 'loop' | 'random' | 'gapMs' | 'crossfadeMs' | 'trackIds' | 'categoryId'>) =>
     request<{ playlist: Playlist }>(playlistId ? `/api/projects/${projectId}/playlists/${playlistId}` : `/api/projects/${projectId}/playlists`, {
       method: playlistId ? 'PATCH' : 'POST', body: JSON.stringify(input),
     }),
-  positionPlaylist: (projectId: string, playlistId: string, position: number) => request<{ playlist: Playlist }>(`/api/projects/${projectId}/playlists/${playlistId}/position`, {
-    method: 'PATCH', body: JSON.stringify({ position }),
+  positionPlaylist: (projectId: string, playlistId: string, position: number, categoryId?: string | null) => request<{ playlist: Playlist }>(`/api/projects/${projectId}/playlists/${playlistId}/position`, {
+    method: 'PATCH', body: JSON.stringify(categoryId === undefined ? { position } : { position, categoryId }),
   }),
   deletePlaylist: (projectId: string, playlistId: string) => request<void>(`/api/projects/${projectId}/playlists/${playlistId}`, { method: 'DELETE' }),
   createCategory: (projectId: string, name: string, color: string, position?: number) =>

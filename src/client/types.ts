@@ -39,6 +39,7 @@ export interface ProjectColor {
 export interface Playlist {
   id: string;
   projectId: string;
+  categoryId: string | null;
   name: string;
   color: string;
   autostart: boolean;

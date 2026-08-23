@@ -15,6 +15,7 @@ const mouseActionSchema = z.enum(['start', 'crossfade', 'fade-in', 'replace', 's
 const keyActionSchema = z.enum(['stop-all', 'stop-all-immediate', 'none']);
 const playlistInputSchema = z.object({
   name: z.string().trim().min(1).max(120),
+  categoryId: z.string().uuid().nullable().default(null),
   color: z.string().toLowerCase().regex(/^#[0-9a-f]{6}$/),
   autostart: z.boolean(),
   loop: z.boolean(),
@@ -175,6 +176,10 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     const { id } = idParams.parse(request.params);
     if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
     const input = playlistInputSchema.parse(request.body);
+    if (input.categoryId) {
+      const [category] = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.id, input.categoryId), eq(categories.projectId, id))).limit(1);
+      if (!category) return reply.code(400).send({ error: 'Catégorie de playlist invalide.' });
+    }
     const projectTracks = await db.select({ id: tracks.id }).from(tracks).where(eq(tracks.projectId, id));
     const projectTrackIds = new Set(projectTracks.map((track) => track.id));
     if (!input.trackIds.every((trackId) => projectTrackIds.has(trackId))) return reply.code(400).send({ error: 'La playlist contient un morceau invalide.' });
@@ -184,7 +189,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     ]);
     const position = Math.max(-1, ...existingPlaylists.map((playlist) => playlist.position), ...existingTracks.map((track) => track.position)) + 1;
     const playlist = await db.transaction(async (transaction) => {
-      const [created] = await transaction.insert(playlists).values({ projectId: id, name: input.name, color: input.color, autostart: input.autostart, loop: input.loop, random: input.random, gapMs: input.gapMs, crossfadeMs: input.crossfadeMs, position }).returning();
+      const [created] = await transaction.insert(playlists).values({ projectId: id, categoryId: input.categoryId, name: input.name, color: input.color, autostart: input.autostart, loop: input.loop, random: input.random, gapMs: input.gapMs, crossfadeMs: input.crossfadeMs, position }).returning();
       await transaction.insert(playlistItems).values(input.trackIds.map((trackId, itemPosition) => ({ playlistId: created.id, trackId, position: itemPosition })));
       return { ...created, trackIds: input.trackIds };
     });
@@ -196,8 +201,12 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     if (!user) return;
     const { id, playlistId } = z.object({ id: z.string().uuid(), playlistId: z.string().uuid() }).parse(request.params);
     if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
-    const { position } = z.object({ position: z.number().finite().min(-1_000_000).max(1_000_000) }).parse(request.body);
-    const [playlist] = await db.update(playlists).set({ position }).where(and(eq(playlists.id, playlistId), eq(playlists.projectId, id))).returning();
+    const input = z.object({ position: z.number().finite().min(-1_000_000).max(1_000_000), categoryId: z.string().uuid().nullable().optional() }).parse(request.body);
+    if (input.categoryId) {
+      const [category] = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.id, input.categoryId), eq(categories.projectId, id))).limit(1);
+      if (!category) return reply.code(400).send({ error: 'Catégorie de playlist invalide.' });
+    }
+    const [playlist] = await db.update(playlists).set({ position: input.position, ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}), updatedAt: new Date() }).where(and(eq(playlists.id, playlistId), eq(playlists.projectId, id))).returning();
     if (!playlist) return reply.code(404).send({ error: 'Playlist introuvable.' });
     return { playlist };
   });
@@ -210,11 +219,15 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     const input = playlistInputSchema.parse(request.body);
     const [existing] = await db.select().from(playlists).where(and(eq(playlists.id, playlistId), eq(playlists.projectId, id))).limit(1);
     if (!existing) return reply.code(404).send({ error: 'Playlist introuvable.' });
+    if (input.categoryId) {
+      const [category] = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.id, input.categoryId), eq(categories.projectId, id))).limit(1);
+      if (!category) return reply.code(400).send({ error: 'Catégorie de playlist invalide.' });
+    }
     const projectTracks = await db.select({ id: tracks.id }).from(tracks).where(eq(tracks.projectId, id));
     const projectTrackIds = new Set(projectTracks.map((track) => track.id));
     if (!input.trackIds.every((trackId) => projectTrackIds.has(trackId))) return reply.code(400).send({ error: 'La playlist contient un morceau invalide.' });
     const playlist = await db.transaction(async (transaction) => {
-      const [updated] = await transaction.update(playlists).set({ name: input.name, color: input.color, autostart: input.autostart, loop: input.loop, random: input.random, gapMs: input.gapMs, crossfadeMs: input.crossfadeMs, updatedAt: new Date() }).where(eq(playlists.id, playlistId)).returning();
+      const [updated] = await transaction.update(playlists).set({ categoryId: input.categoryId, name: input.name, color: input.color, autostart: input.autostart, loop: input.loop, random: input.random, gapMs: input.gapMs, crossfadeMs: input.crossfadeMs, updatedAt: new Date() }).where(eq(playlists.id, playlistId)).returning();
       await transaction.delete(playlistItems).where(eq(playlistItems.playlistId, playlistId));
       await transaction.insert(playlistItems).values(input.trackIds.map((trackId, itemPosition) => ({ playlistId, trackId, position: itemPosition })));
       return { ...updated, trackIds: input.trackIds };

@@ -43,7 +43,7 @@ describe('client API', () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ playlist: { id: 'playlist-id' } }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     vi.stubGlobal('fetch', fetcher);
     const projectId = '11111111-1111-4111-8111-111111111111';
-    const input = { name: 'Entrée public', color: '#8b5cf6', autostart: true, loop: false, random: true, gapMs: 0, crossfadeMs: 1_500, trackIds: ['22222222-2222-4222-8222-222222222222'] };
+    const input = { name: 'Entrée public', categoryId: '44444444-4444-4444-8444-444444444444', color: '#8b5cf6', autostart: true, loop: false, random: true, gapMs: 0, crossfadeMs: 1_500, trackIds: ['22222222-2222-4222-8222-222222222222'] };
 
     await api.savePlaylist(projectId, undefined, input);
     await api.savePlaylist(projectId, '33333333-3333-4333-8333-333333333333', input);
@@ -61,5 +61,17 @@ describe('client API', () => {
     await api.positionPlaylist(projectId, playlistId, 2.5);
 
     expect(fetcher).toHaveBeenCalledWith(`/api/projects/${projectId}/playlists/${playlistId}/position`, expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ position: 2.5 }) }));
+  });
+
+  it('déplace une playlist dans une autre catégorie avec sa position', async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ playlist: { id: '33333333-3333-4333-8333-333333333333', position: 4 } }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetcher);
+    const projectId = '11111111-1111-4111-8111-111111111111';
+    const playlistId = '33333333-3333-4333-8333-333333333333';
+    const categoryId = '44444444-4444-4444-8444-444444444444';
+
+    await api.positionPlaylist(projectId, playlistId, 4, categoryId);
+
+    expect(fetcher).toHaveBeenCalledWith(`/api/projects/${projectId}/playlists/${playlistId}/position`, expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ position: 4, categoryId }) }));
   });
 });

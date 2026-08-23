@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseStopwatchState, resolveCategoryId } from '../src/client/lib/session-state.js';
+import { parseStopwatchState, playlistIsVisible, resolveCategoryId } from '../src/client/lib/session-state.js';
 
 describe('restauration de session', () => {
   it('ouvre la première catégorie sans préférence, puis restaure la sélection enregistrée', () => {
@@ -13,5 +13,12 @@ describe('restauration de session', () => {
     expect(parseStopwatchState('{"elapsedMs":1250,"startedAt":10000}')).toEqual({ elapsedMs: 1250, startedAt: 10000 });
     expect(parseStopwatchState('{"elapsedMs":-10,"startedAt":"invalid"}')).toEqual({ elapsedMs: 0, startedAt: undefined });
     expect(parseStopwatchState('invalid')).toEqual({ elapsedMs: 0 });
+  });
+
+  it('limite une playlist à sa catégorie hors recherche', () => {
+    expect(playlistIsVisible('category-1', 'category-1', false)).toBe(true);
+    expect(playlistIsVisible('category-1', 'category-2', false)).toBe(false);
+    expect(playlistIsVisible('category-1', 'all', false)).toBe(true);
+    expect(playlistIsVisible('category-1', 'category-2', true)).toBe(true);
   });
 });
