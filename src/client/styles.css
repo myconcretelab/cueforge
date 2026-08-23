@@ -263,6 +263,8 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .track-pad.reorder-enabled:active { cursor: grabbing; opacity: .68; }
 .track-pad.reorder-enabled .track-trigger, .track-pad.reorder-enabled .track-edit { pointer-events: none; }
 .track-pad.is-drop-target { transform: translateY(-3px); border-color: #fff; border-style: dashed; background: color-mix(in srgb, var(--track-color) 10%, var(--surface)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--track-color) 70%, transparent); }
+.track-pad.playlist-position-target::after { position: absolute; z-index: 4; top: 7px; bottom: 7px; left: -7px; border-left: 2px dashed #fff; content: ''; filter: drop-shadow(0 0 4px var(--track-color)); }
+.track-pad.playlist-position-target.drop-after::after { right: -7px; left: auto; }
 .playlist-pad { outline: 1px dashed color-mix(in srgb, var(--track-color) 55%, transparent); outline-offset: -6px; background: color-mix(in srgb, var(--track-color) 7%, var(--surface)); }
 .playlist-pad.is-drop-target::after { position: absolute; z-index: 4; top: 7px; bottom: 7px; left: -7px; border-left: 2px dashed #fff; content: ''; filter: drop-shadow(0 0 4px var(--track-color)); }
 .playlist-pad.is-drop-target.drop-after::after { right: -7px; left: auto; }

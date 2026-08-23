@@ -68,7 +68,7 @@ export const playlists = pgTable('playlists', {
   random: boolean('random').notNull().default(false),
   gapMs: integer('gap_ms').notNull().default(0),
   crossfadeMs: integer('crossfade_ms').notNull().default(0),
-  position: integer('position').notNull().default(0),
+  position: real('position').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [index('playlists_project_id_idx').on(table.projectId)]);

@@ -12,6 +12,7 @@ interface Props {
   reorderEnabled: boolean;
   playlistDropEnabled: boolean;
   dropTarget: boolean;
+  playlistPositionTarget?: 'before' | 'after';
   shortcut?: number;
   onPrimary: () => void;
   onSecondary: () => void;
@@ -22,8 +23,8 @@ interface Props {
   onDragEnd: () => void;
 }
 
-export function TrackPad({ track, color, active, playbacks, historyProgress, loaded, reorderEnabled, playlistDropEnabled, dropTarget, shortcut, onPrimary, onSecondary, onEdit, onDragStart, onDragOver, onDrop, onDragEnd }: Props) {
-  return <article className={`track-pad ${active ? 'is-active' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${playlistDropEnabled ? 'playlist-drag-enabled' : ''} ${dropTarget ? 'is-drop-target' : ''}`}
+export function TrackPad({ track, color, active, playbacks, historyProgress, loaded, reorderEnabled, playlistDropEnabled, dropTarget, playlistPositionTarget, shortcut, onPrimary, onSecondary, onEdit, onDragStart, onDragOver, onDrop, onDragEnd }: Props) {
+  return <article className={`track-pad ${active ? 'is-active' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${playlistDropEnabled ? 'playlist-drag-enabled' : ''} ${dropTarget ? 'is-drop-target' : ''} ${playlistPositionTarget ? `playlist-position-target drop-${playlistPositionTarget}` : ''}`}
     style={{ '--track-color': color } as React.CSSProperties} draggable={reorderEnabled || playlistDropEnabled}
     onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}>
     {loaded && <span className="track-loaded" title="Disponible hors ligne" aria-label="Disponible hors ligne"><CircleCheck size={15} /></span>}

@@ -51,6 +51,7 @@ export default function App() {
   const [dropCategoryId, setDropCategoryId] = useState<string>();
   const [draggedPlaylistId, setDraggedPlaylistId] = useState<string>();
   const [dropPlaylistId, setDropPlaylistId] = useState<string>();
+  const [dropPlaylistTrackId, setDropPlaylistTrackId] = useState<string>();
   const [dropPlaylistAfter, setDropPlaylistAfter] = useState(false);
   const [categoryManageMode, setCategoryManageMode] = useState(false);
   const [draggedCategoryId, setDraggedCategoryId] = useState<string>();
@@ -316,6 +317,10 @@ export default function App() {
     return inCategory && matches;
   }), [detail?.tracks, isSearching, normalizedSearch, selectedCategoryId]);
   const visiblePlaylists = useMemo(() => remote ? [] : (detail?.playlists ?? []).filter((playlist) => !isSearching || playlist.name.toLocaleLowerCase('fr').includes(normalizedSearch)), [detail?.playlists, isSearching, normalizedSearch, remote]);
+  const visibleBoardItems = useMemo(() => [
+    ...visibleTracks.map((track) => ({ kind: 'track' as const, id: track.id, position: track.position, track })),
+    ...visiblePlaylists.map((playlist) => ({ kind: 'playlist' as const, id: playlist.id, position: playlist.position, playlist })),
+  ].sort((first, second) => first.position - second.position || (first.kind === second.kind ? first.id.localeCompare(second.id) : first.kind === 'track' ? -1 : 1)), [visiblePlaylists, visibleTracks]);
   const activeTrackIds = useMemo(() => new Set(activePlaybacks.map((playback) => playback.trackId)), [activePlaybacks]);
   const playbacksByTrack = useMemo(() => {
     const grouped = new Map<string, ActivePlayback[]>();
@@ -817,21 +822,28 @@ export default function App() {
     }
   }
 
-  async function reorderPlaylist(playlistId: string, targetPlaylistId: string, afterTarget: boolean) {
-    if (!detail || reordering || playlistId === targetPlaylistId) return;
+  async function reorderPlaylist(playlistId: string, targetKind: 'track' | 'playlist', targetId: string, afterTarget: boolean) {
+    if (!detail || reordering || (targetKind === 'playlist' && playlistId === targetId)) return;
     const previousPlaylists = detail.playlists;
     const moving = previousPlaylists.find((playlist) => playlist.id === playlistId);
     if (!moving) return;
-    const reordered = previousPlaylists.filter((playlist) => playlist.id !== playlistId);
-    const targetIndex = reordered.findIndex((playlist) => playlist.id === targetPlaylistId);
-    const destinationIndex = targetIndex < 0 ? -1 : targetIndex + (afterTarget ? 1 : 0);
-    if (destinationIndex < 0) return;
-    reordered.splice(destinationIndex, 0, moving);
-    const optimistic = reordered.map((playlist, position) => ({ ...playlist, position }));
+    const orderedItems = visibleBoardItems.filter((item) => item.kind !== 'playlist' || item.id !== playlistId);
+    const targetIndex = orderedItems.findIndex((item) => item.kind === targetKind && item.id === targetId);
+    if (targetIndex < 0) return;
+    const destinationIndex = targetIndex + (afterTarget ? 1 : 0);
+    orderedItems.splice(destinationIndex, 0, { kind: 'playlist', id: moving.id, position: moving.position, playlist: moving });
+    const movingIndex = orderedItems.findIndex((item) => item.kind === 'playlist' && item.id === playlistId);
+    const previousPosition = orderedItems[movingIndex - 1]?.position;
+    const nextPosition = orderedItems[movingIndex + 1]?.position;
+    const position = previousPosition === undefined ? (nextPosition ?? 0) - 1
+      : nextPosition === undefined ? previousPosition + 1
+        : previousPosition + (nextPosition - previousPosition) / 2;
+    const optimistic = previousPlaylists.map((playlist) => playlist.id === playlistId ? { ...playlist, position } : playlist)
+      .sort((first, second) => first.position - second.position);
     setDetail((current) => current ? { ...current, playlists: optimistic } : current);
     setReordering(true);
     try {
-      await api.reorderPlaylists(detail.project.id, optimistic.map((playlist) => playlist.id));
+      await api.positionPlaylist(detail.project.id, playlistId, position);
       localStorage.setItem(`soundflow-detail:${detail.project.id}`, JSON.stringify({ ...detail, playlists: optimistic }));
     } catch (cause) {
       setDetail((current) => current ? { ...current, playlists: previousPlaylists } : current);
@@ -840,6 +852,7 @@ export default function App() {
       setReordering(false);
       setDraggedPlaylistId(undefined);
       setDropPlaylistId(undefined);
+      setDropPlaylistTrackId(undefined);
       setDropPlaylistAfter(false);
     }
   }
@@ -1080,7 +1093,7 @@ export default function App() {
             aria-label={preloadProgress ? `Mise hors ligne ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'}>
             {preloadProgress ? <LoaderCircle className="spin" size={18} /> : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? <CircleCheck size={18} /> : <Download size={18} />}
           </button>}
-          {!remote && <button className={`dashboard-button ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setCategoryManageMode(false); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); setDraggedPlaylistId(undefined); setDropPlaylistId(undefined); setDropPlaylistAfter(false); }} disabled={reordering}
+          {!remote && <button className={`dashboard-button ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setCategoryManageMode(false); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); setDraggedPlaylistId(undefined); setDropPlaylistId(undefined); setDropPlaylistTrackId(undefined); setDropPlaylistAfter(false); }} disabled={reordering}
             aria-label={reordering ? 'Enregistrement de la réorganisation' : reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'} title={reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'}><span className="reorder-mode-icon" aria-hidden="true"><SquareDashed size={20} /><Move size={12} /></span></button>}
           <div className="dashboard-control">
             <button className={`dashboard-button ${columnsOpen ? 'active' : ''}`} onClick={() => { setColumnsOpen((current) => !current); setHistoryOpen(false); }} aria-label="Régler le nombre de colonnes" title="Nombre de colonnes"><Columns3 size={18} /></button>
@@ -1103,22 +1116,27 @@ export default function App() {
       <section className="soundboard">
         {remote && <div className="remote-banner"><Radio size={18} /><span>Mode télécommande — les sons seront joués sur la régie connectée.</span></div>}
         {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleTracks.length === 0 && visiblePlaylists.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className="track-grid" style={{ '--track-columns': trackColumns } as React.CSSProperties}>
-          {visibleTracks.map((track, index) => {
-          const category = detail.categories.find((item) => item.id === track.categoryId);
-          return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={sidebarTool === 'playlist' && !remote} dropTarget={dropTrackId === track.id} shortcut={index < 9 ? index + 1 : undefined}
-            onPrimary={() => runTrackAction(detail.project.leftClickAction ?? 'start', track)}
-            onSecondary={() => runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
-            onEdit={() => { if (!reorderMode) setEditingTrack(track); }}
-            onDragStart={(event) => { if (reorderMode) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', track.id); setDraggedTrackId(track.id); } else if (sidebarTool === 'playlist') { event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('application/x-soundflow-track', track.id); } }}
-            onDragOver={(event) => { if (!reorderMode || !draggedTrackId || draggedTrackId === track.id) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropTrackId(track.id); setDropCategoryId(undefined); }}
-            onDrop={(event) => { event.preventDefault(); if (draggedTrackId && draggedTrackId !== track.id) reorderTrack(draggedTrackId, track.categoryId, track.id).catch(() => undefined); }}
-            onDragEnd={() => { setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} />;
-        })}
-          {visiblePlaylists.map((playlist) => <PlaylistPad key={`playlist:${playlist.id}`} playlist={playlist} reorderEnabled={reorderMode} dropTarget={dropPlaylistId === playlist.id} dropAfter={dropPlaylistAfter} onLoad={() => loadPlaylist(playlist)}
-            onDragStart={(event) => { if (!reorderMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-soundflow-playlist', playlist.id); setDraggedPlaylistId(playlist.id); }}
-            onDragOver={(event) => { if (!reorderMode || !draggedPlaylistId || draggedPlaylistId === playlist.id) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; const bounds = event.currentTarget.getBoundingClientRect(); setDropPlaylistId(playlist.id); setDropPlaylistAfter(event.clientX > bounds.left + bounds.width / 2); }}
-            onDrop={(event) => { if (!draggedPlaylistId || draggedPlaylistId === playlist.id) return; event.preventDefault(); const bounds = event.currentTarget.getBoundingClientRect(); reorderPlaylist(draggedPlaylistId, playlist.id, event.clientX > bounds.left + bounds.width / 2).catch(() => undefined); }}
-            onDragEnd={() => { setDraggedPlaylistId(undefined); setDropPlaylistId(undefined); setDropPlaylistAfter(false); }} />)}
+          {visibleBoardItems.map((boardItem) => {
+            if (boardItem.kind === 'playlist') {
+              const playlist = boardItem.playlist;
+              return <PlaylistPad key={`playlist:${playlist.id}`} playlist={playlist} reorderEnabled={reorderMode} dropTarget={dropPlaylistId === playlist.id} dropAfter={dropPlaylistAfter} onLoad={() => loadPlaylist(playlist)}
+                onDragStart={(event) => { if (!reorderMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-soundflow-playlist', playlist.id); setDraggedPlaylistId(playlist.id); }}
+                onDragOver={(event) => { if (!reorderMode || !draggedPlaylistId || draggedPlaylistId === playlist.id) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; const bounds = event.currentTarget.getBoundingClientRect(); setDropPlaylistId(playlist.id); setDropPlaylistTrackId(undefined); setDropPlaylistAfter(event.clientX > bounds.left + bounds.width / 2); }}
+                onDrop={(event) => { if (!draggedPlaylistId || draggedPlaylistId === playlist.id) return; event.preventDefault(); const bounds = event.currentTarget.getBoundingClientRect(); reorderPlaylist(draggedPlaylistId, 'playlist', playlist.id, event.clientX > bounds.left + bounds.width / 2).catch(() => undefined); }}
+                onDragEnd={() => { setDraggedPlaylistId(undefined); setDropPlaylistId(undefined); setDropPlaylistTrackId(undefined); setDropPlaylistAfter(false); }} />;
+            }
+            const track = boardItem.track;
+            const category = detail.categories.find((item) => item.id === track.categoryId);
+            const shortcutIndex = visibleTracks.findIndex((candidate) => candidate.id === track.id);
+            return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={sidebarTool === 'playlist' && !remote} dropTarget={dropTrackId === track.id} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={shortcutIndex < 9 ? shortcutIndex + 1 : undefined}
+              onPrimary={() => runTrackAction(detail.project.leftClickAction ?? 'start', track)}
+              onSecondary={() => runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
+              onEdit={() => { if (!reorderMode) setEditingTrack(track); }}
+              onDragStart={(event) => { if (reorderMode) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', track.id); setDraggedTrackId(track.id); } else if (sidebarTool === 'playlist') { event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('application/x-soundflow-track', track.id); } }}
+              onDragOver={(event) => { if (!reorderMode) return; if (draggedPlaylistId) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; const bounds = event.currentTarget.getBoundingClientRect(); setDropPlaylistTrackId(track.id); setDropPlaylistId(undefined); setDropPlaylistAfter(event.clientX > bounds.left + bounds.width / 2); return; } if (!draggedTrackId || draggedTrackId === track.id) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropTrackId(track.id); setDropCategoryId(undefined); }}
+              onDrop={(event) => { event.preventDefault(); if (draggedPlaylistId) { const bounds = event.currentTarget.getBoundingClientRect(); reorderPlaylist(draggedPlaylistId, 'track', track.id, event.clientX > bounds.left + bounds.width / 2).catch(() => undefined); } else if (draggedTrackId && draggedTrackId !== track.id) reorderTrack(draggedTrackId, track.categoryId, track.id).catch(() => undefined); }}
+              onDragEnd={() => { setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} />;
+          })}
         </div>}
       </section>
 

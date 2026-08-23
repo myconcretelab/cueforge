@@ -178,8 +178,11 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     const projectTracks = await db.select({ id: tracks.id }).from(tracks).where(eq(tracks.projectId, id));
     const projectTrackIds = new Set(projectTracks.map((track) => track.id));
     if (!input.trackIds.every((trackId) => projectTrackIds.has(trackId))) return reply.code(400).send({ error: 'La playlist contient un morceau invalide.' });
-    const existing = await db.select({ position: playlists.position }).from(playlists).where(eq(playlists.projectId, id));
-    const position = Math.max(-1, ...existing.map((playlist) => playlist.position)) + 1;
+    const [existingPlaylists, existingTracks] = await Promise.all([
+      db.select({ position: playlists.position }).from(playlists).where(eq(playlists.projectId, id)),
+      db.select({ position: tracks.position }).from(tracks).where(eq(tracks.projectId, id)),
+    ]);
+    const position = Math.max(-1, ...existingPlaylists.map((playlist) => playlist.position), ...existingTracks.map((track) => track.position)) + 1;
     const playlist = await db.transaction(async (transaction) => {
       const [created] = await transaction.insert(playlists).values({ projectId: id, name: input.name, color: input.color, autostart: input.autostart, loop: input.loop, random: input.random, gapMs: input.gapMs, crossfadeMs: input.crossfadeMs, position }).returning();
       await transaction.insert(playlistItems).values(input.trackIds.map((trackId, itemPosition) => ({ playlistId: created.id, trackId, position: itemPosition })));
@@ -188,20 +191,15 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     return reply.code(201).send({ playlist });
   });
 
-  app.patch('/api/projects/:id/playlists/reorder', async (request, reply) => {
+  app.patch('/api/projects/:id/playlists/:playlistId/position', async (request, reply) => {
     const user = await requireUser(request, reply);
     if (!user) return;
-    const { id } = idParams.parse(request.params);
+    const { id, playlistId } = z.object({ id: z.string().uuid(), playlistId: z.string().uuid() }).parse(request.params);
     if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
-    const input = z.object({ playlistIds: z.array(z.string().uuid()) }).parse(request.body);
-    const existing = await db.select().from(playlists).where(eq(playlists.projectId, id)).orderBy(asc(playlists.position), asc(playlists.createdAt));
-    if (!sameIds(input.playlistIds, existing.map((playlist) => playlist.id))) return reply.code(400).send({ error: 'Liste de playlists invalide.' });
-    await db.transaction(async (transaction) => {
-      for (const [position, playlistId] of input.playlistIds.entries()) {
-        await transaction.update(playlists).set({ position }).where(and(eq(playlists.id, playlistId), eq(playlists.projectId, id)));
-      }
-    });
-    return { playlistIds: input.playlistIds };
+    const { position } = z.object({ position: z.number().finite().min(-1_000_000).max(1_000_000) }).parse(request.body);
+    const [playlist] = await db.update(playlists).set({ position }).where(and(eq(playlists.id, playlistId), eq(playlists.projectId, id))).returning();
+    if (!playlist) return reply.code(404).send({ error: 'Playlist introuvable.' });
+    return { playlist };
   });
 
   app.patch('/api/projects/:id/playlists/:playlistId', async (request, reply) => {

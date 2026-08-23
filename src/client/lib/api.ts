@@ -50,8 +50,8 @@ export const api = {
     request<{ playlist: Playlist }>(playlistId ? `/api/projects/${projectId}/playlists/${playlistId}` : `/api/projects/${projectId}/playlists`, {
       method: playlistId ? 'PATCH' : 'POST', body: JSON.stringify(input),
     }),
-  reorderPlaylists: (projectId: string, playlistIds: string[]) => request<{ playlistIds: string[] }>(`/api/projects/${projectId}/playlists/reorder`, {
-    method: 'PATCH', body: JSON.stringify({ playlistIds }),
+  positionPlaylist: (projectId: string, playlistId: string, position: number) => request<{ playlist: Playlist }>(`/api/projects/${projectId}/playlists/${playlistId}/position`, {
+    method: 'PATCH', body: JSON.stringify({ position }),
   }),
   deletePlaylist: (projectId: string, playlistId: string) => request<void>(`/api/projects/${projectId}/playlists/${playlistId}`, { method: 'DELETE' }),
   createCategory: (projectId: string, name: string, color: string, position?: number) =>
