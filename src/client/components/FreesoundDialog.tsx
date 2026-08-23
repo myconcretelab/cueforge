@@ -243,21 +243,32 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
         <div className="freesound-results">
           {result.results.map((sound) => {
             const active = currentSound?.id === sound.id;
-            return <article key={sound.id} className={active ? 'freesound-result is-active' : 'freesound-result'}>
-              <button className="freesound-play" onClick={() => togglePreview(sound)} aria-label={`${active && playerState === 'playing' ? 'Mettre en pause' : 'Écouter'} ${sound.name}`}>
-                {active && playerState === 'loading' ? <LoaderCircle className="spin" size={19} /> : active && playerState === 'playing' ? <Pause size={19} fill="currentColor" /> : <Play size={19} fill="currentColor" />}
-              </button>
-              <div className="freesound-result-main">
-                <a href={sound.pageUrl} target="_blank" rel="noreferrer" title="Voir sur Freesound"><strong>{sound.name}</strong><ExternalLink size={12} /></a>
-                <span>par {sound.username} · {formatDuration(sound.durationSeconds)}</span>
-                <div className="freesound-tags">{sound.tags.slice(0, 4).map((tag) => <em key={tag}>{tag}</em>)}</div>
-              </div>
-              <div className="freesound-result-actions">
-                <a className={`freesound-license ${sound.license.code}`} href={sound.license.url} target="_blank" rel="noreferrer">{sound.license.label}</a>
-                <button className={importedIds.has(sound.id) ? 'freesound-import-button is-imported' : 'freesound-import-button'} onClick={() => prepareImport(sound)} aria-label={`Importer ${sound.name}`} title={importedIds.has(sound.id) ? 'Importer à nouveau' : 'Importer dans SoundFlow'}>
-                  {importedIds.has(sound.id) ? <CircleCheck size={17} /> : <Download size={17} />}
+            const preparingImport = soundToImport?.id === sound.id;
+            return <article key={sound.id} className={`freesound-result${active ? ' is-active' : ''}${preparingImport ? ' is-importing' : ''}`}>
+              <div className="freesound-result-summary">
+                <button className="freesound-play" onClick={() => togglePreview(sound)} aria-label={`${active && playerState === 'playing' ? 'Mettre en pause' : 'Écouter'} ${sound.name}`}>
+                  {active && playerState === 'loading' ? <LoaderCircle className="spin" size={19} /> : active && playerState === 'playing' ? <Pause size={19} fill="currentColor" /> : <Play size={19} fill="currentColor" />}
                 </button>
+                <div className="freesound-result-main">
+                  {preparingImport ? <label className="freesound-inline-title"><span>Nom du morceau</span><input value={importTitle} onChange={(event) => setImportTitle(event.target.value)} maxLength={160} autoFocus /></label> : <a href={sound.pageUrl} target="_blank" rel="noreferrer" title="Voir sur Freesound"><strong>{sound.name}</strong><ExternalLink size={12} /></a>}
+                  <span>par {sound.username} · {formatDuration(sound.durationSeconds)}</span>
+                  {!preparingImport && <div className="freesound-tags">{sound.tags.slice(0, 4).map((tag) => <em key={tag}>{tag}</em>)}</div>}
+                </div>
+                <div className="freesound-result-actions">
+                  <a className={`freesound-license ${sound.license.code}`} href={sound.license.url} target="_blank" rel="noreferrer">{sound.license.label}</a>
+                  <button className={preparingImport ? 'freesound-import-button is-cancel' : importedIds.has(sound.id) ? 'freesound-import-button is-imported' : 'freesound-import-button'} disabled={preparingImport && importing} onClick={() => preparingImport ? setSoundToImport(undefined) : prepareImport(sound)} aria-label={preparingImport ? `Annuler l'import de ${sound.name}` : `Importer ${sound.name}`} title={preparingImport ? "Annuler l'import" : importedIds.has(sound.id) ? 'Importer à nouveau' : 'Importer dans SoundFlow'}>
+                    {preparingImport ? <X size={17} /> : importedIds.has(sound.id) ? <CircleCheck size={17} /> : <Download size={17} />}
+                  </button>
+                </div>
               </div>
+              {preparingImport && <div className="freesound-import-morph">
+                <div className="freesound-import-morph-inner">
+                  <label>Catégorie de destination<select value={importCategoryId} onChange={(event) => setImportCategoryId(event.target.value)}><option value="">Sans catégorie</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+                  <div className="freesound-import-source"><ShieldCheck size={16} /><span><strong>{sound.license.label}</strong> · {sound.username}<small>La source et la licence seront enregistrées avec le morceau.</small></span></div>
+                  {importError && <div className="form-error">{importError}</div>}
+                  <footer><button className="button ghost" onClick={() => setSoundToImport(undefined)} disabled={importing}>Annuler</button><button className="button primary" onClick={() => importSound().catch(() => undefined)} disabled={importing || !importTitle.trim()}>{importing ? <LoaderCircle className="spin" size={17} /> : <Download size={17} />}{importing ? 'Téléchargement…' : 'Importer et stocker'}</button></footer>
+                </div>
+              </div>}
             </article>;
           })}
           {result.results.length === 0 && <div className="freesound-empty compact"><strong>Aucun son compatible sur cette page</strong><span>Essayez une recherche plus large.</span></div>}
@@ -267,17 +278,6 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
           <button className="button ghost" disabled={loading || !result.hasNext} onClick={() => searchSounds(result.page + 1).catch(() => undefined)}>Suivant</button>
         </div>
       </>}
-
-      {soundToImport && <section className="freesound-import-panel">
-        <header><div><strong>Importer dans le spectacle</strong><span>La préécoute haute qualité sera téléchargée et conservée dans le stockage SoundFlow.</span></div><button className="icon-button subtle" onClick={() => setSoundToImport(undefined)} aria-label="Annuler l'import"><X size={17} /></button></header>
-        <div className="field-row">
-          <label>Nom du morceau<input value={importTitle} onChange={(event) => setImportTitle(event.target.value)} maxLength={160} autoFocus /></label>
-          <label>Catégorie de destination<select value={importCategoryId} onChange={(event) => setImportCategoryId(event.target.value)}><option value="">Sans catégorie</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
-        </div>
-        <div className="freesound-import-source"><ShieldCheck size={16} /><span><strong>{soundToImport.license.label}</strong> · {soundToImport.username}<small>La source et la licence seront enregistrées avec le morceau.</small></span></div>
-        {importError && <div className="form-error">{importError}</div>}
-        <footer><button className="button ghost" onClick={() => setSoundToImport(undefined)} disabled={importing}>Annuler</button><button className="button primary" onClick={() => importSound().catch(() => undefined)} disabled={importing || !importTitle.trim()}>{importing ? <LoaderCircle className="spin" size={17} /> : <Download size={17} />}{importing ? 'Téléchargement…' : 'Importer et stocker'}</button></footer>
-      </section>}
 
       {currentSound && <section className="freesound-player" aria-label="Lecteur Freesound">
         <button className="freesound-player-toggle" onClick={() => togglePreview(currentSound)} aria-label={playerState === 'playing' ? 'Pause' : 'Lecture'}>
