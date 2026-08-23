@@ -1,4 +1,5 @@
-import { GripVertical, ListMusic, LoaderCircle, Pause, Play, Repeat2, Save, Shuffle, SkipForward, SlidersHorizontal, Square, Trash2, X, Zap } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { GripHorizontal, GripVertical, ListMusic, LoaderCircle, Pause, Play, Repeat2, Save, Shuffle, SkipForward, SlidersHorizontal, Square, Trash2, X, Zap } from 'lucide-react';
 import type { ProjectColor, Track } from '../types';
 
 export interface PlaylistQueueItem { id: string; trackId: string }
@@ -31,9 +32,44 @@ interface Props {
 
 const trackMime = 'application/x-soundflow-track';
 const playlistItemMime = 'application/x-soundflow-playlist-item';
+const panelHeightStorageKey = 'soundflow-playlist-panel-height';
+const panelMinHeight = 160;
+
+function maxPanelHeight() {
+  return Math.max(panelMinHeight, Math.min(680, window.innerHeight - 390));
+}
+
+function clampPanelHeight(height: number) {
+  return Math.min(maxPanelHeight(), Math.max(panelMinHeight, height));
+}
 
 export function PlaylistPanel({ items, tracks, colors, options, currentIndex, playbackActive, playbackPaused, saved, saving, optionsOpen, onOptionsOpenChange, onOptionsChange, onDropTrack, onMoveItem, onRemoveItem, onPlayItem, onPlayPause, onStop, onNext, onSave, onDelete, onClear }: Props) {
-  return <section className="playlist-panel" style={{ '--playlist-color': options.color } as React.CSSProperties}>
+  const [panelHeight, setPanelHeight] = useState(() => {
+    const storedHeight = Number(localStorage.getItem(panelHeightStorageKey));
+    return clampPanelHeight(Number.isFinite(storedHeight) && storedHeight > 0 ? storedHeight : 320);
+  });
+  const resizeRef = useRef<{ startY: number; startHeight: number; latestHeight: number } | undefined>(undefined);
+  const renderedHeight = clampPanelHeight(panelHeight);
+
+  function persistHeight(height: number) {
+    localStorage.setItem(panelHeightStorageKey, String(Math.round(height)));
+  }
+
+  function resizeWithKeyboard(direction: number) {
+    setPanelHeight((current) => {
+      const next = clampPanelHeight(current + direction * 24);
+      persistHeight(next);
+      return next;
+    });
+  }
+
+  return <section className="playlist-panel" style={{ '--playlist-color': options.color, '--playlist-panel-height': `${renderedHeight}px` } as React.CSSProperties}>
+    <div className="playlist-resizer" role="separator" aria-label="Régler la hauteur du panneau playlist" aria-orientation="horizontal" aria-valuemin={panelMinHeight} aria-valuemax={maxPanelHeight()} aria-valuenow={Math.round(renderedHeight)} tabIndex={0} title="Glisser pour régler la hauteur · Flèches haut et bas"
+      onKeyDown={(event) => { if (event.key === 'ArrowUp') { event.preventDefault(); resizeWithKeyboard(1); } else if (event.key === 'ArrowDown') { event.preventDefault(); resizeWithKeyboard(-1); } }}
+      onPointerDown={(event) => { resizeRef.current = { startY: event.clientY, startHeight: renderedHeight, latestHeight: renderedHeight }; event.currentTarget.setPointerCapture(event.pointerId); }}
+      onPointerMove={(event) => { if (!resizeRef.current) return; const next = clampPanelHeight(resizeRef.current.startHeight + resizeRef.current.startY - event.clientY); resizeRef.current.latestHeight = next; setPanelHeight(next); }}
+      onPointerUp={(event) => { if (!resizeRef.current) return; persistHeight(resizeRef.current.latestHeight); resizeRef.current = undefined; event.currentTarget.releasePointerCapture(event.pointerId); }}
+      onPointerCancel={() => { if (resizeRef.current) persistHeight(resizeRef.current.latestHeight); resizeRef.current = undefined; }}><GripHorizontal size={19} /></div>
     <header><div><ListMusic size={15} /><strong>{options.name || 'Nouvelle playlist'}</strong><em>{items.length}</em></div><button type="button" onClick={onClear} disabled={items.length === 0} aria-label="Vider la playlist" title="Vider"><Trash2 size={14} /></button></header>
     <div className="playlist-toolbar">
       <button type="button" onClick={onSave} disabled={items.length === 0 || saving} aria-label="Sauvegarder la playlist" title={saved ? 'Mettre à jour la playlist' : 'Sauvegarder la playlist'}>{saving ? <LoaderCircle className="spin" size={15} /> : <Save size={15} />}</button>

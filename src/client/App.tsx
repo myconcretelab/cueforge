@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, GripVertical, History, ListMusic, LoaderCircle, Menu, Move, Pause, Play, Plus, Radio,
+  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, GripVertical, History, ListMusic, ListPlus, LoaderCircle, Menu, Move, Pause, Play, Plus, Radio,
   RefreshCcw, Repeat2, RotateCcw, Search, Settings, Settings2, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
@@ -454,6 +454,12 @@ export default function App() {
   function addTrackToPlaylist(trackId: string) {
     if (!detail?.tracks.some((track) => track.id === trackId)) return;
     setPlaylistItems((current) => [...current, { id: crypto.randomUUID(), trackId }]);
+  }
+
+  function addCategoryToPlaylist() {
+    if (tracksToPreload.length === 0) return;
+    setPlaylistItems((current) => [...current, ...tracksToPreload.map((track) => ({ id: crypto.randomUUID(), trackId: track.id }))]);
+    setSidebarTool('playlist');
   }
 
   function movePlaylistItem(itemId: string, beforeItemId: string) {
@@ -922,8 +928,8 @@ export default function App() {
           </article>;
         })}
       </div>
-      {!remote && <><nav className="sidebar-tool-tabs" aria-label="Outils de la colonne de lecture"><button className={sidebarTool === 'playlist' ? 'active' : ''} onClick={() => setSidebarTool((current) => current === 'playlist' ? undefined : 'playlist')} aria-label="Afficher la playlist" title="Playlist"><ListMusic size={17} /><em>{playlistItems.length}</em></button></nav>
-        {sidebarTool === 'playlist' && <PlaylistPanel items={playlistItems} tracks={detail?.tracks ?? []} colors={detail?.colors ?? []} options={playlistOptions} currentIndex={playlistCurrentIndex} playbackActive={Boolean(playlistPlayback)} playbackPaused={playlistPlayback?.paused ?? false} saved={Boolean(loadedPlaylistId)} saving={playlistSaving} optionsOpen={playlistOptionsOpen} onOptionsOpenChange={setPlaylistOptionsOpen} onOptionsChange={(patch) => setPlaylistOptions((current) => ({ ...current, ...patch }))} onDropTrack={addTrackToPlaylist} onMoveItem={movePlaylistItem} onRemoveItem={removePlaylistItem} onPlayItem={playPlaylistItem} onPlayPause={playPausePlaylist} onStop={stopPlaylistPlayback} onNext={skipPlaylistTrack} onSave={() => saveCurrentPlaylist().catch(() => undefined)} onDelete={() => deleteCurrentPlaylist().catch(() => undefined)} onClear={clearPlaylist} />}
+      {!remote && <>{sidebarTool === 'playlist' && <PlaylistPanel items={playlistItems} tracks={detail?.tracks ?? []} colors={detail?.colors ?? []} options={playlistOptions} currentIndex={playlistCurrentIndex} playbackActive={Boolean(playlistPlayback)} playbackPaused={playlistPlayback?.paused ?? false} saved={Boolean(loadedPlaylistId)} saving={playlistSaving} optionsOpen={playlistOptionsOpen} onOptionsOpenChange={setPlaylistOptionsOpen} onOptionsChange={(patch) => setPlaylistOptions((current) => ({ ...current, ...patch }))} onDropTrack={addTrackToPlaylist} onMoveItem={movePlaylistItem} onRemoveItem={removePlaylistItem} onPlayItem={playPlaylistItem} onPlayPause={playPausePlaylist} onStop={stopPlaylistPlayback} onNext={skipPlaylistTrack} onSave={() => saveCurrentPlaylist().catch(() => undefined)} onDelete={() => deleteCurrentPlaylist().catch(() => undefined)} onClear={clearPlaylist} />}
+        <nav className="sidebar-tool-tabs" aria-label="Outils de la colonne de lecture"><button className={sidebarTool === 'playlist' ? 'active' : ''} onClick={() => setSidebarTool((current) => current === 'playlist' ? undefined : 'playlist')} aria-label="Afficher la playlist" title="Playlist"><ListMusic size={17} /><em>{playlistItems.length}</em></button></nav>
       </>}
     </aside>
     {sidebarOpen && <button className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Fermer le menu" />}
@@ -988,6 +994,9 @@ export default function App() {
             aria-label={preloadProgress ? `Mise hors ligne ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'}>
             {preloadProgress ? <LoaderCircle className="spin" size={18} /> : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? <CircleCheck size={18} /> : <Download size={18} />}
           </button>}
+          {!remote && <button className="dashboard-button playlist-add-category" onClick={addCategoryToPlaylist} disabled={!tracksToPreload.length}
+            aria-label={currentCategory ? `Ajouter les ${tracksToPreload.length} morceaux de ${currentCategory.name} à la playlist` : `Ajouter les ${tracksToPreload.length} morceaux à la playlist`}
+            title={currentCategory ? `Ajouter toute la catégorie « ${currentCategory.name} » à la playlist` : 'Ajouter tous les morceaux à la playlist'}><ListPlus size={19} /></button>}
           {!remote && <button className={`dashboard-button ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setCategoryManageMode(false); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} disabled={reordering}
             aria-label={reordering ? 'Enregistrement de la réorganisation' : reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'} title={reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'}><span className="reorder-mode-icon" aria-hidden="true"><SquareDashed size={20} /><Move size={12} /></span></button>}
           <div className="dashboard-control">

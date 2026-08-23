@@ -108,11 +108,15 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .player-card-controls button:disabled { opacity: .38; cursor: default; }
 .player-card-controls button.fade-out { color: #fdba74; }
 .player-card-controls button.stop { color: #fca5a5; }
-.sidebar-tool-tabs { min-height: 42px; padding: 5px 9px; display: flex; align-items: center; gap: 5px; border-top: 1px solid var(--border); background: #101012; }
+.sidebar-tool-tabs { position: sticky; z-index: 2; bottom: 0; min-height: 42px; flex: 0 0 42px; padding: 5px 9px; display: flex; align-items: center; gap: 5px; border-top: 1px solid var(--border); background: #101012; box-shadow: 0 -8px 20px rgba(0,0,0,.16); }
 .sidebar-tool-tabs button { position: relative; width: 34px; height: 32px; padding: 0; display: grid; place-items: center; border: 1px solid transparent; border-radius: 8px; color: #71717a; background: transparent; cursor: pointer; }
 .sidebar-tool-tabs button:hover, .sidebar-tool-tabs button.active { color: #fed7aa; border-color: rgba(249,115,22,.3); background: var(--orange-soft); }
 .sidebar-tool-tabs em { position: absolute; top: 1px; right: 2px; min-width: 14px; height: 14px; padding: 0 3px; display: grid; place-items: center; border-radius: 999px; color: #d4d4d8; background: #3f3f46; font-size: .48rem; font-style: normal; }
-.playlist-panel { --playlist-color: #8b5cf6; flex: 0 1 47vh; min-height: 210px; padding: 8px 9px 10px; display: flex; flex-direction: column; gap: 7px; overflow: hidden; border-top: 1px solid var(--border); background: #0b0b0d; }
+.playlist-panel { --playlist-color: #8b5cf6; --playlist-panel-height: 320px; position: relative; height: var(--playlist-panel-height); min-height: 160px; flex: 0 1 var(--playlist-panel-height); padding: 12px 9px 10px; display: flex; flex-direction: column; gap: 7px; overflow: hidden; border-top: 1px solid var(--border); background: #0b0b0d; }
+.playlist-resizer { position: absolute; z-index: 2; top: 0; left: 0; width: 100%; height: 11px; display: grid; place-items: center; border: 0; color: #52525b; background: transparent; cursor: ns-resize; touch-action: none; transition: color .15s, background .15s; }
+.playlist-resizer::before { position: absolute; top: 0; left: 0; width: 100%; height: 1px; background: var(--border); content: ''; }
+.playlist-resizer svg { position: relative; width: 19px; height: 11px; padding: 0 2px; border-radius: 4px; background: #0b0b0d; }
+.playlist-resizer:hover, .playlist-resizer:focus-visible { outline: 0; color: color-mix(in srgb, var(--playlist-color) 75%, #fff); background: color-mix(in srgb, var(--playlist-color) 7%, transparent); }
 .playlist-panel > header { min-height: 25px; display: flex; align-items: center; justify-content: space-between; }
 .playlist-panel > header > div { min-width: 0; display: flex; align-items: center; gap: 6px; color: var(--playlist-color); }
 .playlist-panel > header strong { overflow: hidden; color: #e4e4e7; font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
@@ -220,11 +224,14 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .dashboard-button.active { color: #fed7aa; border-color: rgba(249,115,22,.48); background: var(--orange-soft); }
 .dashboard-button.is-loaded { color: #86efac; border-color: rgba(34,197,94,.24); background: rgba(34,197,94,.08); }
 .dashboard-button.freesound-launch { color: #67e8f9; border-color: rgba(34,211,238,.2); background: rgba(34,211,238,.07); }
+.dashboard-button.playlist-add-category { color: #c4b5fd; border-color: rgba(139,92,246,.24); background: rgba(139,92,246,.07); }
 .reorder-mode-icon { position: relative; width: 20px; height: 20px; display: grid; place-items: center; }
 .reorder-mode-icon svg { position: absolute; }
 .reorder-mode-icon svg:last-child { stroke-width: 2.2; }
 .dashboard-button.freesound-launch:hover { color: #cffafe; border-color: rgba(34,211,238,.45); background: rgba(34,211,238,.12); }
+.dashboard-button.playlist-add-category:hover { color: #ede9fe; border-color: rgba(139,92,246,.48); background: rgba(139,92,246,.13); }
 .dashboard-button:disabled { opacity: .45; cursor: wait; transform: none; }
+.dashboard-button.playlist-add-category:disabled { cursor: not-allowed; }
 .dashboard-button.is-loaded:disabled { opacity: 1; cursor: default; }
 .dashboard-control { position: relative; }
 .dashboard-popover { position: absolute; z-index: 30; top: calc(100% + 9px); right: 0; width: 235px; padding: 12px; border: 1px solid rgba(255,255,255,.13); border-radius: 12px; background: #17171a; box-shadow: 0 18px 50px rgba(0,0,0,.48); }
