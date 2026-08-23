@@ -26,4 +26,16 @@ describe('client API', () => {
       headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
     }));
   });
+
+  it('enregistre une couleur dans la palette du spectacle', async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ projectColor: { color: '#f97316' } }), { status: 201, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetcher);
+
+    await api.createProjectColor('11111111-1111-4111-8111-111111111111', '#f97316');
+
+    expect(fetcher).toHaveBeenCalledWith('/api/projects/11111111-1111-4111-8111-111111111111/colors', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ color: '#f97316' }),
+    }));
+  });
 });

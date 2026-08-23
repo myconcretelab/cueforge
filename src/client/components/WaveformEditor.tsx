@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
-import { Focus, LoaderCircle, Pause, Play, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
+import { Focus, LoaderCircle, Pause, Play, RotateCcw, Square, ZoomIn, ZoomOut } from 'lucide-react';
 import {
   clampEndMs,
   clampStartMs,
@@ -30,6 +30,7 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
   const [pan, setPan] = useState(0);
   const [dragging, setDragging] = useState<'start' | 'end'>();
   const [previewing, setPreviewing] = useState(false);
+  const [stopResetArmed, setStopResetArmed] = useState(false);
   const [playheadMs, setPlayheadMs] = useState(startMs);
   const audioRef = useRef<HTMLAudioElement>(null);
   const dragRef = useRef<{ kind: 'start' | 'end'; pointerId: number; offsetPx: number } | undefined>(undefined);
@@ -150,6 +151,7 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
     if (!rect || loading || !buffer) return;
     const requestedMs = waveformTime((event.clientX - rect.left) / rect.width, view);
     const nextMs = Math.min(effectiveEndMs, Math.max(startMs, requestedMs));
+    setStopResetArmed(false);
     setPlayheadMs(nextMs);
     const audio = audioRef.current;
     if (audio) audio.currentTime = nextMs / 1_000;
@@ -175,8 +177,23 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
     const nextMs = playheadMs >= effectiveEndMs - 1 ? startMs : Math.min(effectiveEndMs, Math.max(startMs, playheadMs));
     audio.currentTime = nextMs / 1_000;
     setPlayheadMs(nextMs);
+    setStopResetArmed(false);
     try { await audio.play(); setPreviewing(true); }
     catch { setError('La préécoute ne peut pas démarrer.'); }
+  }
+
+  function stopPreview() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.pause();
+    setPreviewing(false);
+    if (!stopResetArmed) {
+      setStopResetArmed(true);
+      return;
+    }
+    audio.currentTime = startMs / 1_000;
+    setPlayheadMs(startMs);
+    setStopResetArmed(false);
   }
 
   return <section className="waveform-editor">
@@ -193,10 +210,10 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
     </div>
     {zoom > 1 && <label className="waveform-pan"><span>Position</span><input type="range" min="0" max="1" step=".001" value={pan} onChange={(event) => setPan(Number(event.target.value))} /></label>}
     <div className="waveform-values">
-      <button type="button" className="waveform-preview" onClick={togglePreview}>{previewing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}{previewing ? 'Arrêter' : 'Écouter la sélection'}</button>
+      <div className="waveform-preview-controls"><button type="button" className="waveform-preview" onClick={togglePreview}>{previewing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}{previewing ? 'Pause' : 'Écouter la sélection'}</button><button type="button" className={`waveform-stop ${stopResetArmed ? 'is-armed' : ''}`} onClick={stopPreview} aria-label={stopResetArmed ? 'Replacer la lecture au début sélectionné' : 'Arrêter la lecture'} title={stopResetArmed ? 'Cliquer à nouveau pour revenir au début' : 'Arrêter la lecture'}><Square size={15} fill="currentColor" /></button></div>
       <label><span>Début</span><input type="number" min="0" max={Math.max(0, effectiveEndMs / 1_000 - .001)} step=".001" value={(startMs / 1_000).toFixed(3)} onChange={(event) => onStartChange(clampStartMs(Number(event.target.value) * 1_000, effectiveEndMs, totalMs))} /><em>{formatWaveformTime(startMs)}</em><button type="button" onClick={() => onStartChange(0)} title="Réinitialiser le début"><RotateCcw size={14} /></button></label>
       <label><span>Fin</span><input type="number" min={(startMs + 1) / 1_000} max={totalMs / 1_000} step=".001" value={(effectiveEndMs / 1_000).toFixed(3)} onChange={(event) => onEndChange(clampEndMs(Number(event.target.value) * 1_000, startMs, totalMs))} /><em>{formatWaveformTime(effectiveEndMs)}</em><button type="button" onClick={() => onEndChange(null)} title="Utiliser la fin du fichier"><RotateCcw size={14} /></button></label>
     </div>
-    <audio ref={audioRef} src={`/api/tracks/${trackId}/stream`} preload="metadata" onLoadedMetadata={(event) => { event.currentTarget.currentTime = playheadMs / 1_000; }} onTimeUpdate={(event) => { const currentMs = Math.min(totalMs, event.currentTarget.currentTime * 1_000); setPlayheadMs(currentMs); if (currentMs >= effectiveEndMs) { event.currentTarget.pause(); setPlayheadMs(effectiveEndMs); setPreviewing(false); } }} onEnded={() => { setPlayheadMs(effectiveEndMs); setPreviewing(false); }} />
+    <audio ref={audioRef} src={`/api/tracks/${trackId}/stream`} preload="metadata" onLoadedMetadata={(event) => { event.currentTarget.currentTime = playheadMs / 1_000; }} onTimeUpdate={(event) => { const currentMs = Math.min(totalMs, event.currentTarget.currentTime * 1_000); setPlayheadMs(currentMs); if (currentMs >= effectiveEndMs) { event.currentTarget.pause(); setPlayheadMs(effectiveEndMs); setPreviewing(false); setStopResetArmed(false); } }} onEnded={() => { setPlayheadMs(effectiveEndMs); setPreviewing(false); setStopResetArmed(false); }} />
   </section>;
 }

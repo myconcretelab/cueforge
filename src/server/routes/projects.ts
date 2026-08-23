@@ -5,7 +5,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { db } from '../db/index.js';
-import { categories, projects, tracks } from '../db/schema.js';
+import { categories, projectColors, projects, tracks } from '../db/schema.js';
 import { requireUser } from '../services/auth.js';
 import { sameIds } from '../services/order.js';
 import { ownsProject } from '../services/ownership.js';
@@ -58,11 +58,12 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       .where(and(eq(projects.id, id), eq(projects.ownerId, user.id))).limit(1);
     if (!project) return reply.code(404).send({ error: 'Projet introuvable.' });
 
-    const [projectCategories, projectTracks] = await Promise.all([
+    const [colors, projectCategories, projectTracks] = await Promise.all([
+      db.select().from(projectColors).where(eq(projectColors.projectId, id)).orderBy(asc(projectColors.position)),
       db.select().from(categories).where(eq(categories.projectId, id)).orderBy(asc(categories.position)),
       db.select().from(tracks).where(eq(tracks.projectId, id)).orderBy(asc(tracks.position), asc(tracks.createdAt)),
     ]);
-    return { project, categories: projectCategories, tracks: projectTracks };
+    return { project, colors, categories: projectCategories, tracks: projectTracks };
   });
 
   app.patch('/api/projects/:id/mouse-actions', async (request, reply) => {
@@ -96,6 +97,56 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       }
     });
     await Promise.all(projectTracks.map((track) => unlink(path.join(config.STORAGE_PATH, track.storageKey)).catch(() => undefined)));
+    return reply.code(204).send();
+  });
+
+  app.post('/api/projects/:id/colors', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    const { id } = idParams.parse(request.params);
+    if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    const input = z.object({ color: z.string().toLowerCase().regex(/^#[0-9a-f]{6}$/) }).parse(request.body);
+    const existingColors = await db.select().from(projectColors).where(eq(projectColors.projectId, id)).orderBy(asc(projectColors.position));
+    const existing = existingColors.find((item) => item.color.toLowerCase() === input.color);
+    if (existing) return { projectColor: existing };
+    if (existingColors.length >= 48) return reply.code(400).send({ error: 'La palette est limitée à 48 couleurs.' });
+    const position = Math.max(-1, ...existingColors.map((item) => item.position)) + 1;
+    const [projectColor] = await db.insert(projectColors).values({ projectId: id, color: input.color, position }).returning();
+    return reply.code(201).send({ projectColor });
+  });
+
+  app.patch('/api/projects/:id/colors/reorder', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    const { id } = idParams.parse(request.params);
+    if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    const input = z.object({ colorIds: z.array(z.string().uuid()).max(48) }).parse(request.body);
+    const colors = await db.select().from(projectColors).where(eq(projectColors.projectId, id));
+    if (!sameIds(input.colorIds, colors.map((item) => item.id))) {
+      return reply.code(400).send({ error: 'Ordre des couleurs invalide.' });
+    }
+    await db.transaction(async (transaction) => {
+      for (const [position, colorId] of input.colorIds.entries()) {
+        await transaction.update(projectColors).set({ position }).where(and(eq(projectColors.id, colorId), eq(projectColors.projectId, id)));
+      }
+    });
+    const reordered = await db.select().from(projectColors).where(eq(projectColors.projectId, id)).orderBy(asc(projectColors.position));
+    return { colors: reordered };
+  });
+
+  app.delete('/api/projects/:id/colors/:colorId', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    const { id, colorId } = z.object({ id: z.string().uuid(), colorId: z.string().uuid() }).parse(request.params);
+    if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    const deleted = await db.delete(projectColors).where(and(eq(projectColors.id, colorId), eq(projectColors.projectId, id))).returning({ id: projectColors.id });
+    if (deleted.length === 0) return reply.code(404).send({ error: 'Couleur introuvable.' });
+    const remaining = await db.select().from(projectColors).where(eq(projectColors.projectId, id)).orderBy(asc(projectColors.position));
+    await db.transaction(async (transaction) => {
+      for (const [position, item] of remaining.entries()) {
+        await transaction.update(projectColors).set({ position }).where(eq(projectColors.id, item.id));
+      }
+    });
     return reply.code(204).send();
   });
 

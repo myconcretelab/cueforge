@@ -50,6 +50,13 @@
       "when": 1787482153278,
       "tag": "0006_far_otto_octavius",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787488976467,
+      "tag": "0007_aberrant_hydra",
+      "breakpoints": true
     }
   ]
 }

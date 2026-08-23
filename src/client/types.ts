@@ -29,6 +29,13 @@ export interface Category {
   position: number;
 }
 
+export interface ProjectColor {
+  id: string;
+  projectId: string;
+  color: string;
+  position: number;
+}
+
 export interface Track {
   id: string;
   projectId: string;
@@ -55,6 +62,7 @@ export interface Track {
 
 export interface ProjectDetail {
   project: Project;
+  colors: ProjectColor[];
   categories: Category[];
   tracks: Track[];
 }

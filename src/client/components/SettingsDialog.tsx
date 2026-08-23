@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { CloudDownload, FileArchive, FolderPlus, GripVertical, Keyboard, LogOut, Settings2, Smartphone, Trash2, Waves, X } from 'lucide-react';
-import type { KeyAction, Project, User } from '../types';
+import { CloudDownload, FileArchive, FolderPlus, GripVertical, Keyboard, LogOut, Palette, Plus, Settings2, Smartphone, Trash2, Waves, X } from 'lucide-react';
+import type { KeyAction, Project, ProjectColor, User } from '../types';
 
 interface Props {
   user: User;
   projects: Project[];
+  projectColors: ProjectColor[];
   selectedProjectId: string | null;
   offlineStatus: string;
   remote: boolean;
@@ -12,6 +13,9 @@ interface Props {
   onCreateProject: () => void;
   onReorderProjects: (projectIds: string[]) => Promise<void>;
   onDeleteProject: (project: Project) => Promise<void>;
+  onCreateProjectColor: (color: string) => Promise<void>;
+  onDeleteProjectColor: (color: ProjectColor) => Promise<void>;
+  onReorderProjectColors: (colorIds: string[]) => Promise<void>;
   onImportSoundShow: () => void;
   onOpenFreesound: () => void;
   onToggleRemote: () => void;
@@ -27,11 +31,14 @@ const keyActions: Array<{ value: KeyAction; label: string }> = [
   { value: 'none', label: 'Aucune action' },
 ];
 
-export function SettingsDialog({ user, projects, selectedProjectId, offlineStatus, remote, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onImportSoundShow, onOpenFreesound, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
+export function SettingsDialog({ user, projects, projectColors, selectedProjectId, offlineStatus, remote, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
+  const [newColor, setNewColor] = useState('#f97316');
   const [draggedProjectId, setDraggedProjectId] = useState<string>();
   const [dropProjectId, setDropProjectId] = useState<string>();
   const [dropProjectAfter, setDropProjectAfter] = useState(false);
+  const [draggedColorId, setDraggedColorId] = useState<string>();
+  const [dropColorId, setDropColorId] = useState<string>();
 
   function dropProject(targetId: string, after: boolean) {
     if (!draggedProjectId || draggedProjectId === targetId) return;
@@ -44,6 +51,18 @@ export function SettingsDialog({ user, projects, selectedProjectId, offlineStatu
     setDraggedProjectId(undefined);
     setDropProjectId(undefined);
     setDropProjectAfter(false);
+  }
+
+  function dropColor(targetId: string) {
+    if (!draggedColorId || draggedColorId === targetId) return;
+    const moving = projectColors.find((item) => item.id === draggedColorId);
+    if (!moving) return;
+    const reordered = projectColors.filter((item) => item.id !== draggedColorId);
+    const targetIndex = reordered.findIndex((item) => item.id === targetId);
+    reordered.splice(Math.max(0, targetIndex), 0, moving);
+    onReorderProjectColors(reordered.map((item) => item.id)).catch(() => undefined);
+    setDraggedColorId(undefined);
+    setDropColorId(undefined);
   }
 
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
@@ -65,6 +84,22 @@ export function SettingsDialog({ user, projects, selectedProjectId, offlineStatu
           {projects.length === 0 && <span className="settings-project-empty">Aucun spectacle.</span>}
         </div>
         <button className="button ghost wide" onClick={onCreateProject}><FolderPlus size={17} />Nouveau spectacle</button>
+      </section>
+      <section className="settings-section">
+        <div className="settings-section-title"><Palette size={16} /><div><strong>Couleurs du spectacle</strong><span>Ajoutez, supprimez ou glissez les couleurs pour les réordonner.</span></div></div>
+        <div className="settings-color-palette">
+          {projectColors.map((item) => <div key={item.id} className={`settings-color-chip ${dropColorId === item.id ? 'drop-target' : ''}`} style={{ '--palette-color': item.color } as React.CSSProperties} draggable
+            onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', item.id); setDraggedColorId(item.id); }}
+            onDragOver={(event) => { if (!draggedColorId || draggedColorId === item.id) return; event.preventDefault(); setDropColorId(item.id); }}
+            onDragLeave={() => setDropColorId((current) => current === item.id ? undefined : current)}
+            onDrop={(event) => { event.preventDefault(); dropColor(item.id); }}
+            onDragEnd={() => { setDraggedColorId(undefined); setDropColorId(undefined); }} title={`${item.color} · glisser pour réordonner`}>
+            <span />
+            <button type="button" onClick={() => { if (window.confirm(`Retirer ${item.color} de la palette ?\n\nLes morceaux qui utilisent cette couleur ne seront pas modifiés.`)) onDeleteProjectColor(item).catch(() => undefined); }} aria-label={`Retirer la couleur ${item.color}`}><X size={11} /></button>
+          </div>)}
+          {projectColors.length === 0 && <span className="settings-color-empty">Ajoutez votre première couleur.</span>}
+        </div>
+        <div className="settings-color-add"><input type="color" value={newColor} onChange={(event) => setNewColor(event.target.value)} aria-label="Nouvelle couleur" /><code>{newColor.toUpperCase()}</code><button type="button" className="button ghost" disabled={!selectedProject} onClick={() => onCreateProjectColor(newColor).catch(() => undefined)}><Plus size={16} />Ajouter</button></div>
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><FileArchive size={16} /><div><strong>Bibliothèque</strong><span>Importez ou préparez les médias de ce spectacle.</span></div></div>

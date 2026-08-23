@@ -16,7 +16,7 @@ import { audioEngine, playbackVolumeAt, type ActivePlayback } from './lib/audio-
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { parseStopwatchState, resolveCategoryId } from './lib/session-state';
-import type { Category, KeyAction, MouseAction, Project, ProjectDetail, RemoteCommand, Track, User } from './types';
+import type { Category, KeyAction, MouseAction, Project, ProjectColor, ProjectDetail, RemoteCommand, Track, User } from './types';
 
 const colors = ['#f97316', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
 const mouseActions: Array<{ value: MouseAction; label: string }> = [
@@ -142,7 +142,7 @@ export default function App() {
       if (!cached) throw cause;
       result = cached;
     }
-    setDetail(result);
+    setDetail({ ...result, colors: result.colors ?? [] });
   }, [selectedProjectId]);
 
   const uploadDroppedFiles = useCallback(async (files: File[]) => {
@@ -429,6 +429,52 @@ export default function App() {
       setDraggedCategoryId(undefined);
       setDropCategoryOrderId(undefined);
       setDropCategoryAfter(false);
+    }
+  }
+
+  async function createProjectColor(color: string) {
+    if (!detail || detail.project.id !== selectedProjectId) throw new Error('La palette du spectacle est encore en cours de chargement.');
+    try {
+      const { projectColor } = await api.createProjectColor(detail.project.id, color);
+      setDetail((current) => current ? {
+        ...current,
+        colors: current.colors.some((item) => item.id === projectColor.id) ? current.colors : [...current.colors, projectColor],
+      } : current);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Ajout de la couleur impossible.');
+      throw cause;
+    }
+  }
+
+  async function deleteProjectColor(projectColor: ProjectColor) {
+    if (!detail || detail.project.id !== selectedProjectId) throw new Error('La palette du spectacle est encore en cours de chargement.');
+    const previous = detail.colors;
+    setDetail((current) => current ? { ...current, colors: current.colors.filter((item) => item.id !== projectColor.id) } : current);
+    try {
+      await api.deleteProjectColor(detail.project.id, projectColor.id);
+    } catch (cause) {
+      setDetail((current) => current ? { ...current, colors: previous } : current);
+      setError(cause instanceof Error ? cause.message : 'Suppression de la couleur impossible.');
+      throw cause;
+    }
+  }
+
+  async function reorderProjectColors(colorIds: string[]) {
+    if (!detail || detail.project.id !== selectedProjectId) throw new Error('La palette du spectacle est encore en cours de chargement.');
+    const previous = detail.colors;
+    const byId = new Map(previous.map((item) => [item.id, item]));
+    const optimistic = colorIds.flatMap((id, position) => {
+      const item = byId.get(id);
+      return item ? [{ ...item, position }] : [];
+    });
+    setDetail((current) => current ? { ...current, colors: optimistic } : current);
+    try {
+      const result = await api.reorderProjectColors(detail.project.id, colorIds);
+      setDetail((current) => current ? { ...current, colors: result.colors } : current);
+    } catch (cause) {
+      setDetail((current) => current ? { ...current, colors: previous } : current);
+      setError(cause instanceof Error ? cause.message : 'Réorganisation des couleurs impossible.');
+      throw cause;
     }
   }
 
@@ -754,10 +800,10 @@ export default function App() {
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
-    {settingsOpen && <SettingsDialog user={user} projects={projects} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} remote={remote} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} remote={remote} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {freesoundOpen && detail && <FreesoundDialog initialQuery={search} projectId={detail.project.id} categories={detail.categories} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} onImported={refreshProject} onClose={() => setFreesoundOpen(false)} />}
-    {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
+    {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} projectColors={detail.colors} onAddProjectColor={createProjectColor} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
     {(fileDropActive || dropUploadProgress) && <div className={`file-drop-overlay ${dropUploadProgress ? 'is-uploading' : ''}`} role="status" aria-live="polite">
       <div className="file-drop-card">
         {dropUploadProgress ? <LoaderCircle className="spin" size={38} /> : <Upload size={42} />}

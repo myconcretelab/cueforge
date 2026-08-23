@@ -7,6 +7,7 @@ import {
   real,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -47,6 +48,16 @@ export const categories = pgTable('categories', {
   position: integer('position').notNull().default(0),
 }, (table) => [index('categories_project_id_idx').on(table.projectId)]);
 
+export const projectColors = pgTable('project_colors', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  color: text('color').notNull(),
+  position: integer('position').notNull().default(0),
+}, (table) => [
+  index('project_colors_project_id_idx').on(table.projectId),
+  uniqueIndex('project_colors_project_color_idx').on(table.projectId, table.color),
+]);
+
 export const tracks = pgTable('tracks', {
   id: uuid('id').primaryKey().defaultRandom(),
   projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
@@ -74,5 +85,6 @@ export const tracks = pgTable('tracks', {
 
 export type User = typeof users.$inferSelect;
 export type Project = typeof projects.$inferSelect;
+export type ProjectColor = typeof projectColors.$inferSelect;
 export type Category = typeof categories.$inferSelect;
 export type Track = typeof tracks.$inferSelect;
