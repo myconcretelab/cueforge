@@ -46,6 +46,16 @@ npm run build
 
 ## Déploiement Alwaysdata
 
+Pour mettre à jour la production depuis le Mac d’administration après avoir poussé `main` :
+
+```bash
+./scripts/deploy-alwaysdata.sh
+```
+
+Le script refuse un dépôt sale ou non poussé, récupère les variables du site via l’API Alwaysdata, compile l’application, applique les migrations, redémarre le site et contrôle son endpoint de santé. Le jeton d’API n’est jamais stocké dans Git : il est lu dans le trousseau Apple (`soundflow-alwaysdata-api` / `myconcretelab`).
+
+Pour une installation initiale manuelle :
+
 1. Créer une base PostgreSQL et un utilisateur dans **Bases de données > PostgreSQL**.
 2. Choisir Node.js 24 dans **Environnement > Node.js**.
 3. Déployer le dépôt dans `/home/<compte>/soundflow`.
