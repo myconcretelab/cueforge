@@ -31,6 +31,10 @@ export const api = {
   createProject: (name: string) => request<{ project: Project }>('/api/projects', {
     method: 'POST', body: JSON.stringify({ name }),
   }),
+  reorderProjects: (projectIds: string[]) => request<{ projects: Project[] }>('/api/projects/reorder', {
+    method: 'PATCH', body: JSON.stringify({ projectIds }),
+  }),
+  deleteProject: (id: string) => request<void>(`/api/projects/${id}`, { method: 'DELETE' }),
   project: (id: string) => request<ProjectDetail>(`/api/projects/${id}`),
   updateProjectActions: (projectId: string, input: { leftClickAction?: MouseAction; rightClickAction?: MouseAction; escapeKeyAction?: KeyAction; backspaceKeyAction?: KeyAction }) =>
     request<{ project: Project }>(`/api/projects/${projectId}/mouse-actions`, { method: 'PATCH', body: JSON.stringify(input) }),
@@ -38,6 +42,10 @@ export const api = {
     request<{ category: Category }>(`/api/projects/${projectId}/categories`, {
       method: 'POST', body: JSON.stringify({ name, color, position }),
     }),
+  reorderCategories: (projectId: string, categoryIds: string[]) => request<{ categories: Category[] }>(`/api/projects/${projectId}/categories/reorder`, {
+    method: 'PATCH', body: JSON.stringify({ categoryIds }),
+  }),
+  deleteCategory: (projectId: string, categoryId: string) => request<void>(`/api/projects/${projectId}/categories/${categoryId}`, { method: 'DELETE' }),
   uploadTrack: (form: FormData) => request<{ track: Track }>('/api/tracks/upload', { method: 'POST', body: form }),
   updateTrack: (id: string, input: Partial<Pick<Track, 'title' | 'categoryId' | 'volume' | 'loop' | 'fadeInMs' | 'fadeOutMs' | 'startTimeMs' | 'endTimeMs'>>) =>
     request<{ track: Track }>(`/api/tracks/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),

@@ -1,4 +1,5 @@
-import { CloudDownload, FileArchive, FolderPlus, Keyboard, LogOut, Settings2, Smartphone, Waves, X } from 'lucide-react';
+import { useState } from 'react';
+import { CloudDownload, FileArchive, FolderPlus, GripVertical, Keyboard, LogOut, Settings2, Smartphone, Trash2, Waves, X } from 'lucide-react';
 import type { KeyAction, Project, User } from '../types';
 
 interface Props {
@@ -9,6 +10,8 @@ interface Props {
   remote: boolean;
   onChooseProject: (id: string) => void;
   onCreateProject: () => void;
+  onReorderProjects: (projectIds: string[]) => Promise<void>;
+  onDeleteProject: (project: Project) => Promise<void>;
   onImportSoundShow: () => void;
   onOpenFreesound: () => void;
   onToggleRemote: () => void;
@@ -23,14 +26,44 @@ const keyActions: Array<{ value: KeyAction; label: string }> = [
   { value: 'none', label: 'Aucune action' },
 ];
 
-export function SettingsDialog({ user, projects, selectedProjectId, offlineStatus, remote, onChooseProject, onCreateProject, onImportSoundShow, onOpenFreesound, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
+export function SettingsDialog({ user, projects, selectedProjectId, offlineStatus, remote, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onImportSoundShow, onOpenFreesound, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
+  const [draggedProjectId, setDraggedProjectId] = useState<string>();
+  const [dropProjectId, setDropProjectId] = useState<string>();
+  const [dropProjectAfter, setDropProjectAfter] = useState(false);
+
+  function dropProject(targetId: string, after: boolean) {
+    if (!draggedProjectId || draggedProjectId === targetId) return;
+    const moving = projects.find((project) => project.id === draggedProjectId);
+    if (!moving) return;
+    const reordered = projects.filter((project) => project.id !== draggedProjectId);
+    const targetIndex = reordered.findIndex((project) => project.id === targetId);
+    reordered.splice(Math.max(0, targetIndex) + (after ? 1 : 0), 0, moving);
+    onReorderProjects(reordered.map((project) => project.id)).catch(() => undefined);
+    setDraggedProjectId(undefined);
+    setDropProjectId(undefined);
+    setDropProjectAfter(false);
+  }
+
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="dialog settings-dialog">
       <header><div><p className="eyebrow">SoundFlow</p><h2>Paramètres</h2></div><button className="icon-button" onClick={onClose} aria-label="Fermer les paramètres"><X /></button></header>
       <section className="settings-section">
-        <div className="settings-section-title"><Settings2 size={16} /><div><strong>Spectacle actif</strong><span>Choisissez la régie à afficher.</span></div></div>
-        <div className="settings-project-row"><select aria-label="Spectacle actif" value={selectedProjectId ?? ''} onChange={(event) => onChooseProject(event.target.value)}>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><button className="icon-button" onClick={onCreateProject} aria-label="Nouveau spectacle" title="Nouveau spectacle"><FolderPlus size={18} /></button></div>
+        <div className="settings-section-title"><Settings2 size={16} /><div><strong>Spectacles</strong><span>Sélectionnez, glissez ou supprimez une régie.</span></div></div>
+        <div className="settings-project-list">
+          {projects.map((project) => <div key={project.id} className={`settings-project-item ${project.id === selectedProjectId ? 'active' : ''} ${project.id === dropProjectId ? `drop-target ${dropProjectAfter ? 'drop-after' : 'drop-before'}` : ''}`} draggable
+            onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', project.id); setDraggedProjectId(project.id); }}
+            onDragOver={(event) => { if (!draggedProjectId || draggedProjectId === project.id) return; event.preventDefault(); const bounds = event.currentTarget.getBoundingClientRect(); setDropProjectId(project.id); setDropProjectAfter(event.clientY > bounds.top + bounds.height / 2); }}
+            onDragLeave={() => setDropProjectId((current) => current === project.id ? undefined : current)}
+            onDrop={(event) => { event.preventDefault(); const bounds = event.currentTarget.getBoundingClientRect(); dropProject(project.id, event.clientY > bounds.top + bounds.height / 2); }}
+            onDragEnd={() => { setDraggedProjectId(undefined); setDropProjectId(undefined); setDropProjectAfter(false); }}>
+            <GripVertical size={16} aria-hidden="true" />
+            <button className="settings-project-select" onClick={() => onChooseProject(project.id)} aria-current={project.id === selectedProjectId ? 'true' : undefined}>{project.name}</button>
+            <button className="settings-project-delete" onClick={() => onDeleteProject(project).catch(() => undefined)} aria-label={`Supprimer le spectacle ${project.name}`} title="Supprimer"><Trash2 size={15} /></button>
+          </div>)}
+          {projects.length === 0 && <span className="settings-project-empty">Aucun spectacle.</span>}
+        </div>
+        <button className="button ghost wide" onClick={onCreateProject}><FolderPlus size={17} />Nouveau spectacle</button>
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><FileArchive size={16} /><div><strong>Bibliothèque</strong><span>Importez ou préparez les médias de ce spectacle.</span></div></div>

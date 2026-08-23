@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, GripVertical, History, LoaderCircle, Menu, Pause, Play, Plus, Radio,
-  Repeat2, RotateCcw, Search, Settings, Settings2, Square, Timer, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
+  Repeat2, RotateCcw, Search, Settings, Settings2, Square, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
@@ -13,7 +13,7 @@ import { TrackPad } from './components/TrackPad';
 import { UploadDialog } from './components/UploadDialog';
 import { api, ApiError } from './lib/api';
 import { audioEngine, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
-import type { KeyAction, MouseAction, Project, ProjectDetail, RemoteCommand, Track, User } from './types';
+import type { Category, KeyAction, MouseAction, Project, ProjectDetail, RemoteCommand, Track, User } from './types';
 
 const colors = ['#f97316', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
 const mouseActions: Array<{ value: MouseAction; label: string }> = [
@@ -42,6 +42,10 @@ export default function App() {
   const [draggedTrackId, setDraggedTrackId] = useState<string>();
   const [dropTrackId, setDropTrackId] = useState<string>();
   const [dropCategoryId, setDropCategoryId] = useState<string>();
+  const [categoryManageMode, setCategoryManageMode] = useState(false);
+  const [draggedCategoryId, setDraggedCategoryId] = useState<string>();
+  const [dropCategoryOrderId, setDropCategoryOrderId] = useState<string>();
+  const [dropCategoryAfter, setDropCategoryAfter] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -58,7 +62,8 @@ export default function App() {
   const [connected, setConnected] = useState(false);
   const [offlineStatus, setOfflineStatus] = useState('');
   const [error, setError] = useState('');
-  const [nextTrackVolume, setNextTrackVolume] = useState(100);
+  const [nextTrackVolume, setNextTrackVolume] = useState(() => localStorage.getItem('soundflow-keep-next-volume') === 'true' ? readNumberRange('soundflow-next-volume', 100, 0, 100) : 100);
+  const [keepNextTrackVolume, setKeepNextTrackVolume] = useState(() => localStorage.getItem('soundflow-keep-next-volume') === 'true');
   const [now, setNow] = useState(() => Date.now());
   const [chronoElapsedMs, setChronoElapsedMs] = useState(0);
   const [chronoStartedAt, setChronoStartedAt] = useState<number | undefined>(undefined);
@@ -108,7 +113,7 @@ export default function App() {
     setProjects(result.projects);
     setSelectedProjectId((current) => {
       const next = result.projects.some((project) => project.id === current) ? current : result.projects[0]?.id ?? null;
-      if (next) localStorage.setItem('soundflow-project', next);
+      if (next) localStorage.setItem('soundflow-project', next); else localStorage.removeItem('soundflow-project');
       return next;
     });
   }, []);
@@ -190,9 +195,12 @@ export default function App() {
 
   const consumeNextTrackVolume = useCallback(() => {
     const multiplier = nextTrackVolume / 100;
-    setNextTrackVolume(100);
+    if (!keepNextTrackVolume) {
+      setNextTrackVolume(100);
+      localStorage.removeItem('soundflow-next-volume');
+    }
     return multiplier;
-  }, [nextTrackVolume]);
+  }, [keepNextTrackVolume, nextTrackVolume]);
 
   const sendOrRun = useCallback((command: RemoteCommand, track?: Track) => {
     const preparedCommand = command.type === 'play' && command.volumeMultiplier === undefined
@@ -257,9 +265,70 @@ export default function App() {
     const name = window.prompt('Nom de la catégorie');
     if (!name?.trim()) return;
     try {
-      await api.createCategory(detail.project.id, name, colors[detail.categories.length % colors.length]);
+      await api.createCategory(detail.project.id, name, colors[detail.categories.length % colors.length], detail.categories.length);
       await refreshProject();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Création impossible.'); }
+  }
+
+  async function deleteCategory(category: Category) {
+    if (!detail) return;
+    const trackCount = detail.tracks.filter((track) => track.categoryId === category.id).length;
+    const consequence = trackCount > 0 ? `\n\n${trackCount} morceau${trackCount > 1 ? 'x' : ''} restera${trackCount > 1 ? 'ont' : ''} disponible${trackCount > 1 ? 's' : ''} dans « Tous les sons », sans catégorie.` : '';
+    if (!window.confirm(`Supprimer la catégorie « ${category.name} » ?${consequence}`)) return;
+    try {
+      await api.deleteCategory(detail.project.id, category.id);
+      if (selectedCategoryId === category.id) setSelectedCategoryId('all');
+      await refreshProject();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Suppression de la catégorie impossible.'); }
+  }
+
+  async function reorderCategories(categoryId: string, targetId?: string, after = false) {
+    if (!detail || reordering || categoryId === targetId) return;
+    const previous = detail.categories;
+    const reordered = moveById(previous, categoryId, targetId, after).map((category, position) => ({ ...category, position }));
+    setDetail((current) => current ? { ...current, categories: reordered } : current);
+    setReordering(true);
+    try {
+      const result = await api.reorderCategories(detail.project.id, reordered.map((category) => category.id));
+      setDetail((current) => current ? { ...current, categories: result.categories } : current);
+    } catch (cause) {
+      setDetail((current) => current ? { ...current, categories: previous } : current);
+      setError(cause instanceof Error ? cause.message : 'Réorganisation des catégories impossible.');
+    } finally {
+      setReordering(false);
+      setDraggedCategoryId(undefined);
+      setDropCategoryOrderId(undefined);
+      setDropCategoryAfter(false);
+    }
+  }
+
+  async function reorderProjects(projectIds: string[]) {
+    const previous = projects;
+    const byId = new Map(previous.map((project) => [project.id, project]));
+    const optimistic = projectIds.flatMap((id, position) => {
+      const project = byId.get(id);
+      return project ? [{ ...project, position }] : [];
+    });
+    setProjects(optimistic);
+    try {
+      const result = await api.reorderProjects(projectIds);
+      setProjects(result.projects);
+      localStorage.setItem('soundflow-projects', JSON.stringify(result));
+    } catch (cause) {
+      setProjects(previous);
+      setError(cause instanceof Error ? cause.message : 'Réorganisation des spectacles impossible.');
+    }
+  }
+
+  async function deleteProject(project: Project) {
+    if (!window.confirm(`Supprimer définitivement le spectacle « ${project.name} » et tous ses morceaux ?\n\nCette action est irréversible.`)) return;
+    try {
+      if (project.id === selectedProjectId) audioEngine.stopAll(detail?.tracks ?? [], 0);
+      await api.deleteProject(project.id);
+      if (project.id === selectedProjectId) setDetail(undefined);
+      localStorage.removeItem(`soundflow-detail:${project.id}`);
+      await loadProjects();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Suppression du spectacle impossible.'); }
   }
 
   async function updateMouseAction(side: 'left' | 'right', action: MouseAction) {
@@ -445,7 +514,7 @@ export default function App() {
         <div className="topbar-console">
           <section className="console-module next-volume" title="Ce multiplicateur s'applique au prochain son, puis revient à 100 %.">
             <span><Volume2 size={14} />Son suivant</span>
-            <label><input type="range" min="0" max="100" value={nextTrackVolume} onChange={(event) => setNextTrackVolume(Number(event.target.value))} /><strong>{nextTrackVolume} %</strong></label>
+            <div className="next-volume-control"><input type="range" min="0" max="100" value={nextTrackVolume} aria-label="Volume du son suivant" onChange={(event) => { const value = Number(event.target.value); setNextTrackVolume(value); if (keepNextTrackVolume) localStorage.setItem('soundflow-next-volume', String(value)); }} /><strong>{nextTrackVolume} %</strong><button type="button" className={`console-volume-lock ${keepNextTrackVolume ? 'active' : ''}`} role="switch" aria-checked={keepNextTrackVolume} aria-label="Conserver le volume pour les sons suivants" title={keepNextTrackVolume ? 'Volume conservé après chaque lancement' : 'Réinitialiser à 100 % après le prochain lancement'} onClick={() => { const next = !keepNextTrackVolume; setKeepNextTrackVolume(next); localStorage.setItem('soundflow-keep-next-volume', String(next)); if (next) localStorage.setItem('soundflow-next-volume', String(nextTrackVolume)); else localStorage.removeItem('soundflow-next-volume'); }}><i /></button></div>
           </section>
           <section className="console-module stopwatch">
             <span><Timer size={14} />Chrono</span>
@@ -461,15 +530,24 @@ export default function App() {
       </header>
 
       {detail && <section className="category-strip">
-        <div className="category-strip-heading"><span>Catégories</span><button className="icon-button subtle" onClick={createCategory} aria-label="Nouvelle catégorie"><Plus size={17} /></button></div>
+        <div className="category-strip-heading"><span>{categoryManageMode ? 'Glissez les catégories pour les réordonner' : 'Catégories'}</span><div><button className={`icon-button subtle category-manage-toggle ${categoryManageMode ? 'active' : ''}`} onClick={() => { setCategoryManageMode((current) => !current); setReorderMode(false); setDraggedCategoryId(undefined); setDropCategoryOrderId(undefined); setDropCategoryAfter(false); }} aria-label={categoryManageMode ? 'Terminer la gestion des catégories' : 'Gérer les catégories'} title={categoryManageMode ? 'Terminer' : 'Réordonner ou supprimer'}><ArrowUpDown size={16} /></button><button className="icon-button subtle" onClick={createCategory} aria-label="Nouvelle catégorie"><Plus size={17} /></button></div></div>
         <div className="category-tabs-row" style={{ '--category-tab-width': `${categoryWidth}px` } as React.CSSProperties}>
-          <nav className="category-tabs" aria-label="Catégories de sons">
-            <button className={selectedCategoryId === 'all' || isSearching ? 'active' : ''} onClick={() => { setSelectedCategoryId('all'); setSearch(''); }} style={{ '--category-color': '#a1a1aa' } as React.CSSProperties}><span>Tous les sons</span><em>{detail.tracks.length}</em></button>
-            {detail.categories.map((category) => <button key={category.id} className={`${!isSearching && category.id === selectedCategoryId ? 'active' : ''} ${dropCategoryId === category.id ? 'is-drop-target' : ''}`} onClick={() => { setSelectedCategoryId(category.id); setSearch(''); }}
-              onDragOver={(event) => { if (!reorderMode || !draggedTrackId) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropCategoryId(category.id); setDropTrackId(undefined); }}
-              onDragLeave={() => setDropCategoryId((current) => current === category.id ? undefined : current)}
-              onDrop={(event) => { event.preventDefault(); if (draggedTrackId) reorderTrack(draggedTrackId, category.id).catch(() => undefined); }}
-              style={{ '--category-color': category.color } as React.CSSProperties}><span>{category.name}</span><em>{detail.tracks.filter((track) => track.categoryId === category.id).length}</em></button>)}
+          <nav className="category-tabs" aria-label="Catégories de sons" onDragOver={(event) => { if (!categoryManageMode || !draggedCategoryId) return; event.preventDefault(); }} onDrop={(event) => { if (!categoryManageMode || !draggedCategoryId || event.target !== event.currentTarget) return; event.preventDefault(); reorderCategories(draggedCategoryId).catch(() => undefined); }}>
+            <button className={`category-tab category-tab-all ${selectedCategoryId === 'all' || isSearching ? 'active' : ''}`} onClick={() => { setSelectedCategoryId('all'); setSearch(''); }} style={{ '--category-color': '#a1a1aa' } as React.CSSProperties}><span>Tous les sons</span><em className="category-tab-count">{detail.tracks.length}</em></button>
+            {detail.categories.map((category) => <div key={category.id} className={`category-tab-shell ${categoryManageMode ? 'is-managing' : ''} ${dropCategoryOrderId === category.id ? `is-order-target ${dropCategoryAfter ? 'drop-after' : 'drop-before'}` : ''}`} style={{ '--category-color': category.color } as React.CSSProperties} draggable={categoryManageMode}
+              onDragStart={(event) => { if (!categoryManageMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', category.id); setDraggedCategoryId(category.id); }}
+              onDragOver={(event) => { if (!categoryManageMode || !draggedCategoryId || draggedCategoryId === category.id) return; event.preventDefault(); event.stopPropagation(); const bounds = event.currentTarget.getBoundingClientRect(); setDropCategoryOrderId(category.id); setDropCategoryAfter(event.clientX > bounds.left + bounds.width / 2); }}
+              onDragLeave={() => setDropCategoryOrderId((current) => current === category.id ? undefined : current)}
+              onDrop={(event) => { if (!categoryManageMode || !draggedCategoryId) return; event.preventDefault(); event.stopPropagation(); const bounds = event.currentTarget.getBoundingClientRect(); reorderCategories(draggedCategoryId, category.id, event.clientX > bounds.left + bounds.width / 2).catch(() => undefined); }}
+              onDragEnd={() => { setDraggedCategoryId(undefined); setDropCategoryOrderId(undefined); setDropCategoryAfter(false); }}>
+              <button className={`category-tab ${!isSearching && category.id === selectedCategoryId ? 'active' : ''} ${dropCategoryId === category.id ? 'is-drop-target' : ''}`} onClick={() => { setSelectedCategoryId(category.id); setSearch(''); }}
+                onDragOver={(event) => { if (!reorderMode || !draggedTrackId) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropCategoryId(category.id); setDropTrackId(undefined); }}
+                onDragLeave={() => setDropCategoryId((current) => current === category.id ? undefined : current)}
+                onDrop={(event) => { if (!reorderMode || !draggedTrackId) return; event.preventDefault(); event.stopPropagation(); reorderTrack(draggedTrackId, category.id).catch(() => undefined); }}>
+                <span>{category.name}</span><em className="category-tab-count">{detail.tracks.filter((track) => track.categoryId === category.id).length}</em>
+              </button>
+              {categoryManageMode && <><GripVertical className="category-order-handle" size={15} aria-hidden="true" /><button className="category-delete" onClick={(event) => { event.stopPropagation(); deleteCategory(category).catch(() => undefined); }} aria-label={`Supprimer la catégorie ${category.name}`} title="Supprimer"><Trash2 size={14} /></button></>}
+            </div>)}
           </nav>
           <button className="category-resizer" aria-label="Régler la largeur des catégories" title="Glisser pour régler la largeur · Double-cliquer pour réinitialiser"
             onDoubleClick={() => { setCategoryWidth(112); localStorage.setItem('soundflow-category-width', '112'); }}
@@ -489,7 +567,7 @@ export default function App() {
             aria-label={preloadProgress ? `Préchargement ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie préchargée' : 'Précharger la catégorie'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : 'Précharger la catégorie'}>
             {preloadProgress ? <LoaderCircle className="spin" size={18} /> : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? <CircleCheck size={18} /> : <Download size={18} />}
           </button>}
-          {!remote && <button className={`dashboard-button ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} disabled={reordering}
+          {!remote && <button className={`dashboard-button ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setCategoryManageMode(false); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} disabled={reordering}
             aria-label={reordering ? 'Enregistrement de la réorganisation' : reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'} title={reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'}><ArrowUpDown size={18} /></button>}
           <div className="dashboard-control">
             <button className={`dashboard-button ${columnsOpen ? 'active' : ''}`} onClick={() => { setColumnsOpen((current) => !current); setHistoryOpen(false); }} aria-label="Régler le nombre de colonnes" title="Nombre de colonnes"><Columns3 size={18} /></button>
@@ -525,7 +603,7 @@ export default function App() {
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
-    {settingsOpen && <SettingsDialog user={user} projects={projects} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} remote={remote} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {settingsOpen && <SettingsDialog user={user} projects={projects} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} remote={remote} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {freesoundOpen && detail && <FreesoundDialog initialQuery={search} projectId={detail.project.id} categories={detail.categories} defaultCategoryId={!isSearching && selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} onImported={refreshProject} onClose={() => setFreesoundOpen(false)} />}
     {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
@@ -601,4 +679,14 @@ function PlaybackVolumeControl({ playback, title }: { playback: ActivePlayback; 
     setDisplayVolume(nextVolume);
     audioEngine.setInstanceVolume(playback.id, nextVolume);
   }} aria-label={`Volume de ${title}`} /><em>{percentage}</em></label>;
+}
+
+function moveById<T extends { id: string }>(items: T[], movingId: string, targetId?: string, after = false): T[] {
+  const moving = items.find((item) => item.id === movingId);
+  if (!moving) return items;
+  const reordered = items.filter((item) => item.id !== movingId);
+  const targetIndex = targetId ? reordered.findIndex((item) => item.id === targetId) : -1;
+  const destination = targetIndex < 0 ? reordered.length : targetIndex + (after ? 1 : 0);
+  reordered.splice(destination, 0, moving);
+  return reordered;
 }

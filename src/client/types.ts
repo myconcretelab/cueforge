@@ -15,6 +15,7 @@ export interface Project {
   rightClickAction: MouseAction;
   escapeKeyAction: KeyAction;
   backspaceKeyAction: KeyAction;
+  position: number;
   createdAt: string;
   updatedAt: string;
 }
