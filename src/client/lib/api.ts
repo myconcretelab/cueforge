@@ -37,7 +37,7 @@ export const api = {
   }),
   deleteProject: (id: string) => request<void>(`/api/projects/${id}`, { method: 'DELETE' }),
   project: (id: string) => request<ProjectDetail>(`/api/projects/${id}`),
-  updateProjectActions: (projectId: string, input: { leftClickAction?: MouseAction; rightClickAction?: MouseAction; escapeKeyAction?: KeyAction; backspaceKeyAction?: KeyAction }) =>
+  updateProjectActions: (projectId: string, input: { leftClickAction?: MouseAction; rightClickAction?: MouseAction; escapeKeyAction?: KeyAction; backspaceKeyAction?: KeyAction; spaceKeyAction?: KeyAction }) =>
     request<{ project: Project }>(`/api/projects/${projectId}/mouse-actions`, { method: 'PATCH', body: JSON.stringify(input) }),
   createCategory: (projectId: string, name: string, color: string, position?: number) =>
     request<{ category: Category }>(`/api/projects/${projectId}/categories`, {
@@ -48,7 +48,7 @@ export const api = {
   }),
   deleteCategory: (projectId: string, categoryId: string) => request<void>(`/api/projects/${projectId}/categories/${categoryId}`, { method: 'DELETE' }),
   uploadTrack: (form: FormData) => request<{ track: Track }>('/api/tracks/upload', { method: 'POST', body: form }),
-  updateTrack: (id: string, input: Partial<Pick<Track, 'title' | 'categoryId' | 'volume' | 'loop' | 'fadeInMs' | 'fadeOutMs' | 'startTimeMs' | 'endTimeMs'>>) =>
+  updateTrack: (id: string, input: Partial<Pick<Track, 'title' | 'categoryId' | 'volume' | 'loop' | 'fadeInMs' | 'fadeOutMs' | 'startTimeMs' | 'endTimeMs' | 'color'>>) =>
     request<{ track: Track }>(`/api/tracks/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
   reorderTrack: (id: string, input: { categoryId: string | null; beforeTrackId?: string | null }) =>
     request<{ tracks: Track[] }>(`/api/tracks/${id}/reorder`, { method: 'PATCH', body: JSON.stringify(input) }),

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { Focus, LoaderCircle, Pause, Play, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import {
   clampEndMs,
@@ -30,7 +30,9 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
   const [pan, setPan] = useState(0);
   const [dragging, setDragging] = useState<'start' | 'end'>();
   const [previewing, setPreviewing] = useState(false);
+  const [playheadMs, setPlayheadMs] = useState(startMs);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const dragRef = useRef<{ kind: 'start' | 'end'; pointerId: number; offsetPx: number } | undefined>(undefined);
   const boundsRef = useRef({ startMs, endMs, onStartChange, onEndChange });
   boundsRef.current = { startMs, endMs, onStartChange, onEndChange };
   const totalMs = Math.max(1, buffer ? Math.round(buffer.duration * 1_000) : initialDurationMs ?? 1);
@@ -38,6 +40,7 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
   const view = useMemo(() => waveformWindow(totalMs, zoom, pan), [pan, totalMs, zoom]);
   const startPosition = waveformPosition(startMs, view);
   const endPosition = waveformPosition(effectiveEndMs, view);
+  const playheadPosition = waveformPosition(playheadMs, view);
   const selectionLeft = Math.max(0, Math.min(1, startPosition));
   const selectionRight = Math.max(0, Math.min(1, endPosition));
 
@@ -63,6 +66,10 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => { controller.abort(); context.close().catch(() => undefined); };
   }, [trackId]);
+
+  useEffect(() => {
+    setPlayheadMs((current) => Math.min(effectiveEndMs, Math.max(startMs, current)));
+  }, [effectiveEndMs, startMs]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -118,8 +125,34 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
 
   function beginDrag(kind: 'start' | 'end', event: ReactPointerEvent<HTMLButtonElement>) {
     event.preventDefault(); event.stopPropagation();
-    stageRef.current?.setPointerCapture(event.pointerId);
-    setDragging(kind); setHandleFromPointer(kind, event.clientX);
+    const bounds = event.currentTarget.getBoundingClientRect();
+    dragRef.current = { kind, pointerId: event.pointerId, offsetPx: event.clientX - (bounds.left + bounds.width / 2) };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDragging(kind);
+  }
+
+  function continueDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId || event.buttons === 0) return;
+    setHandleFromPointer(drag.kind, event.clientX - drag.offsetPx);
+  }
+
+  function finishDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    dragRef.current = undefined;
+    setDragging(undefined);
+  }
+
+  function seekFromPointer(event: ReactMouseEvent<HTMLDivElement>) {
+    const rect = stageRef.current?.getBoundingClientRect();
+    if (!rect || loading || !buffer) return;
+    const requestedMs = waveformTime((event.clientX - rect.left) / rect.width, view);
+    const nextMs = Math.min(effectiveEndMs, Math.max(startMs, requestedMs));
+    setPlayheadMs(nextMs);
+    const audio = audioRef.current;
+    if (audio) audio.currentTime = nextMs / 1_000;
   }
 
   function changeZoom(nextZoom: number) {
@@ -139,23 +172,23 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
     const audio = audioRef.current;
     if (!audio) return;
     if (previewing) { audio.pause(); setPreviewing(false); return; }
-    audio.currentTime = startMs / 1_000;
+    const nextMs = playheadMs >= effectiveEndMs - 1 ? startMs : Math.min(effectiveEndMs, Math.max(startMs, playheadMs));
+    audio.currentTime = nextMs / 1_000;
+    setPlayheadMs(nextMs);
     try { await audio.play(); setPreviewing(true); }
     catch { setError('La préécoute ne peut pas démarrer.'); }
   }
 
   return <section className="waveform-editor">
-    <header><div><strong>Début et fin</strong><span>Déplacez les poignées pour délimiter précisément « {title} ».</span></div><div className="waveform-tools"><button type="button" onClick={() => changeZoom(zoom / 1.6)} aria-label="Dézoomer"><ZoomOut size={16} /></button><input aria-label="Zoom de la forme d’onde" type="range" min="1" max="64" step=".25" value={zoom} onChange={(event) => changeZoom(Number(event.target.value))} /><button type="button" onClick={() => changeZoom(zoom * 1.6)} aria-label="Zoomer"><ZoomIn size={16} /></button><button type="button" onClick={focusSelection} title="Cadrer la sélection"><Focus size={16} /></button><em>{zoom.toFixed(zoom < 10 ? 1 : 0)}×</em></div></header>
-    <div className={`waveform-stage ${dragging ? 'is-dragging' : ''}`} ref={stageRef}
-      onPointerMove={(event) => { if (dragging) setHandleFromPointer(dragging, event.clientX); }}
-      onPointerUp={(event) => { if (dragging) stageRef.current?.releasePointerCapture(event.pointerId); setDragging(undefined); }}
-      onPointerCancel={() => setDragging(undefined)}>
+    <header><div><strong>Début, fin et lecture</strong><span>Cliquez pour déplacer la lecture, ou maintenez une poignée pour régler précisément « {title} ».</span></div><div className="waveform-tools"><button type="button" onClick={() => changeZoom(zoom / 1.6)} aria-label="Dézoomer"><ZoomOut size={16} /></button><input aria-label="Zoom de la forme d’onde" type="range" min="1" max="64" step=".25" value={zoom} onChange={(event) => changeZoom(Number(event.target.value))} /><button type="button" onClick={() => changeZoom(zoom * 1.6)} aria-label="Zoomer"><ZoomIn size={16} /></button><button type="button" onClick={focusSelection} title="Cadrer la sélection"><Focus size={16} /></button><em>{zoom.toFixed(zoom < 10 ? 1 : 0)}×</em></div></header>
+    <div className={`waveform-stage ${dragging ? 'is-dragging' : ''}`} ref={stageRef} onClick={seekFromPointer}>
       <canvas ref={canvasRef} />
       {loading && <span className="waveform-loading"><LoaderCircle className="spin" size={20} />Analyse du son…</span>}
       {error && !buffer && <span className="waveform-loading error">{error}</span>}
       <div className="waveform-selection" style={{ left: `${selectionLeft * 100}%`, width: `${Math.max(0, selectionRight - selectionLeft) * 100}%` }} />
-      {startPosition >= 0 && startPosition <= 1 && <button type="button" className="waveform-handle start" style={{ left: `${startPosition * 100}%` }} onPointerDown={(event) => beginDrag('start', event)} aria-label="Déplacer le début"><i /><span>{formatWaveformTime(startMs)}</span></button>}
-      {endPosition >= 0 && endPosition <= 1 && <button type="button" className="waveform-handle end" style={{ left: `${endPosition * 100}%` }} onPointerDown={(event) => beginDrag('end', event)} aria-label="Déplacer la fin"><i /><span>{formatWaveformTime(effectiveEndMs)}</span></button>}
+      {playheadPosition >= 0 && playheadPosition <= 1 && <div className="waveform-playhead" style={{ left: `${playheadPosition * 100}%` }} aria-hidden="true"><span>{formatWaveformTime(playheadMs)}</span></div>}
+      {startPosition >= 0 && startPosition <= 1 && <button type="button" className="waveform-handle start" style={{ left: `${startPosition * 100}%` }} onClick={(event) => event.stopPropagation()} onPointerDown={(event) => beginDrag('start', event)} onPointerMove={continueDrag} onPointerUp={finishDrag} onPointerCancel={finishDrag} aria-label="Déplacer le début"><i /><span>{formatWaveformTime(startMs)}</span></button>}
+      {endPosition >= 0 && endPosition <= 1 && <button type="button" className="waveform-handle end" style={{ left: `${endPosition * 100}%` }} onClick={(event) => event.stopPropagation()} onPointerDown={(event) => beginDrag('end', event)} onPointerMove={continueDrag} onPointerUp={finishDrag} onPointerCancel={finishDrag} aria-label="Déplacer la fin"><i /><span>{formatWaveformTime(effectiveEndMs)}</span></button>}
       <span className="waveform-window-time start">{formatWaveformTime(view.startMs)}</span><span className="waveform-window-time end">{formatWaveformTime(view.endMs)}</span>
     </div>
     {zoom > 1 && <label className="waveform-pan"><span>Position</span><input type="range" min="0" max="1" step=".001" value={pan} onChange={(event) => setPan(Number(event.target.value))} /></label>}
@@ -164,6 +197,6 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
       <label><span>Début</span><input type="number" min="0" max={Math.max(0, effectiveEndMs / 1_000 - .001)} step=".001" value={(startMs / 1_000).toFixed(3)} onChange={(event) => onStartChange(clampStartMs(Number(event.target.value) * 1_000, effectiveEndMs, totalMs))} /><em>{formatWaveformTime(startMs)}</em><button type="button" onClick={() => onStartChange(0)} title="Réinitialiser le début"><RotateCcw size={14} /></button></label>
       <label><span>Fin</span><input type="number" min={(startMs + 1) / 1_000} max={totalMs / 1_000} step=".001" value={(effectiveEndMs / 1_000).toFixed(3)} onChange={(event) => onEndChange(clampEndMs(Number(event.target.value) * 1_000, startMs, totalMs))} /><em>{formatWaveformTime(effectiveEndMs)}</em><button type="button" onClick={() => onEndChange(null)} title="Utiliser la fin du fichier"><RotateCcw size={14} /></button></label>
     </div>
-    <audio ref={audioRef} src={`/api/tracks/${trackId}/stream`} preload="metadata" onTimeUpdate={(event) => { if (event.currentTarget.currentTime * 1_000 >= effectiveEndMs) { event.currentTarget.pause(); setPreviewing(false); } }} onEnded={() => setPreviewing(false)} />
+    <audio ref={audioRef} src={`/api/tracks/${trackId}/stream`} preload="metadata" onLoadedMetadata={(event) => { event.currentTarget.currentTime = playheadMs / 1_000; }} onTimeUpdate={(event) => { const currentMs = Math.min(totalMs, event.currentTarget.currentTime * 1_000); setPlayheadMs(currentMs); if (currentMs >= effectiveEndMs) { event.currentTarget.pause(); setPlayheadMs(effectiveEndMs); setPreviewing(false); } }} onEnded={() => { setPlayheadMs(effectiveEndMs); setPreviewing(false); }} />
   </section>;
 }

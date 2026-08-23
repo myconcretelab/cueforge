@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "space_key_action" text DEFAULT 'stop-all-immediate' NOT NULL;

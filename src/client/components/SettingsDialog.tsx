@@ -16,13 +16,14 @@ interface Props {
   onOpenFreesound: () => void;
   onToggleRemote: () => void;
   onCacheOffline: () => void;
-  onUpdateKeyAction: (key: 'escape' | 'backspace', action: KeyAction) => void;
+  onUpdateKeyAction: (key: 'escape' | 'backspace' | 'space', action: KeyAction) => void;
   onLogout: () => void;
   onClose: () => void;
 }
 
 const keyActions: Array<{ value: KeyAction; label: string }> = [
-  { value: 'stop-all', label: 'Tout arrêter' },
+  { value: 'stop-all', label: 'Arrêter avec les fondus' },
+  { value: 'stop-all-immediate', label: 'Arrêter immédiatement' },
   { value: 'none', label: 'Aucune action' },
 ];
 
@@ -74,10 +75,11 @@ export function SettingsDialog({ user, projects, selectedProjectId, offlineStatu
         <button className="button ghost wide" onClick={onToggleRemote}><Smartphone size={17} />{remote ? 'Revenir à la régie principale' : 'Ouvrir la télécommande'}</button>
       </section>
       <section className="settings-section">
-        <div className="settings-section-title"><Keyboard size={16} /><div><strong>Raccourcis d’arrêt</strong><span>Définissez le comportement des touches globales.</span></div></div>
+        <div className="settings-section-title"><Keyboard size={16} /><div><strong>Raccourcis clavier</strong><span>Attribuez une action d’arrêt à chaque touche globale.</span></div></div>
         <div className="settings-key-actions">
           <label><span><kbd>Échap</kbd> Touche Échap</span><select value={selectedProject?.escapeKeyAction ?? 'stop-all'} onChange={(event) => onUpdateKeyAction('escape', event.target.value as KeyAction)}>{keyActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
           <label><span><kbd>⌫</kbd> Retour arrière</span><select value={selectedProject?.backspaceKeyAction ?? 'stop-all'} onChange={(event) => onUpdateKeyAction('backspace', event.target.value as KeyAction)}>{keyActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
+          <label><span><kbd>Espace</kbd> Barre d’espace</span><select value={selectedProject?.spaceKeyAction ?? 'stop-all-immediate'} onChange={(event) => onUpdateKeyAction('space', event.target.value as KeyAction)}>{keyActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
         </div>
       </section>
       <section className="settings-account">

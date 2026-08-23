@@ -274,9 +274,9 @@ export default function App() {
     connection.on('disconnect', () => setConnected(false));
     if (!remote) connection.on('remote-command', (command: RemoteCommand) => {
       const currentTracks = detail?.tracks ?? [];
-      if (command.type === 'stop-all') {
+      if (command.type === 'stop-all' || command.type === 'stop-all-immediate') {
         window.dispatchEvent(new Event('soundflow:stop-temporary-audio'));
-        return audioEngine.stopAll(currentTracks);
+        return audioEngine.stopAll(currentTracks, command.type === 'stop-all-immediate' ? 0 : undefined);
       }
       const track = currentTracks.find((candidate) => candidate.id === command.trackId);
       if (!track) return;
@@ -334,9 +334,9 @@ export default function App() {
       socket?.emit('remote-command', { projectId: detail.project.id, command: preparedCommand });
       return;
     }
-    if (preparedCommand.type === 'stop-all') {
+    if (preparedCommand.type === 'stop-all' || preparedCommand.type === 'stop-all-immediate') {
       window.dispatchEvent(new Event('soundflow:stop-temporary-audio'));
-      audioEngine.stopAll(detail?.tracks ?? []);
+      audioEngine.stopAll(detail?.tracks ?? [], preparedCommand.type === 'stop-all-immediate' ? 0 : undefined);
     }
     else if (preparedCommand.type === 'stop' && track) audioEngine.stop(track.id, track.fadeOutMs);
     else if (preparedCommand.type === 'play' && track) audioEngine.play(track, track.fadeInMs, preparedCommand.volumeMultiplier).catch((cause) => setError(cause.message));
@@ -358,11 +358,14 @@ export default function App() {
     const onKey = (event: KeyboardEvent) => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
       const keyAction = event.key === 'Escape' ? detail.project.escapeKeyAction ?? 'stop-all'
-        : event.key === 'Backspace' ? detail.project.backspaceKeyAction ?? 'stop-all' : undefined;
+        : event.key === 'Backspace' ? detail.project.backspaceKeyAction ?? 'stop-all'
+          : event.key === ' ' ? detail.project.spaceKeyAction ?? 'stop-all-immediate' : undefined;
       if (keyAction) {
         event.preventDefault();
         if (keyAction === 'stop-all') {
           sendOrRun({ type: 'stop-all' });
+        } else if (keyAction === 'stop-all-immediate') {
+          sendOrRun({ type: 'stop-all-immediate' });
         }
         return;
       }
@@ -476,9 +479,11 @@ export default function App() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Configuration impossible.'); }
   }
 
-  async function updateKeyAction(key: 'escape' | 'backspace', action: KeyAction) {
+  async function updateKeyAction(key: 'escape' | 'backspace' | 'space', action: KeyAction) {
     if (!detail) return;
-    const input = key === 'escape' ? { escapeKeyAction: action } : { backspaceKeyAction: action };
+    const input = key === 'escape' ? { escapeKeyAction: action }
+      : key === 'backspace' ? { backspaceKeyAction: action }
+        : { spaceKeyAction: action };
     try {
       const { project } = await api.updateProjectActions(detail.project.id, input);
       setDetail((current) => current ? { ...current, project } : current);

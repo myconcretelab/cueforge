@@ -235,6 +235,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
       fadeOutMs: z.number().int().min(0).max(60_000).optional(),
       startTimeMs: z.number().int().min(0).optional(),
       endTimeMs: z.number().int().positive().nullable().optional(),
+      color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
     }).parse(request.body);
     if (input.categoryId && !(await categoryBelongsToProject(input.categoryId, existingTrack.projectId))) {
       return reply.code(400).send({ error: 'Catégorie invalide pour ce projet.' });

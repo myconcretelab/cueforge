@@ -12,7 +12,7 @@ import { ownsProject } from '../services/ownership.js';
 
 const idParams = z.object({ id: z.string().uuid() });
 const mouseActionSchema = z.enum(['start', 'crossfade', 'fade-in', 'replace', 'stop', 'none']);
-const keyActionSchema = z.enum(['stop-all', 'none']);
+const keyActionSchema = z.enum(['stop-all', 'stop-all-immediate', 'none']);
 
 export async function projectRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/projects', async (request, reply) => {
@@ -75,6 +75,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       rightClickAction: mouseActionSchema.optional(),
       escapeKeyAction: keyActionSchema.optional(),
       backspaceKeyAction: keyActionSchema.optional(),
+      spaceKeyAction: keyActionSchema.optional(),
     }).refine((value) => Object.keys(value).length > 0, { message: 'Sélectionnez une action.' }).parse(request.body);
     const [project] = await db.update(projects).set({ ...input, updatedAt: new Date() }).where(eq(projects.id, id)).returning();
     return { project };

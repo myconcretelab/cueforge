@@ -43,6 +43,13 @@
       "when": 1787472436007,
       "tag": "0005_lazy_gressill",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787482153278,
+      "tag": "0006_far_otto_octavius",
+      "breakpoints": true
     }
   ]
 }

@@ -9,6 +9,7 @@ const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('play'), trackId: z.string().uuid(), volumeMultiplier: z.number().min(0).max(1).optional() }),
   z.object({ type: z.literal('stop'), trackId: z.string().uuid() }),
   z.object({ type: z.literal('stop-all') }),
+  z.object({ type: z.literal('stop-all-immediate') }),
   z.object({
     type: z.literal('run-action'),
     trackId: z.string().uuid(),

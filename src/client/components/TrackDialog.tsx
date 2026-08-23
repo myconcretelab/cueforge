@@ -11,6 +11,7 @@ export function TrackDialog({ track, categories, onClose, onChanged }: Props) {
   const [error, setError] = useState('');
   const [startTimeMs, setStartTimeMs] = useState(track.startTimeMs);
   const [endTimeMs, setEndTimeMs] = useState<number | null>(track.endTimeMs);
+  const inheritedColor = categories.find((category) => category.id === track.categoryId)?.color ?? '#f97316';
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setLoading(true); setError('');
@@ -25,6 +26,7 @@ export function TrackDialog({ track, categories, onClose, onChanged }: Props) {
         fadeOutMs: Number(data.get('fadeOutMs')),
         startTimeMs,
         endTimeMs,
+        color: String(data.get('color')),
       });
       onChanged();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Modification impossible.'); setLoading(false); }
@@ -40,7 +42,10 @@ export function TrackDialog({ track, categories, onClose, onChanged }: Props) {
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <form className="dialog track-dialog" onSubmit={submit}>
       <header><div><p className="eyebrow">Réglages du son</p><h2>{track.title}</h2></div><div className="track-dialog-header-actions"><button type="submit" className="button primary" disabled={loading} aria-label="Enregistrer">{loading ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />}<span>Enregistrer</span></button><button type="button" className="icon-button" onClick={onClose} aria-label="Fermer les réglages"><X /></button></div></header>
-      <label>Titre<input name="title" defaultValue={track.title} required /></label>
+      <div className="track-title-color-row">
+        <label>Titre<input name="title" defaultValue={track.title} required /></label>
+        <label className="track-color-field">Couleur<input name="color" type="color" defaultValue={track.color ?? inheritedColor} aria-label="Couleur du morceau" /></label>
+      </div>
       <label>Catégorie<select name="categoryId" defaultValue={track.categoryId ?? ''}><option value="">Sans catégorie</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
       <WaveformEditor trackId={track.id} title={track.title} initialDurationMs={track.durationMs} startMs={startTimeMs} endMs={endTimeMs} onStartChange={setStartTimeMs} onEndChange={setEndTimeMs} />
       <label>Volume · {Math.min(100, Math.round(track.volume * 100))} %<input name="volume" type="range" min="0" max="100" defaultValue={Math.min(100, track.volume * 100)} /></label>

@@ -5,7 +5,7 @@ export interface User {
 }
 
 export type MouseAction = 'start' | 'crossfade' | 'fade-in' | 'replace' | 'stop' | 'none';
-export type KeyAction = 'stop-all' | 'none';
+export type KeyAction = 'stop-all' | 'stop-all-immediate' | 'none';
 
 export interface Project {
   id: string;
@@ -15,6 +15,7 @@ export interface Project {
   rightClickAction: MouseAction;
   escapeKeyAction: KeyAction;
   backspaceKeyAction: KeyAction;
+  spaceKeyAction: KeyAction;
   position: number;
   createdAt: string;
   updatedAt: string;
@@ -116,4 +117,5 @@ export type RemoteCommand =
   | { type: 'play'; trackId: string; volumeMultiplier?: number }
   | { type: 'stop'; trackId: string }
   | { type: 'stop-all' }
+  | { type: 'stop-all-immediate' }
   | { type: 'run-action'; trackId: string; action: MouseAction; volumeMultiplier?: number };

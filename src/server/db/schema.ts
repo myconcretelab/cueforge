@@ -33,6 +33,7 @@ export const projects = pgTable('projects', {
   rightClickAction: text('right_click_action').notNull().default('crossfade'),
   escapeKeyAction: text('escape_key_action').notNull().default('stop-all'),
   backspaceKeyAction: text('backspace_key_action').notNull().default('stop-all'),
+  spaceKeyAction: text('space_key_action').notNull().default('stop-all-immediate'),
   position: integer('position').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
