@@ -93,11 +93,10 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .players-empty { min-height: 105px; padding: 14px; display: grid; place-content: center; justify-items: center; gap: 6px; border: 1px dashed var(--border); border-radius: 12px; color: #55555d; text-align: center; }
 .players-empty strong { color: #898991; font-size: .75rem; }
 .players-empty span { max-width: 160px; color: #5f5f67; font-size: .65rem; line-height: 1.4; }
-.player-card { --track-color: #71717a; position: relative; min-height: 151px; padding: 11px; display: grid; align-content: start; gap: 8px; overflow: hidden; border: 2px solid color-mix(in srgb, var(--track-color) 68%, var(--border)); border-radius: 12px; background: var(--surface-2); }
-.player-card-copy { min-width: 0; margin-top: 23px; display: grid; gap: 3px; }
+.player-card { --track-color: #71717a; position: relative; min-height: 112px; padding: 9px; display: grid; align-content: start; gap: 6px; overflow: hidden; border: 2px solid color-mix(in srgb, var(--track-color) 68%, var(--border)); border-radius: 12px; background: var(--surface-2); }
+.player-card-copy { min-width: 0; display: grid; }
 .player-card-copy strong { overflow: hidden; color: #fafafa; font-size: .77rem; text-overflow: ellipsis; white-space: nowrap; }
-.player-card-copy span { overflow: hidden; color: #71717a; font-size: .62rem; text-overflow: ellipsis; white-space: nowrap; }
-.player-card-time { display: flex; justify-content: space-between; color: #a1a1aa; font: .62rem ui-monospace, monospace; }
+.player-card-time { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px; color: #a1a1aa; font: .6rem ui-monospace, monospace; }
 .player-card-seek { height: 15px; min-width: 0; accent-color: var(--track-color); cursor: pointer; }
 .player-card-seek:disabled { opacity: .45; cursor: default; }
 .player-card-volume { display: grid; grid-template-columns: 14px minmax(0, 1fr) 25px; align-items: center; gap: 5px; color: #71717a; }
@@ -109,13 +108,15 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .player-card-controls button:disabled { opacity: .38; cursor: default; }
 .player-card-controls button.fade-out { color: #fdba74; }
 .player-card-controls button.stop { color: #fca5a5; }
-.player-card-signal { position: absolute; top: 11px; left: 11px; height: 17px; display: flex; align-items: end; gap: 2px; }
-.player-card-signal i { width: 3px; height: 35%; border-radius: 2px; background: var(--track-color); animation: playing-signal .7s ease-in-out infinite alternate; }
-.player-card-signal i:nth-child(2) { height: 85%; animation-delay: -.2s; }
-.player-card-signal i:nth-child(3) { height: 55%; animation-delay: -.45s; }
-.player-card-signal i:nth-child(4) { height: 100%; animation-delay: -.1s; }
-.player-card.is-paused .player-card-signal i { animation-play-state: paused; opacity: .42; }
-@keyframes playing-signal { to { height: 25%; opacity: .55; } }
+.file-drop-overlay { position: fixed; z-index: 300; inset: 0; padding: 18px; display: grid; place-items: center; pointer-events: none; background: rgba(9,9,11,.76); backdrop-filter: blur(8px); animation: file-drop-in .16s ease-out both; }
+.file-drop-overlay.is-uploading { pointer-events: auto; }
+.file-drop-overlay::before { position: absolute; inset: 14px; border: 2px dashed rgba(249,115,22,.72); border-radius: 22px; content: ''; }
+.file-drop-card { position: relative; width: min(430px, calc(100vw - 64px)); padding: 30px 24px; display: grid; justify-items: center; gap: 9px; border: 1px solid rgba(249,115,22,.35); border-radius: 18px; color: #fdba74; background: #17120f; box-shadow: 0 24px 80px rgba(0,0,0,.45); text-align: center; }
+.file-drop-card strong { color: #fff7ed; font-size: 1rem; }
+.file-drop-card span { max-width: 330px; color: #a8a29e; font-size: .7rem; line-height: 1.45; }
+.file-drop-card > i { width: min(280px, 100%); height: 5px; margin-top: 5px; overflow: hidden; border-radius: 999px; background: #292524; }
+.file-drop-card > i b { display: block; width: 100%; height: 100%; background: var(--orange); transform-origin: left center; transition: transform .18s; }
+@keyframes file-drop-in { from { opacity: 0; } to { opacity: 1; } }
 
 .workspace { min-width: 0; min-height: 100vh; display: flex; flex-direction: column; }
 .topbar { min-height: 84px; padding: 8px clamp(18px, 3vw, 42px); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); background: rgba(9,9,11,.85); backdrop-filter: blur(14px); }

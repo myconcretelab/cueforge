@@ -13,7 +13,8 @@ import { TrackPad } from './components/TrackPad';
 import { UploadDialog } from './components/UploadDialog';
 import { api, ApiError } from './lib/api';
 import { audioEngine, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
-import { cachedTrackIds, cacheTrackOffline, deleteOfflineAudio } from './lib/offline-audio';
+import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
+import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { parseStopwatchState, resolveCategoryId } from './lib/session-state';
 import type { Category, KeyAction, MouseAction, Project, ProjectDetail, RemoteCommand, Track, User } from './types';
 
@@ -39,6 +40,8 @@ export default function App() {
   const [playbackHistory, setPlaybackHistory] = useState<Map<string, number>>(new Map());
   const [offlineTrackIds, setOfflineTrackIds] = useState<Set<string>>(new Set());
   const [preloadProgress, setPreloadProgress] = useState<{ done: number; total: number }>();
+  const [fileDropActive, setFileDropActive] = useState(false);
+  const [dropUploadProgress, setDropUploadProgress] = useState<{ done: number; total: number; filename: string }>();
   const [categoryWidth, setCategoryWidth] = useState(() => readNumber('soundflow-category-width', 112));
   const [reorderMode, setReorderMode] = useState(false);
   const [draggedTrackId, setDraggedTrackId] = useState<string>();
@@ -70,6 +73,8 @@ export default function App() {
   const [chronoElapsedMs, setChronoElapsedMs] = useState(0);
   const [chronoStartedAt, setChronoStartedAt] = useState<number | undefined>(undefined);
   const categoryResize = useRef<{ x: number; width: number; latest: number } | undefined>(undefined);
+  const fileDragDepth = useRef(0);
+  const fileUploadBusy = useRef(false);
   const remote = new URLSearchParams(window.location.search).get('remote') === '1';
 
   useEffect(() => audioEngine.subscribe(setActivePlaybacks), []);
@@ -140,7 +145,86 @@ export default function App() {
     setDetail(result);
   }, [selectedProjectId]);
 
+  const uploadDroppedFiles = useCallback(async (files: File[]) => {
+    if (!detail || fileUploadBusy.current || files.length === 0) return;
+    fileUploadBusy.current = true;
+    const categoryId = selectedCategoryId !== 'all' && detail.categories.some((category) => category.id === selectedCategoryId)
+      ? selectedCategoryId : undefined;
+    const failures: string[] = [];
+    let uploaded = 0;
+    setDropUploadProgress({ done: 0, total: files.length, filename: files[0]!.name });
+    for (const [index, file] of files.entries()) {
+      setDropUploadProgress({ done: index, total: files.length, filename: file.name });
+      const form = new FormData();
+      form.set('projectId', detail.project.id);
+      if (categoryId) form.set('categoryId', categoryId);
+      form.set('title', titleFromAudioFilename(file.name));
+      form.set('position', String(detail.tracks.length + index));
+      form.set('file', file);
+      try {
+        await api.uploadTrack(form);
+        uploaded += 1;
+      } catch {
+        failures.push(file.name);
+      }
+      setDropUploadProgress({ done: index + 1, total: files.length, filename: file.name });
+    }
+    if (uploaded > 0) await refreshProject();
+    if (failures.length > 0) setError(`${uploaded} fichier${uploaded > 1 ? 's' : ''} importé${uploaded > 1 ? 's' : ''}. Échec : ${failures.join(', ')}`);
+    setDropUploadProgress(undefined);
+    fileUploadBusy.current = false;
+  }, [detail, refreshProject, selectedCategoryId]);
+
   useEffect(() => { refreshProject().catch((cause) => setError(cause.message)); }, [refreshProject]);
+
+  useEffect(() => {
+    if (!detail || remote) return;
+    const containsFiles = (event: DragEvent) => Array.from(event.dataTransfer?.types ?? []).includes('Files');
+    const onDragEnter = (event: DragEvent) => {
+      if (!containsFiles(event)) return;
+      event.preventDefault();
+      fileDragDepth.current += 1;
+      setFileDropActive(true);
+    };
+    const onDragOver = (event: DragEvent) => {
+      if (!containsFiles(event)) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    };
+    const onDragLeave = (event: DragEvent) => {
+      if (!containsFiles(event)) return;
+      event.preventDefault();
+      fileDragDepth.current = Math.max(0, fileDragDepth.current - 1);
+      if (fileDragDepth.current === 0) setFileDropActive(false);
+    };
+    const onDrop = (event: DragEvent) => {
+      if (!containsFiles(event)) return;
+      event.preventDefault();
+      fileDragDepth.current = 0;
+      setFileDropActive(false);
+      const files = Array.from(event.dataTransfer?.files ?? []).filter(isSupportedAudioFile);
+      if (files.length === 0) {
+        setError('Déposez des fichiers MP3, WAV, OGG, FLAC, M4A ou AAC.');
+        return;
+      }
+      uploadDroppedFiles(files).catch((cause) => {
+        fileUploadBusy.current = false;
+        setDropUploadProgress(undefined);
+        setError(cause instanceof Error ? cause.message : 'Import des fichiers impossible.');
+      });
+    };
+    window.addEventListener('dragenter', onDragEnter);
+    window.addEventListener('dragover', onDragOver);
+    window.addEventListener('dragleave', onDragLeave);
+    window.addEventListener('drop', onDrop);
+    return () => {
+      window.removeEventListener('dragenter', onDragEnter);
+      window.removeEventListener('dragover', onDragOver);
+      window.removeEventListener('dragleave', onDragLeave);
+      window.removeEventListener('drop', onDrop);
+      fileDragDepth.current = 0;
+    };
+  }, [detail, remote, uploadDroppedFiles]);
 
   useEffect(() => {
     if (!selectedProjectId) {
@@ -217,13 +301,10 @@ export default function App() {
     return grouped;
   }, [activePlaybacks]);
   const playingTracks = useMemo(() => {
-    const occurrences = new Map<string, number>();
     return activePlaybacks.flatMap((playback) => {
       const track = detail?.tracks.find((candidate) => candidate.id === playback.trackId);
       if (!track) return [];
-      const occurrence = (occurrences.get(track.id) ?? 0) + 1;
-      occurrences.set(track.id, occurrence);
-      return [{ playback, track, occurrence }];
+      return [{ playback, track }];
     });
   }, [activePlaybacks, detail?.tracks]);
   const tracksToPreload = useMemo(() => {
@@ -369,10 +450,19 @@ export default function App() {
   async function deleteProject(project: Project) {
     if (!window.confirm(`Supprimer définitivement le spectacle « ${project.name} » et tous ses morceaux ?\n\nCette action est irréversible.`)) return;
     try {
+      let deletedTrackIds = project.id === detail?.project.id ? detail.tracks.map((track) => track.id) : [];
+      if (deletedTrackIds.length === 0) {
+        const projectToDelete = await api.project(project.id).catch(() => undefined);
+        deletedTrackIds = projectToDelete?.tracks.map((track) => track.id) ?? [];
+      }
       if (project.id === selectedProjectId) audioEngine.stopAll(detail?.tracks ?? [], 0);
       await api.deleteProject(project.id);
       if (project.id === selectedProjectId) setDetail(undefined);
+      audioEngine.resetHistory(deletedTrackIds);
+      await deleteCachedTracks(deletedTrackIds).catch(() => undefined);
       localStorage.removeItem(`soundflow-detail:${project.id}`);
+      localStorage.removeItem(categoryStorageKey(project.id));
+      localStorage.removeItem(stopwatchStorageKey(project.id));
       await loadProjects();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Suppression du spectacle impossible.'); }
   }
@@ -543,16 +633,14 @@ export default function App() {
       </section>}
       <div className="side-label player-heading"><span>En lecture</span><em>{playingTracks.length}</em>{playingTracks.length > 0 && <button onClick={() => sendOrRun({ type: 'stop-all' })} aria-label="Tout arrêter"><Square size={13} fill="currentColor" /></button>}</div>
       <div className="now-playing-list">
-        {playingTracks.length === 0 ? <div className="players-empty"><AudioWaveform size={24} /><strong>Aucun son en lecture</strong><span>Les lecteurs actifs apparaîtront ici.</span></div> : playingTracks.map(({ playback, track, occurrence }) => {
+        {playingTracks.length === 0 ? <div className="players-empty"><AudioWaveform size={24} /><strong>Aucun son en lecture</strong><span>Les lecteurs actifs apparaîtront ici.</span></div> : playingTracks.map(({ playback, track }) => {
           const category = detail?.categories.find((item) => item.id === track.categoryId);
           const color = track.color ?? category?.color ?? '#71717a';
           const totalElapsedMs = playback.paused ? playback.elapsedMs : playback.elapsedMs + Math.max(0, performance.now() - playback.resumedAtMs);
           const positionMs = playback.loop ? totalElapsedMs % playback.durationMs : Math.min(totalElapsedMs, playback.durationMs);
           return <article className={`player-card ${playback.paused ? 'is-paused' : ''}`} key={playback.id} style={{ '--track-color': color } as React.CSSProperties}>
-            <div className="player-card-signal"><i /><i /><i /><i /></div>
-            <div className="player-card-copy"><strong>{track.title}</strong><span>{category?.name ?? 'Sans catégorie'}{occurrence > 1 ? ` · Lecture ${occurrence}` : ''}</span></div>
-            <div className="player-card-time"><span>{formatPlaybackDuration(positionMs)}</span><span>−{formatPlaybackDuration(Math.max(0, playback.durationMs - positionMs))}</span></div>
-            <input className="player-card-seek" type="range" min="0" max={playback.durationMs} step="10" value={Math.round(positionMs)} disabled={playback.fadingOut} onChange={(event) => audioEngine.seekInstance(playback.id, Number(event.target.value) / playback.durationMs)} aria-label={`Position de lecture de ${track.title}`} title="Cliquer ou glisser pour déplacer la lecture" />
+            <div className="player-card-copy"><strong>{track.title}</strong></div>
+            <div className="player-card-time"><span>{formatPlaybackDuration(positionMs)}</span><input className="player-card-seek" type="range" min="0" max={playback.durationMs} step="10" value={Math.round(positionMs)} disabled={playback.fadingOut} onChange={(event) => audioEngine.seekInstance(playback.id, Number(event.target.value) / playback.durationMs)} aria-label={`Position de lecture de ${track.title}`} title="Cliquer ou glisser pour déplacer la lecture" /><span>−{formatPlaybackDuration(Math.max(0, playback.durationMs - positionMs))}</span></div>
             <PlaybackVolumeControl playback={playback} title={track.title} />
             <div className="player-card-controls">
               <button className={playback.loop ? 'active' : ''} disabled={playback.fadingOut} onClick={() => audioEngine.setInstanceLoop(playback.id, !playback.loop)} aria-label={playback.loop ? `Désactiver la boucle de ${track.title}` : `Jouer ${track.title} en boucle`} title="Boucle"><Repeat2 size={15} /></button>
@@ -665,6 +753,14 @@ export default function App() {
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {freesoundOpen && detail && <FreesoundDialog initialQuery={search} projectId={detail.project.id} categories={detail.categories} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} onImported={refreshProject} onClose={() => setFreesoundOpen(false)} />}
     {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
+    {(fileDropActive || dropUploadProgress) && <div className={`file-drop-overlay ${dropUploadProgress ? 'is-uploading' : ''}`} role="status" aria-live="polite">
+      <div className="file-drop-card">
+        {dropUploadProgress ? <LoaderCircle className="spin" size={38} /> : <Upload size={42} />}
+        <strong>{dropUploadProgress ? `Import ${dropUploadProgress.done}/${dropUploadProgress.total}` : `Déposer dans ${currentCategory?.name ?? 'Sans catégorie'}`}</strong>
+        <span>{dropUploadProgress?.filename ?? 'MP3, WAV, OGG, FLAC, M4A ou AAC · plusieurs fichiers acceptés'}</span>
+        {dropUploadProgress && <i><b style={{ transform: `scaleX(${dropUploadProgress.total ? dropUploadProgress.done / dropUploadProgress.total : 0})` }} /></i>}
+      </div>
+    </div>}
     {error && <Toast message={error} onClose={() => setError('')} />}
   </div>;
 }

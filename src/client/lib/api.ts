@@ -7,10 +7,11 @@ export class ApiError extends Error {
 }
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  const hasJsonBody = init?.body !== undefined && init.body !== null && !(init.body instanceof FormData);
   const response = await fetch(url, {
     credentials: 'include',
     ...init,
-    headers: init?.body instanceof FormData ? init.headers : { 'Content-Type': 'application/json', ...init?.headers },
+    headers: hasJsonBody ? { 'Content-Type': 'application/json', ...init?.headers } : init?.headers,
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({ error: 'La requête a échoué.' }));

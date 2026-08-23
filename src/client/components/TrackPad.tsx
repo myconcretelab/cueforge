@@ -25,7 +25,7 @@ export function TrackPad({ track, color, active, playbacks, historyProgress, loa
   return <article className={`track-pad ${active ? 'is-active' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${dropTarget ? 'is-drop-target' : ''}`}
     style={{ '--track-color': color } as React.CSSProperties} draggable={reorderEnabled}
     onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}>
-    {loaded && <span className="track-loaded" title="Son préchargé" aria-label="Son préchargé"><CircleCheck size={15} /></span>}
+    {loaded && <span className="track-loaded" title="Disponible hors ligne" aria-label="Disponible hors ligne"><CircleCheck size={15} /></span>}
     <button className="icon-button subtle track-edit" onClick={onEdit} aria-label={`Modifier ${track.title}`}><MoreHorizontal size={18} /></button>
     <button className="track-trigger" onClick={() => !reorderEnabled && onPrimary()} onContextMenu={(event) => { event.preventDefault(); if (!reorderEnabled) onSecondary(); }}>
       <span className="play-disc">{active ? <AudioWaveform size={18} /> : <Play size={18} fill="currentColor" />}</span>

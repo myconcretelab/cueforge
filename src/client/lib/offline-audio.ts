@@ -34,3 +34,9 @@ export async function fetchTrackAudio(trackId: string): Promise<Response> {
 export async function deleteOfflineAudio(): Promise<boolean> {
   return 'caches' in globalThis ? caches.delete(audioCacheName) : false;
 }
+
+export async function deleteCachedTracks(trackIds: string[]): Promise<void> {
+  if (!('caches' in globalThis) || trackIds.length === 0) return;
+  const cache = await caches.open(audioCacheName);
+  await Promise.all(trackIds.map((trackId) => cache.delete(trackStreamUrl(trackId), { ignoreVary: true })));
+}
