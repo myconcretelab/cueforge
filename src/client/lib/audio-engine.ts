@@ -26,6 +26,7 @@ interface Playback extends ActivePlayback {
   endAtSeconds: number;
   positionSeconds: number;
   stopping: boolean;
+  suppressHistory: boolean;
 }
 
 type Listener = (playbacks: ActivePlayback[]) => void;
@@ -186,6 +187,7 @@ class AudioEngine {
       endAtSeconds: endAt,
       positionSeconds: startAt,
       stopping: false,
+      suppressHistory: false,
     };
     const instances = this.active.get(track.id) ?? new Set<Playback>();
     instances.add(playback);
@@ -292,7 +294,7 @@ class AudioEngine {
     const currentVolume = playbackVolumeAt(playback, nowMs);
     playback.elapsedMs = elapsedMs;
     playback.resumedAtMs = nowMs;
-    this.recordProgress(playback, elapsedMs / playback.durationMs);
+    if (!playback.suppressHistory) this.recordProgress(playback, elapsedMs / playback.durationMs);
     playback.stopping = true;
     const { source, gain } = playback;
     if (!source || playback.paused) {
@@ -323,6 +325,16 @@ class AudioEngine {
 
   stopAll(tracks: Track[], fadeOutMs?: number): void {
     for (const track of tracks) this.stop(track.id, fadeOutMs ?? track.fadeOutMs);
+  }
+
+  resetProjectSession(tracks: Track[]): void {
+    const trackIds = new Set(tracks.map((track) => track.id));
+    for (const [trackId, instances] of this.active) {
+      if (!trackIds.has(trackId)) continue;
+      for (const playback of instances) playback.suppressHistory = true;
+    }
+    this.stopAll(tracks, 0);
+    this.resetHistory([...trackIds]);
   }
 
   async runAction(action: MouseAction, track: Track, projectTracks: Track[], volumeMultiplier = 1): Promise<void> {
@@ -403,7 +415,7 @@ class AudioEngine {
   }
 
   private finishPlayback(playback: Playback, completed: boolean): void {
-    this.recordProgress(playback, completed ? 1 : this.currentElapsedMs(playback) / playback.durationMs);
+    if (!playback.suppressHistory) this.recordProgress(playback, completed ? 1 : this.currentElapsedMs(playback) / playback.durationMs);
     const instances = this.active.get(playback.trackId);
     instances?.delete(playback);
     if (!instances?.size) this.active.delete(playback.trackId);

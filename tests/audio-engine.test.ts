@@ -114,4 +114,17 @@ describe('audio player instance controls', () => {
     audioEngine.stopInstance(playbackId!, 0);
     expect(latest).toHaveLength(0);
   });
+
+  it('réinitialise le spectacle sans recréer une progression lors de l’arrêt', async () => {
+    await audioEngine.play(track, 0);
+    const playbackId = latest[0]?.id;
+    audioEngine.seekInstance(playbackId!, .6);
+    audioEngine.persistActiveProgress();
+    expect(latestHistory.get(track.id)).toBeCloseTo(.6, 1);
+
+    audioEngine.resetProjectSession([track]);
+
+    expect(latest).toHaveLength(0);
+    expect(latestHistory.has(track.id)).toBe(false);
+  });
 });

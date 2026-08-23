@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, GripVertical, History, LoaderCircle, Menu, Pause, Play, Plus, Radio,
-  Repeat2, RotateCcw, Search, Settings, Settings2, Square, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
+  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, GripVertical, History, LoaderCircle, Menu, Move, Pause, Play, Plus, Radio,
+  RefreshCcw, Repeat2, RotateCcw, Search, Settings, Settings2, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
@@ -636,6 +636,35 @@ export default function App() {
     setHistoryOpen(false);
   }
 
+  function resetCurrentProject() {
+    if (!detail) return;
+    const confirmed = window.confirm(`Réinitialiser « ${detail.project.name} » ?\n\nLes lectures en cours, les progressions, le chronomètre, la catégorie active et les réglages temporaires seront remis à zéro.\n\nLes morceaux, catégories, couleurs et fichiers hors ligne seront conservés.`);
+    if (!confirmed) return;
+    window.dispatchEvent(new Event('soundflow:stop-temporary-audio'));
+    audioEngine.resetProjectSession(detail.tracks);
+    setChronoElapsedMs(0);
+    setChronoStartedAt(undefined);
+    localStorage.removeItem(stopwatchStorageKey(detail.project.id));
+    const firstCategoryId = detail.categories[0]?.id ?? 'all';
+    setSelectedCategoryId(firstCategoryId);
+    localStorage.setItem(categoryStorageKey(detail.project.id), firstCategoryId);
+    setSearch('');
+    setNextTrackVolume(100);
+    setKeepNextTrackVolume(false);
+    localStorage.removeItem('soundflow-next-volume');
+    localStorage.removeItem('soundflow-keep-next-volume');
+    setReorderMode(false);
+    setCategoryManageMode(false);
+    setDraggedTrackId(undefined);
+    setDropTrackId(undefined);
+    setDropCategoryId(undefined);
+    setDraggedCategoryId(undefined);
+    setDropCategoryOrderId(undefined);
+    setDropCategoryAfter(false);
+    setColumnsOpen(false);
+    setHistoryOpen(false);
+  }
+
   function toggleChrono() {
     if (chronoStartedAt !== undefined) {
       const elapsedMs = chronoElapsedMs + Date.now() - chronoStartedAt;
@@ -722,6 +751,7 @@ export default function App() {
         </div>
         <div className="top-actions">
           <button className="icon-button settings-button" onClick={() => setSettingsOpen(true)} aria-label="Ouvrir les paramètres" title="Paramètres"><Settings size={19} /></button>
+          {!remote && <button className="icon-button reset-show-button" onClick={resetCurrentProject} disabled={!detail} aria-label="Réinitialiser le spectacle en cours" title="Réinitialiser le spectacle"><RefreshCcw size={18} /></button>}
           {!remote && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Ajouter un son</button>}
         </div>
       </header>
@@ -765,7 +795,7 @@ export default function App() {
             {preloadProgress ? <LoaderCircle className="spin" size={18} /> : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? <CircleCheck size={18} /> : <Download size={18} />}
           </button>}
           {!remote && <button className={`dashboard-button ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setCategoryManageMode(false); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} disabled={reordering}
-            aria-label={reordering ? 'Enregistrement de la réorganisation' : reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'} title={reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'}><ArrowUpDown size={18} /></button>}
+            aria-label={reordering ? 'Enregistrement de la réorganisation' : reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'} title={reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'}><span className="reorder-mode-icon" aria-hidden="true"><SquareDashed size={20} /><Move size={12} /></span></button>}
           <div className="dashboard-control">
             <button className={`dashboard-button ${columnsOpen ? 'active' : ''}`} onClick={() => { setColumnsOpen((current) => !current); setHistoryOpen(false); }} aria-label="Régler le nombre de colonnes" title="Nombre de colonnes"><Columns3 size={18} /></button>
             {columnsOpen && <div className="dashboard-popover columns-popover"><label><span>Colonnes</span><strong>{trackColumns}</strong><input type="range" min={compactLayout ? 1 : 2} max={compactLayout ? 3 : 12} value={trackColumns} onChange={(event) => updateTrackColumns(Number(event.target.value))} /></label></div>}
