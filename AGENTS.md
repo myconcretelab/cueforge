@@ -5,5 +5,5 @@
 - Regrouper les changements cohérents dans des commits ciblés avec des messages explicites.
 - Avant chaque commit, exécuter les vérifications adaptées au changement. Pour une modification applicative complète, exécuter au minimum `npm run typecheck`, `npm run lint`, `npm test` et `npm run build`.
 - Après chaque push réussi sur `main`, déployer immédiatement la version poussée sur Alwaysdata avec `./scripts/deploy-alwaysdata.sh`.
-- Le déploiement doit appliquer les migrations, redémarrer le site et vérifier `https://soundflow.sebastienj.com/api/health`. Si une étape échoue, ne pas masquer l’échec et en signaler précisément la cause.
-- Ne jamais afficher, copier dans le dépôt ou inclure dans une commande journalisée les secrets Alwaysdata. Le jeton d’API doit rester dans le trousseau Apple sous le service `soundflow-alwaysdata-api` et le compte `myconcretelab`.
+- Le déploiement doit appliquer les migrations, redémarrer le site et vérifier `https://s1.sebastienj.com/api/health`. Si une étape échoue, ne pas masquer l’échec et en signaler précisément la cause.
+- Ne jamais afficher, copier dans le dépôt ou inclure dans une commande journalisée les secrets Alwaysdata. Le jeton d’API doit rester dans le trousseau Apple sous le service `s1-alwaysdata-api` et le compte `myconcretelab`.

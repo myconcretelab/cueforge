@@ -1,5 +1,5 @@
-const AUDIO_CACHE = 'soundflow-audio-v1';
-const SHELL_CACHE = 'soundflow-shell-v1';
+const AUDIO_CACHE = 's1-audio-v1';
+const SHELL_CACHE = 's1-shell-v1';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(['/', '/manifest.webmanifest', '/icon.svg'])));

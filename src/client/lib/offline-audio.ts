@@ -1,4 +1,4 @@
-export const audioCacheName = 'soundflow-audio-v1';
+export const audioCacheName = 's1-audio-v1';
 
 export function trackStreamUrl(trackId: string): string {
   return `/api/tracks/${trackId}/stream`;

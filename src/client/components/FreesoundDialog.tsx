@@ -53,9 +53,9 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
 
   useEffect(() => {
     const stop = () => stopPreview();
-    window.addEventListener('soundflow:stop-temporary-audio', stop);
+    window.addEventListener('s1:stop-temporary-audio', stop);
     return () => {
-      window.removeEventListener('soundflow:stop-temporary-audio', stop);
+      window.removeEventListener('s1:stop-temporary-audio', stop);
       searchRef.current?.abort();
       stopPreview();
     };

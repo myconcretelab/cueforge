@@ -3,7 +3,7 @@ import path from 'node:path';
 import { z } from 'zod';
 
 const schema = z.object({
-  DATABASE_URL: z.string().min(1).default('postgresql://soundflow:password@localhost:5432/soundflow'),
+  DATABASE_URL: z.string().min(1).default('postgresql://s1:password@localhost:5432/s1'),
   SESSION_SECRET: z.string().min(16).default('development-only-change-me'),
   STORAGE_PATH: z.string().default('./storage'),
   HOST: z.string().default('127.0.0.1'),

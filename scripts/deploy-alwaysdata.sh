@@ -5,10 +5,10 @@ set -Eeuo pipefail
 readonly DEPLOY_BRANCH="main"
 readonly ALWAYSDATA_ACCOUNT="myconcretelab"
 readonly ALWAYSDATA_SITE_ID="1070157"
-readonly ALWAYSDATA_KEYCHAIN_SERVICE="soundflow-alwaysdata-api"
+readonly ALWAYSDATA_KEYCHAIN_SERVICE="s1-alwaysdata-api"
 readonly ALWAYSDATA_SSH_HOST="ssh-myconcretelab.alwaysdata.net"
-readonly ALWAYSDATA_REMOTE_DIR="/home/myconcretelab/www/soundflow"
-readonly ALWAYSDATA_SITE_URL="https://soundflow.sebastienj.com"
+readonly ALWAYSDATA_REMOTE_DIR="/home/myconcretelab/www/s1"
+readonly ALWAYSDATA_SITE_URL="https://s1.sebastienj.com"
 
 fail() {
   printf 'Erreur : %s\n' "$*" >&2

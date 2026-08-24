@@ -2,7 +2,7 @@
 
 Standby One est une régie son web inspirée de SoundShow. Les médias sont stockés en ligne, préparés hors connexion dans une PWA, puis joués localement avec Web Audio pour éviter la latence du réseau pendant un spectacle.
 
-Le produit est présenté principalement sous son monogramme **S1**. Les identifiants techniques historiques `soundflow` sont conservés pour assurer la compatibilité des installations, des caches et du déploiement existants.
+Le produit est présenté principalement sous son monogramme **S1**, également utilisé pour ses identifiants techniques et son déploiement.
 
 ## Fonctionnalités actuelles
 
@@ -55,20 +55,20 @@ Pour mettre à jour la production depuis le Mac d’administration après avoir 
 ./scripts/deploy-alwaysdata.sh
 ```
 
-Le script refuse un dépôt sale ou non poussé, récupère les variables du site via l’API Alwaysdata, compile l’application, applique les migrations, redémarre le site et contrôle son endpoint de santé. Le jeton d’API n’est jamais stocké dans Git : il est lu dans le trousseau Apple (`soundflow-alwaysdata-api` / `myconcretelab`).
+Le script refuse un dépôt sale ou non poussé, récupère les variables du site via l’API Alwaysdata, compile l’application, applique les migrations, redémarre le site et contrôle son endpoint de santé. Le jeton d’API n’est jamais stocké dans Git : il est lu dans le trousseau Apple (`s1-alwaysdata-api` / `myconcretelab`).
 
 Pour une installation initiale manuelle :
 
 1. Créer une base PostgreSQL et un utilisateur dans **Bases de données > PostgreSQL**.
 2. Choisir Node.js 24 dans **Environnement > Node.js**.
-3. Déployer le dépôt dans `/home/<compte>/soundflow`.
+3. Déployer le dépôt dans `/home/<compte>/s1`.
 4. Configurer les variables d’environnement suivantes dans le site Node.js :
 
 ```dotenv
 NODE_ENV=production
 DATABASE_URL=postgresql://<utilisateur>:<mot-de-passe>@postgresql-<compte>.alwaysdata.net:5433/<base>
 SESSION_SECRET=<une-valeur-aleatoire-d-au-moins-32-caracteres>
-STORAGE_PATH=/home/<compte>/soundflow/storage
+STORAGE_PATH=/home/<compte>/s1/storage
 PUBLIC_URL=https://<votre-domaine>
 FREESOUND_API_KEY=<clé-api-freesound>
 SAAS_MODE=false
@@ -81,7 +81,7 @@ TRIAL_STORAGE_BYTES=2147483648
 5. Depuis SSH, préparer l’application :
 
 ```bash
-cd /home/<compte>/soundflow
+cd /home/<compte>/s1
 npm ci --include=optional
 npm run build
 npm run db:migrate
@@ -91,7 +91,7 @@ npm prune --omit=dev
 6. Créer un site de type **Node.js** avec cette commande :
 
 ```bash
-node /home/<compte>/soundflow/dist/server/index.js
+node /home/<compte>/s1/dist/server/index.js
 ```
 
 Le serveur utilise automatiquement les variables `IP` et `PORT` fournies par Alwaysdata. Dans les réglages avancés du site, mettre le temps d’inactivité à `0` afin de conserver les connexions WebSocket. Activer HTTPS et vérifier que `PUBLIC_URL` contient exactement l’origine publique.

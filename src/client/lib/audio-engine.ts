@@ -33,7 +33,7 @@ type Listener = (playbacks: ActivePlayback[]) => void;
 type CacheListener = (loadedTrackIds: Set<string>) => void;
 type HistoryListener = (progressByTrack: Map<string, number>) => void;
 
-const historyStorageKey = 'soundflow-playback-history-v1';
+const historyStorageKey = 's1-playback-history-v1';
 
 class AudioEngine {
   private context?: AudioContext;

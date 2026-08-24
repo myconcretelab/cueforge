@@ -35,7 +35,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>();
   const [projects, setProjects] = useState<Project[]>([]);
   const [detail, setDetail] = useState<ProjectDetail>();
-  const [selectedProjectId, setSelectedProjectId] = useState(localStorage.getItem('soundflow-project'));
+  const [selectedProjectId, setSelectedProjectId] = useState(localStorage.getItem('s1-project'));
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [activePlaybacks, setActivePlaybacks] = useState<ActivePlayback[]>([]);
@@ -44,7 +44,7 @@ export default function App() {
   const [preloadProgress, setPreloadProgress] = useState<{ done: number; total: number }>();
   const [fileDropActive, setFileDropActive] = useState(false);
   const [dropUploadProgress, setDropUploadProgress] = useState<{ done: number; total: number; filename: string }>();
-  const [categoryWidth, setCategoryWidth] = useState(() => readNumber('soundflow-category-width', 112));
+  const [categoryWidth, setCategoryWidth] = useState(() => readNumber('s1-category-width', 112));
   const [reorderMode, setReorderMode] = useState(false);
   const [draggedTrackId, setDraggedTrackId] = useState<string>();
   const [dropTrackId, setDropTrackId] = useState<string>();
@@ -61,8 +61,8 @@ export default function App() {
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [compactLayout, setCompactLayout] = useState(() => window.matchMedia('(max-width: 560px)').matches);
-  const [desktopColumns, setDesktopColumns] = useState(() => readNumberRange('soundflow-track-columns', 6, 2, 12));
-  const [mobileColumns, setMobileColumns] = useState(() => readNumberRange('soundflow-track-columns-mobile', 2, 1, 3));
+  const [desktopColumns, setDesktopColumns] = useState(() => readNumberRange('s1-track-columns', 6, 2, 12));
+  const [mobileColumns, setMobileColumns] = useState(() => readNumberRange('s1-track-columns-mobile', 2, 1, 3));
   const [uploadOpen, setUploadOpen] = useState(false);
   const [soundShowImportOpen, setSoundShowImportOpen] = useState(false);
   const [freesoundOpen, setFreesoundOpen] = useState(false);
@@ -81,8 +81,8 @@ export default function App() {
   const [connected, setConnected] = useState(false);
   const [offlineStatus, setOfflineStatus] = useState('');
   const [error, setError] = useState('');
-  const [nextTrackVolume, setNextTrackVolume] = useState(() => readNumberRange('soundflow-next-volume', 100, 0, 100));
-  const [keepNextTrackVolume, setKeepNextTrackVolume] = useState(() => localStorage.getItem('soundflow-keep-next-volume') === 'true');
+  const [nextTrackVolume, setNextTrackVolume] = useState(() => readNumberRange('s1-next-volume', 100, 0, 100));
+  const [keepNextTrackVolume, setKeepNextTrackVolume] = useState(() => localStorage.getItem('s1-keep-next-volume') === 'true');
   const [now, setNow] = useState(() => Date.now());
   const [chronoElapsedMs, setChronoElapsedMs] = useState(0);
   const [chronoStartedAt, setChronoStartedAt] = useState<number | undefined>(undefined);
@@ -119,14 +119,14 @@ export default function App() {
 
   useEffect(() => {
     api.me().then(({ user: current }) => {
-      localStorage.setItem('soundflow-user', JSON.stringify(current));
+      localStorage.setItem('s1-user', JSON.stringify(current));
       setUser(current);
     }).catch((cause) => {
       if (cause instanceof ApiError && cause.status === 401) {
-        localStorage.removeItem('soundflow-user');
+        localStorage.removeItem('s1-user');
         setUser(null);
       } else {
-        const cached = readCache<User>('soundflow-user');
+        const cached = readCache<User>('s1-user');
         if (cached) setUser(cached);
         else { setError('Le serveur est indisponible.'); setUser(null); }
       }
@@ -137,16 +137,16 @@ export default function App() {
     let result: { projects: Project[] };
     try {
       result = await api.projects();
-      localStorage.setItem('soundflow-projects', JSON.stringify(result));
+      localStorage.setItem('s1-projects', JSON.stringify(result));
     } catch (cause) {
-      const cached = readCache<{ projects: Project[] }>('soundflow-projects');
+      const cached = readCache<{ projects: Project[] }>('s1-projects');
       if (!cached) throw cause;
       result = cached;
     }
     setProjects(result.projects);
     setSelectedProjectId((current) => {
       const next = result.projects.some((project) => project.id === current) ? current : result.projects[0]?.id ?? null;
-      if (next) localStorage.setItem('soundflow-project', next); else localStorage.removeItem('soundflow-project');
+      if (next) localStorage.setItem('s1-project', next); else localStorage.removeItem('s1-project');
       return next;
     });
   }, []);
@@ -158,9 +158,9 @@ export default function App() {
     let result: ProjectDetail;
     try {
       result = await api.project(selectedProjectId);
-      localStorage.setItem(`soundflow-detail:${selectedProjectId}`, JSON.stringify(result));
+      localStorage.setItem(`s1-detail:${selectedProjectId}`, JSON.stringify(result));
     } catch (cause) {
-      const cached = readCache<ProjectDetail>(`soundflow-detail:${selectedProjectId}`);
+      const cached = readCache<ProjectDetail>(`s1-detail:${selectedProjectId}`);
       if (!cached) throw cause;
       result = cached;
     }
@@ -297,7 +297,7 @@ export default function App() {
     if (!remote) connection.on('remote-command', (command: RemoteCommand) => {
       const currentTracks = detail?.tracks ?? [];
       if (command.type === 'stop-all' || command.type === 'stop-all-immediate') {
-        window.dispatchEvent(new Event('soundflow:stop-temporary-audio'));
+        window.dispatchEvent(new Event('s1:stop-temporary-audio'));
         return audioEngine.stopAll(currentTracks, command.type === 'stop-all-immediate' ? 0 : undefined);
       }
       const track = currentTracks.find((candidate) => candidate.id === command.trackId);
@@ -352,8 +352,8 @@ export default function App() {
 
   useEffect(() => {
     if (!detailProjectId) return;
-    const legacyDesktop = readNumberRange('soundflow-track-columns', 6, 2, 12);
-    const legacyMobile = readNumberRange('soundflow-track-columns-mobile', 2, 1, 3);
+    const legacyDesktop = readNumberRange('s1-track-columns', 6, 2, 12);
+    const legacyMobile = readNumberRange('s1-track-columns-mobile', 2, 1, 3);
     setDesktopColumns(readNumberRange(trackColumnsStorageKey(detailProjectId, columnCategoryId, false), legacyDesktop, 2, 12));
     setMobileColumns(readNumberRange(trackColumnsStorageKey(detailProjectId, columnCategoryId, true), legacyMobile, 1, 3));
   }, [columnCategoryId, detailProjectId]);
@@ -362,7 +362,7 @@ export default function App() {
     const multiplier = nextTrackVolume / 100;
     if (!keepNextTrackVolume) {
       setNextTrackVolume(100);
-      localStorage.removeItem('soundflow-next-volume');
+      localStorage.removeItem('s1-next-volume');
     }
     return multiplier;
   }, [keepNextTrackVolume, nextTrackVolume]);
@@ -380,7 +380,7 @@ export default function App() {
       playlistTransitioningRef.current = false;
       clearPlaylistAdvanceTimer();
       setPlaylistPlaybackId(undefined);
-      window.dispatchEvent(new Event('soundflow:stop-temporary-audio'));
+      window.dispatchEvent(new Event('s1:stop-temporary-audio'));
       audioEngine.stopAll(detail?.tracks ?? [], preparedCommand.type === 'stop-all-immediate' ? 0 : undefined);
     }
     else if (preparedCommand.type === 'stop' && track) audioEngine.stop(track.id, track.fadeOutMs);
@@ -761,7 +761,7 @@ export default function App() {
     try {
       const result = await api.reorderProjects(projectIds);
       setProjects(result.projects);
-      localStorage.setItem('soundflow-projects', JSON.stringify(result));
+      localStorage.setItem('s1-projects', JSON.stringify(result));
     } catch (cause) {
       setProjects(previous);
       setError(cause instanceof Error ? cause.message : 'Réorganisation des spectacles impossible.');
@@ -781,7 +781,7 @@ export default function App() {
       if (project.id === selectedProjectId) setDetail(undefined);
       audioEngine.resetHistory(deletedTrackIds);
       await deleteCachedTracks(deletedTrackIds).catch(() => undefined);
-      localStorage.removeItem(`soundflow-detail:${project.id}`);
+      localStorage.removeItem(`s1-detail:${project.id}`);
       localStorage.removeItem(categoryStorageKey(project.id));
       localStorage.removeItem(stopwatchStorageKey(project.id));
       await loadProjects();
@@ -824,7 +824,7 @@ export default function App() {
     try {
       const result = await api.reorderTrack(trackId, { categoryId, beforeTrackId });
       setDetail((current) => current ? { ...current, tracks: result.tracks } : current);
-      localStorage.setItem(`soundflow-detail:${detail.project.id}`, JSON.stringify({ ...detail, tracks: result.tracks }));
+      localStorage.setItem(`s1-detail:${detail.project.id}`, JSON.stringify({ ...detail, tracks: result.tracks }));
     } catch (cause) {
       setDetail((current) => current ? { ...current, tracks: previousTracks } : current);
       setError(cause instanceof Error ? cause.message : 'Réorganisation impossible.');
@@ -861,7 +861,7 @@ export default function App() {
     setReordering(true);
     try {
       await api.positionPlaylist(detail.project.id, playlistId, position, categoryId);
-      localStorage.setItem(`soundflow-detail:${detail.project.id}`, JSON.stringify({ ...detail, playlists: optimistic }));
+      localStorage.setItem(`s1-detail:${detail.project.id}`, JSON.stringify({ ...detail, playlists: optimistic }));
     } catch (cause) {
       setDetail((current) => current ? { ...current, playlists: previousPlaylists } : current);
       setError(cause instanceof Error ? cause.message : 'Réorganisation des playlists impossible.');
@@ -889,7 +889,7 @@ export default function App() {
     setReordering(true);
     try {
       await api.positionPlaylist(detail.project.id, playlistId, position, categoryId);
-      localStorage.setItem(`soundflow-detail:${detail.project.id}`, JSON.stringify({ ...detail, playlists: optimistic }));
+      localStorage.setItem(`s1-detail:${detail.project.id}`, JSON.stringify({ ...detail, playlists: optimistic }));
     } catch (cause) {
       setDetail((current) => current ? { ...current, playlists: previousPlaylists } : current);
       setError(cause instanceof Error ? cause.message : 'Déplacement de la playlist impossible.');
@@ -907,7 +907,7 @@ export default function App() {
     setSelectedCategoryId('all');
     setReorderMode(false);
     setSidebarOpen(false);
-    localStorage.setItem('soundflow-project', id);
+    localStorage.setItem('s1-project', id);
   }
 
   function selectCategory(categoryId: string) {
@@ -978,7 +978,7 @@ export default function App() {
     if (!detail) return;
     const confirmed = window.confirm(`Réinitialiser « ${detail.project.name} » ?\n\nLes lectures en cours, les progressions, le chronomètre, la catégorie active et les réglages temporaires seront remis à zéro.\n\nLes morceaux, catégories, couleurs et fichiers hors ligne seront conservés.`);
     if (!confirmed) return;
-    window.dispatchEvent(new Event('soundflow:stop-temporary-audio'));
+    window.dispatchEvent(new Event('s1:stop-temporary-audio'));
     audioEngine.resetProjectSession(detail.tracks);
     resetPlaylistEditor();
     setChronoElapsedMs(0);
@@ -990,8 +990,8 @@ export default function App() {
     setSearch('');
     setNextTrackVolume(100);
     setKeepNextTrackVolume(false);
-    localStorage.removeItem('soundflow-next-volume');
-    localStorage.removeItem('soundflow-keep-next-volume');
+    localStorage.removeItem('s1-next-volume');
+    localStorage.removeItem('s1-keep-next-volume');
     setReorderMode(false);
     setCategoryManageMode(false);
     setDraggedTrackId(undefined);
@@ -1036,12 +1036,12 @@ export default function App() {
     resetPlaylistEditor();
     await api.logout();
     await deleteOfflineAudio().catch(() => false);
-    for (const key of Object.keys(localStorage)) if (key.startsWith('soundflow-')) localStorage.removeItem(key);
+    for (const key of Object.keys(localStorage)) if (key.startsWith('s1-')) localStorage.removeItem(key);
     setUser(null); setDetail(undefined); setProjects([]);
   }
 
   if (user === undefined) return <div className="app-loader"><span className="brand-mark loader pulse" aria-hidden="true">S1</span><span>Standby One</span></div>;
-  if (!user) return <><AuthScreen onAuthenticated={(authenticated) => { localStorage.setItem('soundflow-user', JSON.stringify(authenticated)); setUser(authenticated); }} />{error && <Toast message={error} onClose={() => setError('')} />}</>;
+  if (!user) return <><AuthScreen onAuthenticated={(authenticated) => { localStorage.setItem('s1-user', JSON.stringify(authenticated)); setUser(authenticated); }} />{error && <Toast message={error} onClose={() => setError('')} />}</>;
 
   return <div className={`app-shell ${remote ? 'remote-mode' : ''}`}>
     <aside className={sidebarOpen ? 'sidebar open' : 'sidebar'}>
@@ -1084,7 +1084,7 @@ export default function App() {
         <div className="topbar-console">
           <section className="console-module next-volume" title="Ce multiplicateur s'applique au prochain son, puis revient à 100 %.">
             <span><Volume2 size={14} />Son suivant</span>
-            <div className="next-volume-control"><input type="range" min="0" max="100" value={nextTrackVolume} aria-label="Volume du son suivant" onChange={(event) => { const value = Number(event.target.value); setNextTrackVolume(value); localStorage.setItem('soundflow-next-volume', String(value)); }} /><strong>{nextTrackVolume} %</strong><button type="button" className={`console-volume-lock ${keepNextTrackVolume ? 'active' : ''}`} role="switch" aria-checked={keepNextTrackVolume} aria-label="Conserver le volume pour les sons suivants" title={keepNextTrackVolume ? 'Volume conservé après chaque lancement' : 'Réinitialiser à 100 % après le prochain lancement'} onClick={() => { const next = !keepNextTrackVolume; setKeepNextTrackVolume(next); localStorage.setItem('soundflow-keep-next-volume', String(next)); localStorage.setItem('soundflow-next-volume', String(nextTrackVolume)); }}><i /></button></div>
+            <div className="next-volume-control"><input type="range" min="0" max="100" value={nextTrackVolume} aria-label="Volume du son suivant" onChange={(event) => { const value = Number(event.target.value); setNextTrackVolume(value); localStorage.setItem('s1-next-volume', String(value)); }} /><strong>{nextTrackVolume} %</strong><button type="button" className={`console-volume-lock ${keepNextTrackVolume ? 'active' : ''}`} role="switch" aria-checked={keepNextTrackVolume} aria-label="Conserver le volume pour les sons suivants" title={keepNextTrackVolume ? 'Volume conservé après chaque lancement' : 'Réinitialiser à 100 % après le prochain lancement'} onClick={() => { const next = !keepNextTrackVolume; setKeepNextTrackVolume(next); localStorage.setItem('s1-keep-next-volume', String(next)); localStorage.setItem('s1-next-volume', String(nextTrackVolume)); }}><i /></button></div>
           </section>
           <section className="console-module stopwatch">
             <span><Timer size={14} />Chrono</span>
@@ -1120,10 +1120,10 @@ export default function App() {
             </div>)}
           </nav>
           <button className="category-resizer" aria-label="Régler la largeur des catégories" title="Glisser pour régler la largeur · Double-cliquer pour réinitialiser"
-            onDoubleClick={() => { setCategoryWidth(112); localStorage.setItem('soundflow-category-width', '112'); }}
+            onDoubleClick={() => { setCategoryWidth(112); localStorage.setItem('s1-category-width', '112'); }}
             onPointerDown={(event) => { categoryResize.current = { x: event.clientX, width: categoryWidth, latest: categoryWidth }; event.currentTarget.setPointerCapture(event.pointerId); }}
             onPointerMove={(event) => { if (!categoryResize.current) return; const next = Math.min(220, Math.max(82, categoryResize.current.width + event.clientX - categoryResize.current.x)); categoryResize.current.latest = next; setCategoryWidth(next); }}
-            onPointerUp={(event) => { if (!categoryResize.current) return; event.currentTarget.releasePointerCapture(event.pointerId); localStorage.setItem('soundflow-category-width', String(categoryResize.current.latest)); categoryResize.current = undefined; }}>
+            onPointerUp={(event) => { if (!categoryResize.current) return; event.currentTarget.releasePointerCapture(event.pointerId); localStorage.setItem('s1-category-width', String(categoryResize.current.latest)); categoryResize.current = undefined; }}>
             <GripVertical size={17} />
           </button>
         </div>
@@ -1164,7 +1164,7 @@ export default function App() {
             if (boardItem.kind === 'playlist') {
               const playlist = boardItem.playlist;
               return <PlaylistPad key={`playlist:${playlist.id}`} playlist={playlist} reorderEnabled={reorderMode} dropTarget={dropPlaylistId === playlist.id} dropAfter={dropPlaylistAfter} onLoad={() => loadPlaylist(playlist)}
-                onDragStart={(event) => { if (!reorderMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-soundflow-playlist', playlist.id); setDraggedPlaylistId(playlist.id); }}
+                onDragStart={(event) => { if (!reorderMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-s1-playlist', playlist.id); setDraggedPlaylistId(playlist.id); }}
                 onDragOver={(event) => { if (!reorderMode || !draggedPlaylistId || draggedPlaylistId === playlist.id) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; const bounds = event.currentTarget.getBoundingClientRect(); setDropPlaylistId(playlist.id); setDropPlaylistTrackId(undefined); setDropPlaylistAfter(event.clientX > bounds.left + bounds.width / 2); }}
                 onDrop={(event) => { if (!draggedPlaylistId || draggedPlaylistId === playlist.id) return; event.preventDefault(); const bounds = event.currentTarget.getBoundingClientRect(); reorderPlaylist(draggedPlaylistId, 'playlist', playlist.id, event.clientX > bounds.left + bounds.width / 2).catch(() => undefined); }}
                 onDragEnd={() => { setDraggedPlaylistId(undefined); setDropPlaylistId(undefined); setDropPlaylistTrackId(undefined); setDropPlaylistAfter(false); }} />;
@@ -1176,7 +1176,7 @@ export default function App() {
               onPrimary={() => runTrackAction(detail.project.leftClickAction ?? 'start', track)}
               onSecondary={() => runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
               onEdit={() => { if (!reorderMode) setEditingTrack(track); }}
-              onDragStart={(event) => { if (reorderMode) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', track.id); setDraggedTrackId(track.id); } else if (sidebarTool === 'playlist') { event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('application/x-soundflow-track', track.id); } }}
+              onDragStart={(event) => { if (reorderMode) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', track.id); setDraggedTrackId(track.id); } else if (sidebarTool === 'playlist') { event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('application/x-s1-track', track.id); } }}
               onDragOver={(event) => { if (!reorderMode) return; if (draggedPlaylistId) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; const bounds = event.currentTarget.getBoundingClientRect(); setDropPlaylistTrackId(track.id); setDropPlaylistId(undefined); setDropPlaylistAfter(event.clientX > bounds.left + bounds.width / 2); return; } if (!draggedTrackId || draggedTrackId === track.id) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropTrackId(track.id); setDropCategoryId(undefined); }}
               onDrop={(event) => { event.preventDefault(); if (draggedPlaylistId) { const bounds = event.currentTarget.getBoundingClientRect(); reorderPlaylist(draggedPlaylistId, 'track', track.id, event.clientX > bounds.left + bounds.width / 2).catch(() => undefined); } else if (draggedTrackId && draggedTrackId !== track.id) reorderTrack(draggedTrackId, track.categoryId, track.id).catch(() => undefined); }}
               onDragEnd={() => { setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} />;
@@ -1233,15 +1233,15 @@ function readNumberRange(key: string, fallback: number, min: number, max: number
 }
 
 function categoryStorageKey(projectId: string): string {
-  return `soundflow-category:${projectId}`;
+  return `s1-category:${projectId}`;
 }
 
 function trackColumnsStorageKey(projectId: string, categoryId: string, compact: boolean): string {
-  return `soundflow-track-columns:${projectId}:${categoryId}:${compact ? 'mobile' : 'desktop'}`;
+  return `s1-track-columns:${projectId}:${categoryId}:${compact ? 'mobile' : 'desktop'}`;
 }
 
 function stopwatchStorageKey(projectId: string): string {
-  return `soundflow-stopwatch:${projectId}`;
+  return `s1-stopwatch:${projectId}`;
 }
 
 function persistStopwatch(projectId: string | null, elapsedMs: number, startedAt?: number): void {
