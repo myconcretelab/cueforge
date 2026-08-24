@@ -1,4 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="112" fill="#f97316"/>
-  <path d="M112 286v-60M168 338V174M224 310V202M280 366V146M336 322V190M392 278v-52" fill="none" stroke="#09090b" stroke-width="30" stroke-linecap="round"/>
+  <text x="246" y="330" fill="#09090b" font-family="Arial Black, Arial, sans-serif" font-size="218" font-weight="900" letter-spacing="-22" text-anchor="middle">S1</text>
 </svg>

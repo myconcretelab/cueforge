@@ -23,7 +23,7 @@ for command_name in curl git jq security ssh; do
   require_command "$command_name"
 done
 
-repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || fail "ce script doit être lancé depuis le dépôt SoundFlow."
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || fail "ce script doit être lancé depuis le dépôt Standby One."
 cd "$repo_root"
 
 current_branch=$(git branch --show-current)
@@ -87,4 +87,4 @@ done
 
 [[ "$health_ok" == true ]] || fail "le contrôle de santé du site a échoué après le redémarrage."
 
-printf 'SoundFlow est déployé : %s (%s)\n' "$ALWAYSDATA_SITE_URL" "$local_commit"
+printf 'Standby One est déployé : %s (%s)\n' "$ALWAYSDATA_SITE_URL" "$local_commit"

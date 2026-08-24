@@ -256,7 +256,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
                 </div>
                 <div className="freesound-result-actions">
                   <a className={`freesound-license ${sound.license.code}`} href={sound.license.url} target="_blank" rel="noreferrer">{sound.license.label}</a>
-                  <button className={preparingImport ? 'freesound-import-button is-cancel' : importedIds.has(sound.id) ? 'freesound-import-button is-imported' : 'freesound-import-button'} disabled={preparingImport && importing} onClick={() => preparingImport ? setSoundToImport(undefined) : prepareImport(sound)} aria-label={preparingImport ? `Annuler l'import de ${sound.name}` : `Importer ${sound.name}`} title={preparingImport ? "Annuler l'import" : importedIds.has(sound.id) ? 'Importer à nouveau' : 'Importer dans SoundFlow'}>
+                  <button className={preparingImport ? 'freesound-import-button is-cancel' : importedIds.has(sound.id) ? 'freesound-import-button is-imported' : 'freesound-import-button'} disabled={preparingImport && importing} onClick={() => preparingImport ? setSoundToImport(undefined) : prepareImport(sound)} aria-label={preparingImport ? `Annuler l'import de ${sound.name}` : `Importer ${sound.name}`} title={preparingImport ? "Annuler l'import" : importedIds.has(sound.id) ? 'Importer à nouveau' : 'Importer dans Standby One'}>
                     {preparingImport ? <X size={17} /> : importedIds.has(sound.id) ? <CircleCheck size={17} /> : <Download size={17} />}
                   </button>
                 </div>

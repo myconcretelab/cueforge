@@ -1,6 +1,6 @@
 {
-  "name": "SoundFlow — Régie son",
-  "short_name": "SoundFlow",
+  "name": "Standby One — Régie son",
+  "short_name": "S1",
   "description": "Votre régie son en ligne et hors connexion.",
   "start_url": "/",
   "display": "standalone",

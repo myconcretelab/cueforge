@@ -92,7 +92,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
 
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="dialog settings-dialog">
-      <header><div><p className="eyebrow">SoundFlow</p><h2>Paramètres</h2></div><button className="icon-button" onClick={onClose} aria-label="Fermer les paramètres"><X /></button></header>
+      <header><div><p className="eyebrow">S1 · Standby One</p><h2>Paramètres</h2></div><button className="icon-button" onClick={onClose} aria-label="Fermer les paramètres"><X /></button></header>
       <section className="settings-section">
         <div className="settings-section-title"><Settings2 size={16} /><div><strong>Spectacles</strong><span>Sélectionnez, glissez ou supprimez une régie.</span></div></div>
         <div className="settings-project-list">

@@ -1040,12 +1040,12 @@ export default function App() {
     setUser(null); setDetail(undefined); setProjects([]);
   }
 
-  if (user === undefined) return <div className="app-loader"><AudioLines className="pulse" size={42} /><span>SoundFlow</span></div>;
+  if (user === undefined) return <div className="app-loader"><span className="brand-mark loader pulse" aria-hidden="true">S1</span><span>Standby One</span></div>;
   if (!user) return <><AuthScreen onAuthenticated={(authenticated) => { localStorage.setItem('soundflow-user', JSON.stringify(authenticated)); setUser(authenticated); }} />{error && <Toast message={error} onClose={() => setError('')} />}</>;
 
   return <div className={`app-shell ${remote ? 'remote-mode' : ''}`}>
     <aside className={sidebarOpen ? 'sidebar open' : 'sidebar'}>
-      <header className="brand"><span className="brand-mark small"><AudioLines /></span><strong>SoundFlow</strong><button className="icon-button sidebar-close" onClick={() => setSidebarOpen(false)}><X /></button></header>
+      <header className="brand"><span className="brand-mark small" aria-hidden="true">S1</span><strong>Standby One</strong><button className="icon-button sidebar-close" onClick={() => setSidebarOpen(false)}><X /></button></header>
       {detail && <section className="mouse-actions">
         <div className="side-label"><span>Actions souris</span></div>
         <label><span><i>G</i>Clic gauche</span><select value={detail.project.leftClickAction ?? 'start'} onChange={(event) => updateMouseAction('left', event.target.value as MouseAction)}>{mouseActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>

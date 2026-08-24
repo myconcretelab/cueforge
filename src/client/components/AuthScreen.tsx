@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { AudioLines, LoaderCircle } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import type { User } from '../types';
 
@@ -33,7 +33,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
 
   return <main className="auth-shell">
     <section className="auth-intro">
-      <div className="brand-mark"><AudioLines size={28} /></div>
+      <div className="brand-mark" aria-label="Standby One">S1</div>
       <p className="eyebrow">Régie son en ligne</p>
       <h1>Chaque son.<br /><span>Au bon moment.</span></h1>
       <p className="auth-copy">Préparez votre spectacle, déclenchez vos sons instantanément et gardez toute votre bibliothèque à portée de main.</p>
@@ -42,7 +42,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
     <section className="auth-panel">
       <form className="auth-card" onSubmit={submit}>
         <div>
-          <p className="eyebrow">SoundFlow</p>
+          <p className="eyebrow">S1 · Standby One</p>
           <h2>{register ? 'Créer votre régie' : 'Heureux de vous revoir'}</h2>
           <p>{register ? 'Votre premier projet sera prêt immédiatement.' : 'Connectez-vous pour reprendre votre spectacle.'}</p>
         </div>
