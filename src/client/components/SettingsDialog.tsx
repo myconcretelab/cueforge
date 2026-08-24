@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { CloudDownload, FileArchive, FolderPlus, GripVertical, Keyboard, LogOut, Palette, Plus, Settings2, Smartphone, Trash2, Waves, X } from 'lucide-react';
-import type { KeyAction, Project, ProjectColor, User } from '../types';
+import { useEffect, useState } from 'react';
+import { CloudDownload, FileArchive, FolderPlus, GripVertical, HardDrive, Keyboard, LogOut, Palette, Plus, Settings2, Smartphone, Trash2, Waves, X } from 'lucide-react';
+import { api } from '../lib/api';
+import type { AccountSummary, KeyAction, Project, ProjectColor, User } from '../types';
 
 interface Props {
   user: User;
@@ -31,6 +32,18 @@ const keyActions: Array<{ value: KeyAction; label: string }> = [
   { value: 'none', label: 'Aucune action' },
 ];
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} o`;
+  const units = ['Ko', 'Mo', 'Go', 'To'];
+  let value = bytes / 1024;
+  let unit = units[0];
+  for (let index = 1; index < units.length && value >= 1024; index += 1) {
+    value /= 1024;
+    unit = units[index];
+  }
+  return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)} ${unit}`;
+}
+
 export function SettingsDialog({ user, projects, projectColors, selectedProjectId, offlineStatus, remote, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
   const [newColor, setNewColor] = useState('#f97316');
@@ -39,6 +52,18 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
   const [dropProjectAfter, setDropProjectAfter] = useState(false);
   const [draggedColorId, setDraggedColorId] = useState<string>();
   const [dropColorId, setDropColorId] = useState<string>();
+  const [account, setAccount] = useState<AccountSummary>();
+
+  useEffect(() => {
+    api.account().then((result) => setAccount(result.account)).catch(() => setAccount(undefined));
+  }, []);
+
+  const storagePercent = account?.storageQuotaBytes
+    ? Math.min(100, (account.storageUsedBytes / account.storageQuotaBytes) * 100)
+    : 0;
+  const trialDaysLeft = account?.trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(account.trialEndsAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+    : null;
 
   function dropProject(targetId: string, after: boolean) {
     if (!draggedProjectId || draggedProjectId === targetId) return;
@@ -116,6 +141,14 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
           <label><span><kbd>⌫</kbd> Retour arrière</span><select value={selectedProject?.backspaceKeyAction ?? 'stop-all'} onChange={(event) => onUpdateKeyAction('backspace', event.target.value as KeyAction)}>{keyActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
           <label><span><kbd>Espace</kbd> Barre d’espace</span><select value={selectedProject?.spaceKeyAction ?? 'stop-all-immediate'} onChange={(event) => onUpdateKeyAction('space', event.target.value as KeyAction)}>{keyActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
         </div>
+      </section>
+      <section className="settings-section">
+        <div className="settings-section-title"><HardDrive size={16} /><div><strong>Offre et stockage</strong><span>{account?.name ?? 'Chargement de votre espace…'}</span></div></div>
+        {account && <div className="account-plan">
+          <div><strong>{account.planCode === 'community' ? 'Community' : account.planCode === 'trial' ? 'Essai Cloud' : account.planCode}</strong><span>{trialDaysLeft !== null ? `${trialDaysLeft} jour${trialDaysLeft > 1 ? 's' : ''} restant${trialDaysLeft > 1 ? 's' : ''}` : 'Accès actif'}</span></div>
+          <div className="storage-summary"><span>{formatBytes(account.storageUsedBytes)} utilisés</span><strong>{account.storageQuotaBytes === null ? 'Stockage illimité' : `sur ${formatBytes(account.storageQuotaBytes)}`}</strong></div>
+          {account.storageQuotaBytes !== null && <div className="storage-meter" role="progressbar" aria-label="Stockage utilisé" aria-valuemin={0} aria-valuemax={account.storageQuotaBytes} aria-valuenow={account.storageUsedBytes}><i style={{ width: `${storagePercent}%` }} /></div>}
+        </div>}
       </section>
       <section className="settings-account">
         <span>{user.displayName.slice(0, 1).toUpperCase()}</span><div><strong>{user.displayName}</strong><small>{user.email}</small></div><button className="button danger" onClick={onLogout}><LogOut size={16} />Se déconnecter</button>

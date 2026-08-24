@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db/index.js';
-import { projects, users } from '../db/schema.js';
+import { accountMemberships, accounts, projects, users } from '../db/schema.js';
+import { config } from '../config.js';
 import { endSession, hashPassword, requireUser, startSession, verifyPassword } from '../services/auth.js';
 
 const credentialsSchema = z.object({
@@ -19,18 +20,23 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     const input = registerSchema.parse(request.body);
     const passwordHash = await hashPassword(input.password);
     const user = await db.transaction(async (tx) => {
-      await tx.execute(sql`select pg_advisory_xact_lock(824731905)`);
-      const existing = await tx.select({ id: users.id }).from(users).limit(1);
-      if (existing.length) return null;
       const [created] = await tx.insert(users).values({
         email: input.email,
         displayName: input.displayName,
         passwordHash,
       }).returning();
-      await tx.insert(projects).values({ ownerId: created.id, name: 'Mon premier spectacle' });
+      const trialEndsAt = config.SAAS_MODE ? new Date(Date.now() + config.TRIAL_DAYS * 24 * 60 * 60 * 1000) : null;
+      const [account] = await tx.insert(accounts).values({
+        name: `Espace de ${created.displayName}`,
+        planCode: config.SAAS_MODE ? 'trial' : 'community',
+        subscriptionStatus: config.SAAS_MODE ? 'trialing' : 'active',
+        storageQuotaBytes: config.SAAS_MODE ? config.TRIAL_STORAGE_BYTES : null,
+        trialEndsAt,
+      }).returning();
+      await tx.insert(accountMemberships).values({ accountId: account.id, userId: created.id, role: 'owner' });
+      await tx.insert(projects).values({ accountId: account.id, name: 'Mon premier spectacle' });
       return created;
     });
-    if (!user) return reply.code(403).send({ error: 'Le compte administrateur a déjà été créé.' });
     await startSession(user.id, reply);
     return reply.code(201).send({ user: { id: user.id, email: user.email, displayName: user.displayName } });
   });

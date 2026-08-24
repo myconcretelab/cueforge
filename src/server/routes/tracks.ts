@@ -9,7 +9,8 @@ import { and, asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { db } from '../db/index.js';
-import { categories, projects, tracks } from '../db/schema.js';
+import { accountMemberships, categories, projects, tracks } from '../db/schema.js';
+import { insertTrackWithinQuota } from '../services/accounts.js';
 import { requireUser } from '../services/auth.js';
 import { ownsProject } from '../services/ownership.js';
 import { parseByteRange } from '../services/range.js';
@@ -51,7 +52,8 @@ function isAcceptedAudio(mimeType: string, filename: string): boolean {
 async function ownedTrack(userId: string, trackId: string) {
   const [row] = await db.select({ track: tracks }).from(tracks)
     .innerJoin(projects, eq(tracks.projectId, projects.id))
-    .where(and(eq(tracks.id, trackId), eq(projects.ownerId, userId))).limit(1);
+    .innerJoin(accountMemberships, eq(accountMemberships.accountId, projects.accountId))
+    .where(and(eq(tracks.id, trackId), eq(accountMemberships.userId, userId))).limit(1);
   return row?.track;
 }
 
@@ -103,7 +105,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
         return reply.code(400).send({ error: 'Catégorie invalide pour ce projet.' });
       }
 
-      const [track] = await db.insert(tracks).values({
+      const track = await insertTrackWithinQuota(user.id, {
         projectId: input.projectId,
         categoryId: input.categoryId,
         title: input.title,
@@ -123,7 +125,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
         storageKey: uploaded.key,
         mimeType: uploaded.mimeType,
         sizeBytes: uploaded.size,
-      }).returning();
+      });
       return reply.code(201).send({ track });
     } catch (error) {
       if (uploaded) await unlink(path.join(config.STORAGE_PATH, uploaded.key)).catch(() => undefined);
@@ -166,7 +168,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     });
     try {
       await pipeline(Readable.from(response.body as AsyncIterable<Uint8Array>), limiter, createWriteStream(destination, { flags: 'wx' }));
-      const [track] = await db.insert(tracks).values({
+      const track = await insertTrackWithinQuota(user.id, {
         projectId: input.projectId,
         categoryId: input.categoryId,
         title: input.title,
@@ -187,7 +189,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
         sourceUrl: input.sourceUrl ?? input.url,
         sourceId: input.sourceId,
         position: input.position,
-      }).returning();
+      });
       return reply.code(201).send({ track });
     } catch (error) {
       await unlink(destination).catch(() => undefined);

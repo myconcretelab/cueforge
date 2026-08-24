@@ -9,6 +9,7 @@ import { categories, playlistItems, playlists, projectColors, projects, tracks }
 import { requireUser } from '../services/auth.js';
 import { sameIds } from '../services/order.js';
 import { ownsProject } from '../services/ownership.js';
+import { accountForUser } from '../services/accounts.js';
 
 const idParams = z.object({ id: z.string().uuid() });
 const mouseActionSchema = z.enum(['start', 'crossfade', 'fade-in', 'replace', 'stop', 'none']);
@@ -29,26 +30,32 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/projects', async (request, reply) => {
     const user = await requireUser(request, reply);
     if (!user) return;
+    const account = await accountForUser(user.id);
+    if (!account) return reply.code(404).send({ error: 'Espace de travail introuvable.' });
     return {
-      projects: await db.select().from(projects).where(eq(projects.ownerId, user.id)).orderBy(asc(projects.position), asc(projects.createdAt)),
+      projects: await db.select().from(projects).where(eq(projects.accountId, account.id)).orderBy(asc(projects.position), asc(projects.createdAt)),
     };
   });
 
   app.post('/api/projects', async (request, reply) => {
     const user = await requireUser(request, reply);
     if (!user) return;
+    const account = await accountForUser(user.id);
+    if (!account) return reply.code(404).send({ error: 'Espace de travail introuvable.' });
     const input = z.object({ name: z.string().trim().min(1).max(120) }).parse(request.body);
-    const ownerProjects = await db.select({ position: projects.position }).from(projects).where(eq(projects.ownerId, user.id));
+    const ownerProjects = await db.select({ position: projects.position }).from(projects).where(eq(projects.accountId, account.id));
     const position = Math.max(-1, ...ownerProjects.map((project) => project.position)) + 1;
-    const [project] = await db.insert(projects).values({ ownerId: user.id, name: input.name, position }).returning();
+    const [project] = await db.insert(projects).values({ accountId: account.id, name: input.name, position }).returning();
     return reply.code(201).send({ project });
   });
 
   app.patch('/api/projects/reorder', async (request, reply) => {
     const user = await requireUser(request, reply);
     if (!user) return;
+    const account = await accountForUser(user.id);
+    if (!account) return reply.code(404).send({ error: 'Espace de travail introuvable.' });
     const input = z.object({ projectIds: z.array(z.string().uuid()).min(1).max(500) }).parse(request.body);
-    const ownerProjects = await db.select().from(projects).where(eq(projects.ownerId, user.id));
+    const ownerProjects = await db.select().from(projects).where(eq(projects.accountId, account.id));
     if (!sameIds(input.projectIds, ownerProjects.map((project) => project.id))) {
       return reply.code(400).send({ error: 'Ordre des spectacles invalide.' });
     }
@@ -57,7 +64,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
         await transaction.update(projects).set({ position, updatedAt: new Date() }).where(eq(projects.id, projectId));
       }
     });
-    const reordered = await db.select().from(projects).where(eq(projects.ownerId, user.id)).orderBy(asc(projects.position), asc(projects.createdAt));
+    const reordered = await db.select().from(projects).where(eq(projects.accountId, account.id)).orderBy(asc(projects.position), asc(projects.createdAt));
     return { projects: reordered };
   });
 
@@ -65,9 +72,8 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     const user = await requireUser(request, reply);
     if (!user) return;
     const { id } = idParams.parse(request.params);
-    const [project] = await db.select().from(projects)
-      .where(and(eq(projects.id, id), eq(projects.ownerId, user.id))).limit(1);
-    if (!project) return reply.code(404).send({ error: 'Projet introuvable.' });
+    if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    const [project] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
 
     const [colors, savedPlaylists, savedPlaylistItems, projectCategories, projectTracks] = await Promise.all([
       db.select().from(projectColors).where(eq(projectColors.projectId, id)).orderBy(asc(projectColors.position)),
@@ -107,11 +113,13 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     if (!user) return;
     const { id } = idParams.parse(request.params);
     if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    const account = await accountForUser(user.id);
+    if (!account) return reply.code(404).send({ error: 'Espace de travail introuvable.' });
     const projectTracks = await db.select({ storageKey: tracks.storageKey }).from(tracks).where(eq(tracks.projectId, id));
     await db.transaction(async (transaction) => {
-      await transaction.delete(projects).where(and(eq(projects.id, id), eq(projects.ownerId, user.id)));
+      await transaction.delete(projects).where(and(eq(projects.id, id), eq(projects.accountId, account.id)));
       const remaining = await transaction.select({ id: projects.id }).from(projects)
-        .where(eq(projects.ownerId, user.id)).orderBy(asc(projects.position), asc(projects.createdAt));
+        .where(eq(projects.accountId, account.id)).orderBy(asc(projects.position), asc(projects.createdAt));
       for (const [position, project] of remaining.entries()) {
         await transaction.update(projects).set({ position }).where(eq(projects.id, project.id));
       }

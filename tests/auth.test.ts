@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { hashPassword, verifyPassword } from '../src/server/services/auth.js';
 import { parseByteRange } from '../src/server/services/range.js';
+import { evaluateStorageAllowance } from '../src/server/services/account-access.js';
 
 describe('password hashing', () => {
   it('accepte le bon mot de passe et refuse les autres', async () => {
@@ -33,5 +34,26 @@ describe('HTTP byte ranges', () => {
   it('refuse les plages impossibles', () => {
     expect(parseByteRange('bytes=1000-', 1000)).toBeNull();
     expect(parseByteRange('bytes=-', 1000)).toBeNull();
+  });
+});
+
+describe('storage allowance', () => {
+  const future = new Date('2030-01-15T00:00:00Z');
+  const now = new Date('2030-01-01T00:00:00Z');
+
+  it('autorise un abonnement actif sans quota', () => {
+    expect(evaluateStorageAllowance({ subscriptionStatus: 'active', trialEndsAt: null, storageQuotaBytes: null, usedBytes: 10_000, incomingBytes: 5_000, now })).toEqual({ allowed: true });
+  });
+
+  it('autorise un essai en cours dans la limite de stockage', () => {
+    expect(evaluateStorageAllowance({ subscriptionStatus: 'trialing', trialEndsAt: future, storageQuotaBytes: 20_000, usedBytes: 10_000, incomingBytes: 5_000, now })).toEqual({ allowed: true });
+  });
+
+  it('refuse un essai expiré', () => {
+    expect(evaluateStorageAllowance({ subscriptionStatus: 'trialing', trialEndsAt: now, storageQuotaBytes: 20_000, usedBytes: 0, incomingBytes: 1, now })).toEqual({ allowed: false, reason: 'read-only' });
+  });
+
+  it('refuse un fichier qui dépasserait le quota', () => {
+    expect(evaluateStorageAllowance({ subscriptionStatus: 'active', trialEndsAt: null, storageQuotaBytes: 20_000, usedBytes: 18_000, incomingBytes: 2_001, now })).toEqual({ allowed: false, reason: 'quota-exceeded' });
   });
 });

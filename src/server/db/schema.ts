@@ -7,6 +7,7 @@ import {
   real,
   text,
   timestamp,
+  primaryKey,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
@@ -19,6 +20,27 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const accounts = pgTable('accounts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  planCode: text('plan_code').notNull().default('community'),
+  subscriptionStatus: text('subscription_status').notNull().default('active'),
+  storageQuotaBytes: bigint('storage_quota_bytes', { mode: 'number' }),
+  trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const accountMemberships = pgTable('account_memberships', {
+  accountId: uuid('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role: text('role').notNull().default('owner'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  primaryKey({ columns: [table.accountId, table.userId] }),
+  index('account_memberships_user_id_idx').on(table.userId),
+]);
+
 export const sessions = pgTable('sessions', {
   tokenHash: text('token_hash').primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -28,7 +50,7 @@ export const sessions = pgTable('sessions', {
 
 export const projects = pgTable('projects', {
   id: uuid('id').primaryKey().defaultRandom(),
-  ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  accountId: uuid('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   leftClickAction: text('left_click_action').notNull().default('start'),
   rightClickAction: text('right_click_action').notNull().default('crossfade'),
@@ -38,7 +60,7 @@ export const projects = pgTable('projects', {
   position: integer('position').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [index('projects_owner_id_idx').on(table.ownerId)]);
+}, (table) => [index('projects_account_id_idx').on(table.accountId)]);
 
 export const categories = pgTable('categories', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -107,6 +129,7 @@ export const playlistItems = pgTable('playlist_items', {
 }, (table) => [index('playlist_items_playlist_id_idx').on(table.playlistId), index('playlist_items_track_id_idx').on(table.trackId)]);
 
 export type User = typeof users.$inferSelect;
+export type Account = typeof accounts.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type ProjectColor = typeof projectColors.$inferSelect;
 export type Playlist = typeof playlists.$inferSelect;

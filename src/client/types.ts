@@ -10,7 +10,7 @@ export type KeyAction = 'stop-all' | 'stop-all-immediate' | 'none';
 export interface Project {
   id: string;
   name: string;
-  ownerId: string;
+  accountId: string;
   leftClickAction: MouseAction;
   rightClickAction: MouseAction;
   escapeKeyAction: KeyAction;
@@ -19,6 +19,16 @@ export interface Project {
   position: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AccountSummary {
+  id: string;
+  name: string;
+  planCode: string;
+  subscriptionStatus: string;
+  storageQuotaBytes: number | null;
+  storageUsedBytes: number;
+  trialEndsAt: string | null;
 }
 
 export interface Category {

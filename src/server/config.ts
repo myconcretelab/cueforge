@@ -13,6 +13,9 @@ const schema = z.object({
     (value) => value === '' ? undefined : value,
     z.string().trim().min(1).optional(),
   ),
+  SAAS_MODE: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
+  TRIAL_DAYS: z.coerce.number().int().min(1).max(365).default(14),
+  TRIAL_STORAGE_BYTES: z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER).default(2 * 1024 * 1024 * 1024),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 

@@ -14,6 +14,8 @@ import { projectRoutes } from './routes/projects.js';
 import { trackRoutes } from './routes/tracks.js';
 import { importRoutes } from './routes/imports.js';
 import { freesoundRoutes } from './routes/freesound.js';
+import { accountRoutes } from './routes/account.js';
+import { AccountStorageError } from './services/accounts.js';
 
 export async function buildApp() {
   const app = Fastify({ logger: true, trustProxy: true });
@@ -30,6 +32,7 @@ export async function buildApp() {
 
   app.get('/api/health', async () => ({ status: 'ok' }));
   await app.register(authRoutes);
+  await app.register(accountRoutes);
   await app.register(projectRoutes);
   await app.register(trackRoutes);
   await app.register(importRoutes);
@@ -41,6 +44,9 @@ export async function buildApp() {
     }
     if ((error as { code?: string }).code === '23505') {
       return reply.code(409).send({ error: 'Cette valeur existe déjà.' });
+    }
+    if (error instanceof AccountStorageError) {
+      return reply.code(error.reason === 'quota-exceeded' ? 413 : 403).send({ error: error.message, reason: error.reason });
     }
     app.log.error(error);
     return reply.code(500).send({ error: 'Une erreur interne est survenue.' });

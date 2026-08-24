@@ -4,7 +4,7 @@ SoundFlow est une régie son web inspirée de SoundShow. Les médias sont stock�
 
 ## Fonctionnalités actuelles
 
-- premier compte administrateur unique, sessions sécurisées et mots de passe dérivés avec `scrypt` ;
+- comptes multiples avec espace de travail isolé, sessions sécurisées et mots de passe dérivés avec `scrypt` ;
 - plusieurs spectacles et catégories colorées, réordonnables et supprimables, avec recherche globale ;
 - import MP3, WAV, OGG, FLAC et AAC jusqu’à 250 Mo ;
 - recherche Freesound avec filtres de durée minimale et maximale, préécoute, renommage et import dans la catégorie choisie ;
@@ -69,7 +69,12 @@ SESSION_SECRET=<une-valeur-aleatoire-d-au-moins-32-caracteres>
 STORAGE_PATH=/home/<compte>/soundflow/storage
 PUBLIC_URL=https://<votre-domaine>
 FREESOUND_API_KEY=<clé-api-freesound>
+SAAS_MODE=false
+TRIAL_DAYS=14
+TRIAL_STORAGE_BYTES=2147483648
 ```
+
+`SAAS_MODE=false` conserve le fonctionnement communautaire sans quota. Avec `SAAS_MODE=true`, chaque nouvelle inscription reçoit un essai dont la durée et le stockage sont définis par `TRIAL_DAYS` et `TRIAL_STORAGE_BYTES`. Les comptes communautaires existants restent actifs et sans quota lors de la migration.
 
 5. Depuis SSH, préparer l’application :
 
