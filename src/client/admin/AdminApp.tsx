@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Activity, BadgeEuro, Boxes, CircleAlert, Database, Gauge, LayoutDashboard, LoaderCircle, LogOut, RefreshCcw, Search, ShieldCheck, Users, X } from 'lucide-react';
+import { Activity, BadgeEuro, Boxes, CircleAlert, Copy, Database, Gauge, HardDrive, LayoutDashboard, LoaderCircle, LogOut, RefreshCcw, Search, ShieldCheck, Trash2, Users, X } from 'lucide-react';
 import { AuthScreen } from '../components/AuthScreen';
 import { api, ApiError } from '../lib/api';
 import type { AdminAccount, AdminOverview, AdminUser, AuditEntry, CommercialPlan, User } from '../types';
 
 type Section = 'overview' | 'accounts' | 'plans' | 'users';
 type AccountStatus = AdminAccount['accessStatus'];
+type PlanEditorTarget = { mode: 'create' | 'edit'; source?: CommercialPlan };
 
 const statusLabels: Record<AccountStatus, string> = {
   trialing: 'Essai',
@@ -53,7 +54,7 @@ export function AdminApp() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingAccount, setEditingAccount] = useState<AdminAccount>();
-  const [editingPlan, setEditingPlan] = useState<CommercialPlan | 'new'>();
+  const [editingPlan, setEditingPlan] = useState<PlanEditorTarget>();
 
   useEffect(() => {
     api.me().then(({ user: current }) => setUser(current)).catch((cause) => {
@@ -115,11 +116,11 @@ export function AdminApp() {
       {error && <div className="admin-error"><CircleAlert size={18} />{error}<button onClick={() => setError('')}><X size={15} /></button></div>}
       {section === 'overview' && overview && <OverviewSection overview={overview} audit={audit} />}
       {section === 'accounts' && <AccountsSection accounts={accounts} canEdit={user.platformRole === 'super_admin'} search={search} onSearch={setSearch} onSubmitSearch={loadSection} onEdit={setEditingAccount} />}
-      {section === 'plans' && <PlansSection plans={plans} canEdit={user.platformRole === 'super_admin'} onEdit={setEditingPlan} />}
+      {section === 'plans' && <PlansSection plans={plans} canEdit={user.platformRole === 'super_admin'} onEdit={(plan) => setEditingPlan({ mode: 'edit', source: plan })} onCreate={() => setEditingPlan({ mode: 'create' })} onDuplicate={(plan) => setEditingPlan({ mode: 'create', source: plan })} />}
       {section === 'users' && <UsersSection users={users} currentUser={user} search={search} onSearch={setSearch} onSubmitSearch={loadSection} onChanged={loadSection} onError={setError} />}
     </main>
     {editingAccount && <AccountEditor account={editingAccount} plans={plans} onClose={() => setEditingAccount(undefined)} onSaved={() => { setEditingAccount(undefined); loadSection().catch(() => undefined); }} onError={setError} />}
-    {editingPlan && <PlanEditor plan={editingPlan} onClose={() => setEditingPlan(undefined)} onSaved={() => { setEditingPlan(undefined); loadSection().catch(() => undefined); }} onError={setError} />}
+    {editingPlan && <PlanEditor target={editingPlan} onClose={() => setEditingPlan(undefined)} onSaved={() => { setEditingPlan(undefined); loadSection().catch(() => undefined); }} onError={setError} />}
   </div>;
 }
 
@@ -146,8 +147,28 @@ function AccountsSection({ accounts, canEdit, search, onSearch, onSubmitSearch, 
   return <section className="admin-panel"><header><div><h2>Espaces clients</h2><p>Forfait, accès, abonnement et consommation.</p></div><SearchBar value={search} onChange={onSearch} onSubmit={onSubmitSearch} placeholder="Nom ou e-mail" /></header><div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Compte</th><th>Forfait</th><th>État</th><th>Stockage</th><th>Contenu</th>{canEdit && <th />}</tr></thead><tbody>{accounts.map((account) => <tr key={account.id}><td><strong>{account.name}</strong><small>{account.subscriptionStatus ?? 'Sans abonnement'}</small></td><td>{account.planName}</td><td><span className={`status status-${account.accessStatus}`}>{statusLabels[account.accessStatus]}</span></td><td><strong>{formatBytes(account.storageUsedBytes)}</strong><small>sur {formatBytes(account.storageQuotaBytes)}</small></td><td>{account.projectCount} projet{account.projectCount > 1 ? 's' : ''}<small>{account.memberCount} membre{account.memberCount > 1 ? 's' : ''}</small></td>{canEdit && <td><button className="table-action" onClick={() => onEdit(account)}>Gérer</button></td>}</tr>)}</tbody></table>{accounts.length === 0 && <p className="admin-empty">Aucun compte trouvé.</p>}</div></section>;
 }
 
-function PlansSection({ plans, canEdit, onEdit }: { plans: CommercialPlan[]; canEdit: boolean; onEdit: (plan: CommercialPlan | 'new') => void }) {
-  return <div className="admin-content"><div className="admin-section-actions"><p>Les comptes utilisent les quotas et la durée d’essai de ces forfaits.</p>{canEdit && <button className="button primary" onClick={() => onEdit('new')}>Nouveau forfait</button>}</div><section className="plan-grid">{plans.map((plan) => <article key={plan.code} className={!plan.active ? 'inactive' : ''}><header><span>{plan.code}</span>{plan.isDefault && <em>Par défaut</em>}</header><h2>{plan.name}</h2><p>{plan.description || 'Aucune description.'}</p><dl><div><dt>Stockage</dt><dd>{formatBytes(plan.storageQuotaBytes)}</dd></div><div><dt>Essai</dt><dd>{plan.trialDays} jours</dd></div><div><dt>Mensuel</dt><dd>{formatPrice(plan.monthlyPriceCents, '/mois')}</dd></div><div><dt>Annuel</dt><dd>{formatPrice(plan.annualPriceCents, '/an')}</dd></div></dl>{canEdit && <button className="table-action" onClick={() => onEdit(plan)}>Modifier</button>}</article>)}</section></div>;
+function PlansSection({ plans, canEdit, onEdit, onCreate, onDuplicate }: { plans: CommercialPlan[]; canEdit: boolean; onEdit: (plan: CommercialPlan) => void; onCreate: () => void; onDuplicate: (plan: CommercialPlan) => void }) {
+  const activePlans = plans.filter((plan) => plan.active).length;
+  const assignedAccounts = plans.reduce((total, plan) => total + plan.accountCount, 0);
+  const defaultPlan = plans.find((plan) => plan.isDefault);
+  return <div className="admin-content">
+    <div className="admin-section-actions"><p>Les prix, quotas et essais sont appliqués par forfait.</p>{canEdit && <button className="button primary" onClick={onCreate}>Nouveau forfait</button>}</div>
+    <section className="plan-summary-grid">
+      <article><span><BadgeEuro size={18} /></span><strong>{plans.length}</strong><small>Forfaits configurés</small></article>
+      <article><span><ShieldCheck size={18} /></span><strong>{activePlans}</strong><small>Forfaits actifs</small></article>
+      <article><span><Users size={18} /></span><strong>{assignedAccounts}</strong><small>Comptes attribués</small></article>
+      <article><span><Gauge size={18} /></span><strong>{defaultPlan?.name ?? '—'}</strong><small>Forfait par défaut</small></article>
+    </section>
+    <section className="plan-grid">{plans.map((plan) => <article key={plan.code} className={!plan.active ? 'inactive' : ''}>
+      <header><span>{plan.code}</span><div>{plan.isDefault && <em>Par défaut</em>}<em className={plan.active ? 'active' : 'disabled'}>{plan.active ? 'Actif' : 'Inactif'}</em></div></header>
+      <h2>{plan.name}</h2>
+      <p>{plan.description || 'Aucune description.'}</p>
+      <div className="plan-price"><strong>{formatPrice(plan.monthlyPriceCents, '/mois')}</strong><small>{formatPrice(plan.annualPriceCents, '/an')}</small></div>
+      <dl><div><dt><HardDrive size={14} />Stockage</dt><dd>{formatBytes(plan.storageQuotaBytes)}</dd></div><div><dt><Activity size={14} />Essai</dt><dd>{plan.trialDays} jours</dd></div><div><dt><Users size={14} />Comptes</dt><dd>{plan.accountCount}</dd></div></dl>
+      {canEdit && <footer><button className="table-action secondary" onClick={() => onDuplicate(plan)}><Copy size={14} />Dupliquer</button><button className="table-action" onClick={() => onEdit(plan)}>Modifier</button></footer>}
+    </article>)}</section>
+    {plans.length === 0 && <section className="admin-panel"><p className="admin-empty">Aucun forfait configuré.</p></section>}
+  </div>;
 }
 
 function UsersSection({ users, currentUser, search, onSearch, onSubmitSearch, onChanged, onError }: { users: AdminUser[]; currentUser: User; search: string; onSearch: (value: string) => void; onSubmitSearch: () => void; onChanged: () => void; onError: (message: string) => void }) {
@@ -159,6 +180,8 @@ function UsersSection({ users, currentUser, search, onSearch, onSubmitSearch, on
 
 function AccountEditor({ account, plans, onClose, onSaved, onError }: { account: AdminAccount; plans: CommercialPlan[]; onClose: () => void; onSaved: () => void; onError: (message: string) => void }) {
   const [saving, setSaving] = useState(false);
+  const [planCode, setPlanCode] = useState(account.planCode);
+  const selectedPlan = plans.find((plan) => plan.code === planCode);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true);
     const data = new FormData(event.currentTarget);
@@ -175,13 +198,15 @@ function AccountEditor({ account, plans, onClose, onSaved, onError }: { account:
       onSaved();
     } catch (cause) { onError(cause instanceof Error ? cause.message : 'Enregistrement impossible.'); setSaving(false); }
   }
-  return <div className="admin-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><form className="admin-modal" onSubmit={submit}><header><div><p className="eyebrow">Compte client</p><h2>{account.name}</h2></div><button type="button" onClick={onClose}><X /></button></header><label>Nom du compte<input name="name" defaultValue={account.name} required /></label><label>Forfait<select name="planCode" defaultValue={account.planCode}>{plans.filter((plan) => plan.active || plan.code === account.planCode).map((plan) => <option key={plan.code} value={plan.code}>{plan.name}</option>)}</select></label><label>État d’accès<select name="accessStatus" defaultValue={account.accessStatus}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>Fin de l’essai<input name="trialEndsAt" type="datetime-local" defaultValue={toLocalDate(account.trialEndsAt)} /></label><label>Quota exceptionnel en Go <small>Laisser vide pour utiliser le quota du forfait.</small><input name="storageQuotaOverrideGb" type="number" min="0.001" step="0.001" defaultValue={account.storageQuotaOverrideBytes ? account.storageQuotaOverrideBytes / 1024 ** 3 : ''} /></label><footer><button type="button" className="button ghost" onClick={onClose}>Annuler</button><button className="button primary" disabled={saving}>{saving && <LoaderCircle className="spin" size={16} />}Enregistrer</button></footer></form></div>;
+  return <div className="admin-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><form className="admin-modal" onSubmit={submit}><header><div><p className="eyebrow">Compte client</p><h2>{account.name}</h2></div><button type="button" onClick={onClose}><X /></button></header><label>Nom du compte<input name="name" defaultValue={account.name} required /></label><label>Forfait<select name="planCode" value={planCode} onChange={(event) => setPlanCode(event.target.value)}>{plans.filter((plan) => plan.active || plan.code === account.planCode).map((plan) => <option key={plan.code} value={plan.code}>{plan.name}</option>)}</select></label>{selectedPlan && <div className="account-plan-summary"><div><span>Mensuel</span><strong>{formatPrice(selectedPlan.monthlyPriceCents, '')}</strong></div><div><span>Annuel</span><strong>{formatPrice(selectedPlan.annualPriceCents, '')}</strong></div><div><span>Quota</span><strong>{formatBytes(selectedPlan.storageQuotaBytes)}</strong></div><div><span>Essai</span><strong>{selectedPlan.trialDays} jours</strong></div></div>}<label>État d’accès<select name="accessStatus" defaultValue={account.accessStatus}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>Fin de l’essai<input name="trialEndsAt" type="datetime-local" defaultValue={toLocalDate(account.trialEndsAt)} /></label><label>Quota exceptionnel en Go <small>Laisser vide pour utiliser le quota du forfait.</small><input name="storageQuotaOverrideGb" type="number" min="0.001" step="0.001" defaultValue={account.storageQuotaOverrideBytes ? account.storageQuotaOverrideBytes / 1024 ** 3 : ''} /></label><footer><button type="button" className="button ghost" onClick={onClose}>Annuler</button><button className="button primary" disabled={saving}>{saving && <LoaderCircle className="spin" size={16} />}Enregistrer</button></footer></form></div>;
 }
 
-function PlanEditor({ plan, onClose, onSaved, onError }: { plan: CommercialPlan | 'new'; onClose: () => void; onSaved: () => void; onError: (message: string) => void }) {
-  const current = plan === 'new' ? undefined : plan;
+function PlanEditor({ target, onClose, onSaved, onError }: { target: PlanEditorTarget; onClose: () => void; onSaved: () => void; onError: (message: string) => void }) {
+  const current = target.mode === 'edit' ? target.source : undefined;
+  const template = target.source;
   const [saving, setSaving] = useState(false);
-  const title = useMemo(() => current?.name ?? 'Nouveau forfait', [current]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const title = useMemo(() => current?.name ?? (template ? `Dupliquer ${template.name}` : 'Nouveau forfait'), [current, template]);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true);
     const data = new FormData(event.currentTarget);
@@ -202,5 +227,13 @@ function PlanEditor({ plan, onClose, onSaved, onError }: { plan: CommercialPlan 
       onSaved();
     } catch (cause) { onError(cause instanceof Error ? cause.message : 'Enregistrement impossible.'); setSaving(false); }
   }
-  return <div className="admin-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><form className="admin-modal" onSubmit={submit}><header><div><p className="eyebrow">Catalogue commercial</p><h2>{title}</h2></div><button type="button" onClick={onClose}><X /></button></header><label>Code<input name="code" defaultValue={current?.code ?? ''} disabled={Boolean(current)} required pattern="[a-z0-9][a-z0-9_-]{1,39}" /></label><label>Nom<input name="name" defaultValue={current?.name ?? ''} required /></label><label>Description<textarea name="description" defaultValue={current?.description ?? ''} rows={3} /></label><div className="admin-form-grid"><label>Stockage en Go<input name="storageGb" type="number" min="0.001" step="0.001" defaultValue={current ? current.storageQuotaBytes / 1024 ** 3 : 5} required /></label><label>Durée d’essai<input name="trialDays" type="number" min="0" max="365" defaultValue={current?.trialDays ?? 14} required /></label><label>Prix mensuel (€)<input name="monthlyPrice" type="number" min="0" step="0.01" defaultValue={current?.monthlyPriceCents === null || current?.monthlyPriceCents === undefined ? '' : current.monthlyPriceCents / 100} /></label><label>Prix annuel (€)<input name="annualPrice" type="number" min="0" step="0.01" defaultValue={current?.annualPriceCents === null || current?.annualPriceCents === undefined ? '' : current.annualPriceCents / 100} /></label></div><div className="admin-checks"><label><input name="active" type="checkbox" defaultChecked={current?.active ?? true} />Forfait actif</label><label><input name="isDefault" type="checkbox" defaultChecked={current?.isDefault ?? false} />Forfait par défaut</label></div><footer><button type="button" className="button ghost" onClick={onClose}>Annuler</button><button className="button primary" disabled={saving}>{saving && <LoaderCircle className="spin" size={16} />}Enregistrer</button></footer></form></div>;
+  async function removePlan() {
+    if (!current) return;
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    setSaving(true);
+    try { await api.deleteAdminPlan(current.code); onSaved(); }
+    catch (cause) { onError(cause instanceof Error ? cause.message : 'Suppression impossible.'); setSaving(false); setConfirmDelete(false); }
+  }
+  const deleteDisabled = Boolean(current?.isDefault || current?.accountCount);
+  return <div className="admin-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><form className="admin-modal" onSubmit={submit}><header><div><p className="eyebrow">Catalogue commercial</p><h2>{title}</h2></div><button type="button" onClick={onClose}><X /></button></header><label>Code<input name="code" defaultValue={current?.code ?? ''} disabled={Boolean(current)} required pattern="[a-z0-9][a-z0-9_-]{1,39}" placeholder={template ? `${template.code}-copie` : 'exemple-pro'} /></label><label>Nom<input name="name" defaultValue={current?.name ?? (template ? `Copie de ${template.name}` : '')} required /></label><label>Description<textarea name="description" defaultValue={template?.description ?? ''} rows={3} /></label><div className="admin-form-grid"><label>Stockage en Go<input name="storageGb" type="number" min="0.001" step="0.001" defaultValue={template ? template.storageQuotaBytes / 1024 ** 3 : 5} required /></label><label>Durée d’essai<input name="trialDays" type="number" min="0" max="365" defaultValue={template?.trialDays ?? 14} required /></label><label>Prix mensuel (€)<input name="monthlyPrice" type="number" min="0" step="0.01" defaultValue={template?.monthlyPriceCents === null || template?.monthlyPriceCents === undefined ? '' : template.monthlyPriceCents / 100} /></label><label>Prix annuel (€)<input name="annualPrice" type="number" min="0" step="0.01" defaultValue={template?.annualPriceCents === null || template?.annualPriceCents === undefined ? '' : template.annualPriceCents / 100} /></label></div><div className="admin-checks"><label><input name="active" type="checkbox" defaultChecked={template?.active ?? true} />Forfait actif</label><label><input name="isDefault" type="checkbox" defaultChecked={current?.isDefault ?? false} />Forfait par défaut</label></div>{current && <p className="plan-delete-note">{current.isDefault ? 'Le forfait par défaut ne peut pas être supprimé.' : current.accountCount > 0 ? `${current.accountCount} compte${current.accountCount > 1 ? 's utilisent' : ' utilise'} ce forfait.` : 'Ce forfait n’est attribué à aucun compte.'}</p>}<footer className={current ? 'with-delete' : ''}>{current && <button type="button" className={`button danger ${confirmDelete ? 'confirm' : ''}`} disabled={saving || deleteDisabled} onClick={removePlan}><Trash2 size={15} />{confirmDelete ? 'Confirmer la suppression' : 'Supprimer'}</button>}<span /><button type="button" className="button ghost" onClick={onClose}>Annuler</button><button className="button primary" disabled={saving}>{saving && <LoaderCircle className="spin" size={16} />}Enregistrer</button></footer></form></div>;
 }

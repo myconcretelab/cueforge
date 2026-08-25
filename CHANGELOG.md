@@ -2,6 +2,23 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.8.0] - 2026-08-25
+
+### Ajouté
+
+- synthèse des forfaits configurés, actifs, attribués et par défaut dans le tableau de bord ;
+- nombre de comptes associés à chaque forfait ;
+- duplication d’un forfait avec reprise de ses réglages commerciaux ;
+- suppression des forfaits inutilisés et non définis par défaut ;
+- résumé du prix, du quota et de la durée d’essai lors de l’attribution d’un forfait à un compte ;
+- journalisation de la suppression d’un forfait.
+
+### Modifié
+
+- nouvelle présentation du catalogue des forfaits et de leurs états ;
+- validation renforcée du forfait par défaut ;
+- passage de l’application à la version `0.8.0`.
+
 ## [0.7.0] - 2026-08-25
 
 ### Ajouté

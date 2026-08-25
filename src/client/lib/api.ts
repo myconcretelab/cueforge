@@ -43,8 +43,9 @@ export const api = {
   adminUsers: (search = '') => request<{ users: AdminUser[] }>(`/api/admin/users?search=${encodeURIComponent(search)}`),
   updateAdminUser: (id: string, input: { platformRole?: User['platformRole']; disabled?: boolean }) => request<{ user: AdminUser }>(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
   adminPlans: () => request<{ plans: CommercialPlan[] }>('/api/admin/plans'),
-  createAdminPlan: (input: Omit<CommercialPlan, 'createdAt' | 'updatedAt'>) => request<{ plan: CommercialPlan }>('/api/admin/plans', { method: 'POST', body: JSON.stringify(input) }),
-  updateAdminPlan: (code: string, input: Partial<Omit<CommercialPlan, 'code' | 'createdAt' | 'updatedAt'>>) => request<{ plan: CommercialPlan }>(`/api/admin/plans/${encodeURIComponent(code)}`, { method: 'PATCH', body: JSON.stringify(input) }),
+  createAdminPlan: (input: Omit<CommercialPlan, 'accountCount' | 'createdAt' | 'updatedAt'>) => request<{ plan: CommercialPlan }>('/api/admin/plans', { method: 'POST', body: JSON.stringify(input) }),
+  updateAdminPlan: (code: string, input: Partial<Omit<CommercialPlan, 'code' | 'accountCount' | 'createdAt' | 'updatedAt'>>) => request<{ plan: CommercialPlan }>(`/api/admin/plans/${encodeURIComponent(code)}`, { method: 'PATCH', body: JSON.stringify(input) }),
+  deleteAdminPlan: (code: string) => request<void>(`/api/admin/plans/${encodeURIComponent(code)}`, { method: 'DELETE' }),
   projects: () => request<{ projects: Project[] }>('/api/projects'),
   createProject: (name: string) => request<{ project: Project }>('/api/projects', {
     method: 'POST', body: JSON.stringify({ name }),

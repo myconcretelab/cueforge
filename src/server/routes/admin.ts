@@ -1,9 +1,10 @@
 import type { FastifyInstance } from 'fastify';
-import { and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, getTableColumns, ilike, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db/index.js';
 import { accountMemberships, accounts, auditLogs, plans, projects, subscriptions, tracks, users } from '../db/schema.js';
 import { requirePlatformAdmin, requireSuperAdmin, writeAuditLog } from '../services/admin.js';
+import { planDeletionError } from '../services/commercial-plans.js';
 
 const accountStatuses = ['trialing', 'active', 'grace_period', 'read_only', 'suspended'] as const;
 const platformRoles = ['user', 'support', 'admin', 'super_admin'] as const;
@@ -209,7 +210,11 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/admin/plans', async (request, reply) => {
     const admin = await requirePlatformAdmin(request, reply);
     if (!admin) return;
-    return { plans: await db.select().from(plans).orderBy(desc(plans.isDefault), asc(plans.name)) };
+    const rows = await db.select({
+      ...getTableColumns(plans),
+      accountCount: sql<number>`(select count(*)::int from ${accounts} a where a.plan_code = ${plans.code})`,
+    }).from(plans).orderBy(desc(plans.isDefault), desc(plans.active), asc(plans.name));
+    return { plans: rows.map((plan) => ({ ...plan, accountCount: numberValue(plan.accountCount) })) };
   });
 
   app.post('/api/admin/plans', async (request, reply) => {
@@ -222,7 +227,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       return created;
     });
     await writeAuditLog({ actorUserId: admin.id, action: 'plan.created', entityType: 'plan', entityId: plan.code, details: input, ipAddress: request.ip });
-    return reply.code(201).send({ plan });
+    return reply.code(201).send({ plan: { ...plan, accountCount: 0 } });
   });
 
   app.patch('/api/admin/plans/:code', async (request, reply) => {
@@ -230,22 +235,47 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     if (!admin) return;
     const { code } = z.object({ code: planCodeSchema }).parse(request.params);
     const input = planUpdateSchema.parse(request.body);
-    if (input.isDefault && input.active === false) return reply.code(400).send({ error: 'Le forfait par défaut doit être actif.' });
-    if (input.active === false) {
-      const [existing] = await db.select({ isDefault: plans.isDefault }).from(plans).where(eq(plans.code, code)).limit(1);
-      if (existing?.isDefault && input.isDefault !== false) return reply.code(400).send({ error: 'Choisissez un autre forfait par défaut avant de désactiver celui-ci.' });
-    }
-    if (input.isDefault === false) {
-      const [existing] = await db.select({ isDefault: plans.isDefault }).from(plans).where(eq(plans.code, code)).limit(1);
-      if (existing?.isDefault) return reply.code(400).send({ error: 'Choisissez un autre forfait par défaut avant de désactiver celui-ci.' });
-    }
+    const [existing] = await db.select({
+      active: plans.active,
+      isDefault: plans.isDefault,
+      accountCount: sql<number>`(select count(*)::int from ${accounts} a where a.plan_code = ${plans.code})`,
+    }).from(plans).where(eq(plans.code, code)).limit(1);
+    if (!existing) return reply.code(404).send({ error: 'Forfait introuvable.' });
+    const nextActive = input.active ?? existing.active;
+    const nextDefault = input.isDefault ?? existing.isDefault;
+    if (nextDefault && !nextActive) return reply.code(400).send({ error: 'Le forfait par défaut doit être actif.' });
+    if (existing.isDefault && !nextDefault) return reply.code(400).send({ error: 'Choisissez un autre forfait par défaut avant de désactiver celui-ci.' });
     const plan = await db.transaction(async (transaction) => {
       if (input.isDefault) await transaction.update(plans).set({ isDefault: false, updatedAt: new Date() });
       const [updated] = await transaction.update(plans).set({ ...input, updatedAt: new Date() }).where(eq(plans.code, code)).returning();
       return updated;
     });
-    if (!plan) return reply.code(404).send({ error: 'Forfait introuvable.' });
     await writeAuditLog({ actorUserId: admin.id, action: 'plan.updated', entityType: 'plan', entityId: code, details: input, ipAddress: request.ip });
-    return { plan };
+    return { plan: { ...plan, accountCount: numberValue(existing.accountCount) } };
+  });
+
+  app.delete('/api/admin/plans/:code', async (request, reply) => {
+    const admin = await requireSuperAdmin(request, reply);
+    if (!admin) return;
+    const { code } = z.object({ code: planCodeSchema }).parse(request.params);
+    const [plan] = await db.select({
+      code: plans.code,
+      name: plans.name,
+      isDefault: plans.isDefault,
+      accountCount: sql<number>`(select count(*)::int from ${accounts} a where a.plan_code = ${plans.code})`,
+    }).from(plans).where(eq(plans.code, code)).limit(1);
+    if (!plan) return reply.code(404).send({ error: 'Forfait introuvable.' });
+    const deletionError = planDeletionError({ isDefault: plan.isDefault, accountCount: numberValue(plan.accountCount) });
+    if (deletionError) return reply.code(409).send({ error: deletionError });
+    await db.delete(plans).where(eq(plans.code, code));
+    await writeAuditLog({
+      actorUserId: admin.id,
+      action: 'plan.deleted',
+      entityType: 'plan',
+      entityId: code,
+      details: { name: plan.name },
+      ipAddress: request.ip,
+    });
+    return reply.code(204).send();
   });
 }

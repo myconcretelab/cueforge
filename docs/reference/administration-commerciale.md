@@ -37,6 +37,20 @@ Un forfait définit son code, son nom, son quota, sa durée d’essai, ses prix 
 
 Le forfait par défaut est attribué aux nouveaux comptes. Ses prix peuvent rester non définis tant qu’aucun prestataire de paiement n’est connecté.
 
+La rubrique **Forfaits** affiche :
+
+- le nombre de forfaits configurés et actifs ;
+- le nombre total de comptes attribués ;
+- le forfait par défaut ;
+- les prix mensuel et annuel de chaque forfait ;
+- le quota de stockage, la durée d’essai et le nombre de comptes associés.
+
+Le bouton **Nouveau forfait** crée un forfait. Le bouton **Dupliquer** ouvre un nouveau forfait avec les valeurs du forfait source. Le code du forfait dupliqué reste à saisir.
+
+Un forfait peut être supprimé uniquement s’il n’est attribué à aucun compte et s’il n’est pas le forfait par défaut. Un forfait inactif reste appliqué aux comptes qui l’utilisent déjà, mais il n’apparaît plus dans les forfaits attribuables à un autre compte.
+
+La fenêtre de gestion d’un compte affiche les prix, le quota et la durée d’essai du forfait sélectionné. Le quota exceptionnel du compte remplace le quota du forfait lorsqu’il est défini.
+
 ## Abonnements
 
 La table des abonnements conserve le prestataire, les identifiants du client et de l’abonnement, l’intervalle de facturation, l’état, la période courante et la demande de résiliation en fin de période. Le prestataire `manual` et l’état `none` sont utilisés avant la connexion d’un système de paiement.

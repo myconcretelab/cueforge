@@ -9,6 +9,19 @@ export interface AppRelease {
 
 export const APP_RELEASES: AppRelease[] = [
   {
+    version: '0.8.0',
+    date: '2026-08-25',
+    title: 'Gestion complète des forfaits',
+    summary: 'Le tableau de bord super-administrateur centralise les prix, quotas et règles de chaque forfait.',
+    important: false,
+    changes: [
+      'La vue Forfaits affiche les prix mensuels et annuels, le quota, l’essai et le nombre de comptes attribués.',
+      'Un forfait peut être créé, modifié ou dupliqué depuis le catalogue commercial.',
+      'Un forfait inutilisé peut être supprimé s’il n’est pas défini par défaut.',
+      'La fiche d’un compte résume le prix et les limites du forfait sélectionné.',
+    ],
+  },
+  {
     version: '0.7.0',
     date: '2026-08-25',
     title: 'Réinitialisation du mot de passe',

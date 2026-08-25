@@ -87,4 +87,16 @@ describe('client API', () => {
 
     expect(fetcher).toHaveBeenCalledWith(`/api/projects/${projectId}/playlists/${playlistId}/position`, expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ position: 4, categoryId }) }));
   });
+
+  it('supprime un forfait commercial sans envoyer de corps JSON', async () => {
+    const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetcher);
+
+    await api.deleteAdminPlan('studio');
+
+    expect(fetcher).toHaveBeenCalledWith('/api/admin/plans/studio', expect.objectContaining({
+      method: 'DELETE',
+      headers: undefined,
+    }));
+  });
 });

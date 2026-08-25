@@ -58,6 +58,7 @@ export interface CommercialPlan {
   trialDays: number;
   isDefault: boolean;
   active: boolean;
+  accountCount: number;
   createdAt: string;
   updatedAt: string;
 }

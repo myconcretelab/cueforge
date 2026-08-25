@@ -2,6 +2,15 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.8.0 — 25 août 2026
+
+- ajout des indicateurs d’utilisation des forfaits ;
+- ajout de la duplication et de la suppression contrôlée ;
+- présentation des prix, quotas et essais dans le catalogue ;
+- résumé du forfait dans la fiche d’un compte.
+
+[Détails de la version 0.8.0](./0.8.0.md)
+
 ## Version 0.7.0 — 25 août 2026
 
 - ajout de la demande de réinitialisation depuis la page de connexion ;
