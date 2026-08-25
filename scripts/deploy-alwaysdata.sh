@@ -62,6 +62,12 @@ printf '%s\n' "$site_environment" | ssh "$ALWAYSDATA_ACCOUNT@$ALWAYSDATA_SSH_HOS
   git merge --ff-only 'origin/$DEPLOY_BRANCH'
   npm ci --include=dev --include=optional --loglevel=warn
   npm run build
+  command -v pg_dump >/dev/null
+  backup_dir='/home/myconcretelab/backups/s1'
+  mkdir -p \"\$backup_dir\"
+  backup_file=\"\$backup_dir/s1-\$(date -u +%Y%m%dT%H%M%SZ)-${local_commit:0:12}.dump\"
+  pg_dump --format=custom --no-owner --no-acl \"\$DATABASE_URL\" > \"\$backup_file\"
+  test -s \"\$backup_file\"
   npm run db:migrate
   test -f dist/server/index.js
   test -f dist/client/index.html

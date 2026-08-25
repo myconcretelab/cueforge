@@ -15,6 +15,8 @@ import { trackRoutes } from './routes/tracks.js';
 import { importRoutes } from './routes/imports.js';
 import { freesoundRoutes } from './routes/freesound.js';
 import { accountRoutes } from './routes/account.js';
+import { releaseRoutes } from './routes/releases.js';
+import { CURRENT_VERSION } from './releases.js';
 import { AccountStorageError } from './services/accounts.js';
 
 export async function buildApp() {
@@ -30,9 +32,10 @@ export async function buildApp() {
     limits: { fileSize: 250 * 1024 * 1024, files: 1, fields: 20 },
   });
 
-  app.get('/api/health', async () => ({ status: 'ok' }));
+  app.get('/api/health', async () => ({ status: 'ok', version: CURRENT_VERSION }));
   await app.register(authRoutes);
   await app.register(accountRoutes);
+  await app.register(releaseRoutes);
   await app.register(projectRoutes);
   await app.register(trackRoutes);
   await app.register(importRoutes);

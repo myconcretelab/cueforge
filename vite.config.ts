@@ -1,8 +1,12 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import packageMetadata from './package.json';
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __APP_VERSION__: JSON.stringify(packageMetadata.version),
+  },
   root: 'src/client',
   publicDir: '../../public',
   build: {

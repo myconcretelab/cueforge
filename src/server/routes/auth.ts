@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { db } from '../db/index.js';
 import { accountMemberships, accounts, projects, users } from '../db/schema.js';
 import { config } from '../config.js';
+import { CURRENT_VERSION } from '../releases.js';
 import { endSession, hashPassword, requireUser, startSession, verifyPassword } from '../services/auth.js';
 
 const credentialsSchema = z.object({
@@ -24,6 +25,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         email: input.email,
         displayName: input.displayName,
         passwordHash,
+        lastSeenRelease: CURRENT_VERSION,
       }).returning();
       const trialEndsAt = config.SAAS_MODE ? new Date(Date.now() + config.TRIAL_DAYS * 24 * 60 * 60 * 1000) : null;
       const [account] = await tx.insert(accounts).values({

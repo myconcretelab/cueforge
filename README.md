@@ -23,6 +23,7 @@ Le produit est présenté principalement sous son monogramme **S1**, également 
 - télécommande temps réel via WebSocket ;
 - téléchargement d’un projet dans le cache hors ligne ;
 - interface responsive installable comme PWA.
+- notes de version par utilisateur et installation différée des mises à jour PWA afin de ne jamais interrompre une lecture.
 
 ## Développement local
 
@@ -56,6 +57,20 @@ Pour mettre à jour la production depuis le Mac d’administration après avoir 
 ```
 
 Le script refuse un dépôt sale ou non poussé, récupère les variables du site via l’API Alwaysdata, compile l’application, applique les migrations, redémarre le site et contrôle son endpoint de santé. Le jeton d’API n’est jamais stocké dans Git : il est lu dans le trousseau Apple (`s1-alwaysdata-api` / `myconcretelab`).
+
+## Publier une version
+
+Chaque version doit être déclarée simultanément dans `package.json`, `CHANGELOG.md` et `src/server/releases.ts`. Avant de committer une publication :
+
+```bash
+npm run release:check
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
+
+Après le déploiement, les utilisateurs déjà inscrits voient les nouveautés une seule fois. Les nouveaux comptes commencent directement sur la version courante. Une PWA déjà ouverte signale qu’une mise à jour est prête mais refuse son installation tant qu’un son est en lecture.
 
 Pour une installation initiale manuelle :
 

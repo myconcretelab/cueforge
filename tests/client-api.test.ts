@@ -27,6 +27,19 @@ describe('client API', () => {
     }));
   });
 
+  it('récupère et acquitte les notes de version', async () => {
+    const fetcher = vi.fn(async (_url: string, init?: RequestInit) => init?.method === 'POST'
+      ? new Response(null, { status: 204 })
+      : new Response(JSON.stringify({ currentVersion: '0.2.0', releases: [], unseenVersions: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetcher);
+
+    await api.releases();
+    await api.markReleaseSeen('0.2.0');
+
+    expect(fetcher).toHaveBeenNthCalledWith(1, '/api/releases', expect.objectContaining({ credentials: 'include' }));
+    expect(fetcher).toHaveBeenNthCalledWith(2, '/api/releases/0.2.0/seen', expect.objectContaining({ method: 'POST' }));
+  });
+
   it('enregistre une couleur dans la palette du spectacle', async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ projectColor: { color: '#f97316' } }), { status: 201, headers: { 'Content-Type': 'application/json' } }));
     vi.stubGlobal('fetch', fetcher);

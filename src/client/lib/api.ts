@@ -1,4 +1,4 @@
-import type { AccountSummary, Category, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, SoundShowAnalysis, Track, User } from '../types';
+import type { AccountSummary, Category, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ReleaseInfo, SoundShowAnalysis, Track, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -28,6 +28,9 @@ export const api = {
   login: (input: { email: string; password: string }) =>
     request<{ user: User }>('/api/auth/login', { method: 'POST', body: JSON.stringify(input) }),
   logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
+  version: () => request<{ version: string; releasedAt: string }>('/api/version'),
+  releases: () => request<ReleaseInfo>('/api/releases'),
+  markReleaseSeen: (version: string) => request<void>(`/api/releases/${encodeURIComponent(version)}/seen`, { method: 'POST' }),
   account: () => request<{ account: AccountSummary }>('/api/account'),
   projects: () => request<{ projects: Project[] }>('/api/projects'),
   createProject: (name: string) => request<{ project: Project }>('/api/projects', {

@@ -1,13 +1,19 @@
 const AUDIO_CACHE = 's1-audio-v1';
-const SHELL_CACHE = 's1-shell-v1';
+const SHELL_CACHE = 's1-shell-v2';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(['/', '/manifest.webmanifest', '/icon.svg'])));
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(Promise.all([
+    self.clients.claim(),
+    caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith('s1-shell-') && key !== SHELL_CACHE).map((key) => caches.delete(key)))),
+  ]));
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {

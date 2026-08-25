@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CloudDownload, FileArchive, FolderPlus, GripVertical, HardDrive, Keyboard, LogOut, Palette, Plus, Settings2, Smartphone, Trash2, Waves, X } from 'lucide-react';
+import { CloudDownload, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, LogOut, Palette, Plus, Settings2, Smartphone, Trash2, Waves, X } from 'lucide-react';
 import { api } from '../lib/api';
 import type { AccountSummary, KeyAction, Project, ProjectColor, User } from '../types';
 
@@ -10,6 +10,8 @@ interface Props {
   selectedProjectId: string | null;
   offlineStatus: string;
   remote: boolean;
+  appVersion?: string;
+  hasUnseenReleases: boolean;
   onChooseProject: (id: string) => void;
   onCreateProject: () => void;
   onReorderProjects: (projectIds: string[]) => Promise<void>;
@@ -19,6 +21,7 @@ interface Props {
   onReorderProjectColors: (colorIds: string[]) => Promise<void>;
   onImportSoundShow: () => void;
   onOpenFreesound: () => void;
+  onOpenWhatsNew: () => void;
   onToggleRemote: () => void;
   onCacheOffline: () => void;
   onUpdateKeyAction: (key: 'escape' | 'backspace' | 'space', action: KeyAction) => void;
@@ -44,7 +47,7 @@ function formatBytes(bytes: number): string {
   return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)} ${unit}`;
 }
 
-export function SettingsDialog({ user, projects, projectColors, selectedProjectId, offlineStatus, remote, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
+export function SettingsDialog({ user, projects, projectColors, selectedProjectId, offlineStatus, remote, appVersion, hasUnseenReleases, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
   const [newColor, setNewColor] = useState('#f97316');
   const [draggedProjectId, setDraggedProjectId] = useState<string>();
@@ -149,6 +152,10 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
           <div className="storage-summary"><span>{formatBytes(account.storageUsedBytes)} utilisés</span><strong>{account.storageQuotaBytes === null ? 'Stockage illimité' : `sur ${formatBytes(account.storageQuotaBytes)}`}</strong></div>
           {account.storageQuotaBytes !== null && <div className="storage-meter" role="progressbar" aria-label="Stockage utilisé" aria-valuemin={0} aria-valuemax={account.storageQuotaBytes} aria-valuenow={account.storageUsedBytes}><i style={{ width: `${storagePercent}%` }} /></div>}
         </div>}
+      </section>
+      <section className="settings-section">
+        <div className="settings-section-title"><Gift size={16} /><div><strong>Nouveautés</strong><span>Vous utilisez S1 {appVersion ?? '—'}.</span></div></div>
+        <button className={`button ghost wide release-button ${hasUnseenReleases ? 'has-update' : ''}`} onClick={onOpenWhatsNew}><Gift size={17} />Voir les notes de version{hasUnseenReleases && <em>Nouveau</em>}</button>
       </section>
       <section className="settings-account">
         <span>{user.displayName.slice(0, 1).toUpperCase()}</span><div><strong>{user.displayName}</strong><small>{user.email}</small></div><button className="button danger" onClick={onLogout}><LogOut size={16} />Se déconnecter</button>

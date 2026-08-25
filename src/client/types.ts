@@ -4,6 +4,21 @@ export interface User {
   displayName: string;
 }
 
+export interface AppRelease {
+  version: string;
+  date: string;
+  title: string;
+  summary: string;
+  important: boolean;
+  changes: string[];
+}
+
+export interface ReleaseInfo {
+  currentVersion: string;
+  releases: AppRelease[];
+  unseenVersions: string[];
+}
+
 export type MouseAction = 'start' | 'crossfade' | 'fade-in' | 'replace' | 'stop' | 'none';
 export type KeyAction = 'stop-all' | 'stop-all-immediate' | 'none';
 

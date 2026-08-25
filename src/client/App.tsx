@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
+import { AppUpdateBanner } from './components/AppUpdateBanner';
 import { FreesoundDialog } from './components/FreesoundDialog';
 import { PlaylistPad } from './components/PlaylistPad';
 import { PlaylistPanel, type PlaylistOptions, type PlaylistQueueItem } from './components/PlaylistPanel';
@@ -13,12 +14,14 @@ import { SettingsDialog } from './components/SettingsDialog';
 import { TrackDialog } from './components/TrackDialog';
 import { TrackPad } from './components/TrackPad';
 import { UploadDialog } from './components/UploadDialog';
+import { WhatsNewDialog } from './components/WhatsNewDialog';
 import { api, ApiError } from './lib/api';
+import { applyAppUpdate, subscribeToAppUpdate } from './lib/app-update';
 import { audioEngine, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
-import type { Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, RemoteCommand, Track, User } from './types';
+import type { Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ReleaseInfo, RemoteCommand, Track, User } from './types';
 
 const colors = ['#f97316', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
 const mouseActions: Array<{ value: MouseAction; label: string }> = [
@@ -67,6 +70,9 @@ export default function App() {
   const [soundShowImportOpen, setSoundShowImportOpen] = useState(false);
   const [freesoundOpen, setFreesoundOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [releaseInfo, setReleaseInfo] = useState<ReleaseInfo>();
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
   const [editingTrack, setEditingTrack] = useState<Track>();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarTool, setSidebarTool] = useState<'playlist'>();
@@ -94,15 +100,34 @@ export default function App() {
   const playlistAdvanceTimerRef = useRef<number | undefined>(undefined);
   const ignoredPlaylistPlaybackRef = useRef<string | undefined>(undefined);
   const playlistPlayedItemIdsRef = useRef(new Set<string>());
+  const releaseAutoShownRef = useRef(false);
   const remote = new URLSearchParams(window.location.search).get('remote') === '1';
+  const unseenReleases = useMemo(() => releaseInfo?.releases.filter((release) => releaseInfo.unseenVersions.includes(release.version)) ?? [], [releaseInfo]);
+  const releasesForDialog = unseenReleases.length > 0 ? unseenReleases : releaseInfo?.releases ?? [];
 
   useEffect(() => audioEngine.subscribe(setActivePlaybacks), []);
   useEffect(() => audioEngine.subscribeHistory(setPlaybackHistory), []);
+  useEffect(() => subscribeToAppUpdate(setUpdateAvailable), []);
   useEffect(() => {
     const persistProgress = () => audioEngine.persistActiveProgress();
     window.addEventListener('pagehide', persistProgress);
     return () => window.removeEventListener('pagehide', persistProgress);
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setReleaseInfo(undefined);
+      releaseAutoShownRef.current = false;
+      return;
+    }
+    api.releases().then(setReleaseInfo).catch(() => setReleaseInfo(undefined));
+  }, [user]);
+
+  useEffect(() => {
+    if (releaseAutoShownRef.current || unseenReleases.length === 0 || activePlaybacks.length > 0) return;
+    releaseAutoShownRef.current = true;
+    setWhatsNewOpen(true);
+  }, [activePlaybacks.length, unseenReleases.length]);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(timer);
@@ -1040,6 +1065,14 @@ export default function App() {
     setUser(null); setDetail(undefined); setProjects([]);
   }
 
+  function closeWhatsNew() {
+    setWhatsNewOpen(false);
+    if (!releaseInfo || releaseInfo.unseenVersions.length === 0) return;
+    const version = releaseInfo.currentVersion;
+    setReleaseInfo({ ...releaseInfo, unseenVersions: [] });
+    api.markReleaseSeen(version).catch(() => setError('Impossible d’enregistrer la lecture des nouveautés.'));
+  }
+
   if (user === undefined) return <div className="app-loader"><span className="brand-mark loader pulse" aria-hidden="true">S1</span><span>Standby One</span></div>;
   if (!user) return <><AuthScreen onAuthenticated={(authenticated) => { localStorage.setItem('s1-user', JSON.stringify(authenticated)); setUser(authenticated); }} />{error && <Toast message={error} onClose={() => setError('')} />}</>;
 
@@ -1093,7 +1126,7 @@ export default function App() {
           <section className="console-module wall-clock"><span><Clock3 size={14} />Horloge</span><strong>{formatClock(now)}</strong></section>
         </div>
         <div className="top-actions">
-          <button className="icon-button settings-button" onClick={() => setSettingsOpen(true)} aria-label="Ouvrir les paramètres" title="Paramètres"><Settings size={19} /></button>
+          <button className={`icon-button settings-button ${unseenReleases.length > 0 ? 'has-update' : ''}`} onClick={() => setSettingsOpen(true)} aria-label="Ouvrir les paramètres" title="Paramètres"><Settings size={19} />{unseenReleases.length > 0 && <i aria-hidden="true" />}</button>
           {!remote && <button className="icon-button reset-show-button" onClick={resetCurrentProject} disabled={!detail} aria-label="Réinitialiser le spectacle en cours" title="Réinitialiser le spectacle"><RefreshCcw size={18} /></button>}
           {!remote && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Ajouter un son</button>}
         </div>
@@ -1184,11 +1217,12 @@ export default function App() {
         </div>}
       </section>
 
-      <footer className="statusbar"><span><i className={connected ? 'live' : ''} />{remote ? 'Contrôleur' : 'Lecteur principal'}</span><span><Settings2 size={14} /> Web Audio · {activePlaybacks.length} actif{activePlaybacks.length !== 1 ? 's' : ''}</span></footer>
+      <footer className="statusbar"><span><i className={connected ? 'live' : ''} />{remote ? 'Contrôleur' : 'Lecteur principal'}</span><span><Settings2 size={14} /> S1 {releaseInfo?.currentVersion ?? __APP_VERSION__} · Web Audio · {activePlaybacks.length} actif{activePlaybacks.length !== 1 ? 's' : ''}</span></footer>
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
-    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} remote={remote} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {whatsNewOpen && releaseInfo && <WhatsNewDialog releases={releasesForDialog} currentVersion={releaseInfo.currentVersion} onClose={closeWhatsNew} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {freesoundOpen && detail && <FreesoundDialog initialQuery={search} projectId={detail.project.id} categories={detail.categories} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} onImported={refreshProject} onClose={() => setFreesoundOpen(false)} />}
     {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} projectColors={detail.colors} onAddProjectColor={createProjectColor} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
@@ -1200,6 +1234,7 @@ export default function App() {
         {dropUploadProgress && <i><b style={{ transform: `scaleX(${dropUploadProgress.total ? dropUploadProgress.done / dropUploadProgress.total : 0})` }} /></i>}
       </div>
     </div>}
+    {updateAvailable && <AppUpdateBanner playbackActive={activePlaybacks.length > 0} onApply={() => { if (!applyAppUpdate()) setError('La mise à jour n’est plus disponible.'); }} />}
     {error && <Toast message={error} onClose={() => setError('')} />}
   </div>;
 }

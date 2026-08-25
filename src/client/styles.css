@@ -305,11 +305,36 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .dialog footer.spread { justify-content: space-between; }
 .dialog footer span { display: flex; gap: 9px; }
 .settings-dialog { width: min(520px, 100%); }
+.settings-button { position: relative; }
+.settings-button > i { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border: 2px solid #18181b; border-radius: 50%; background: var(--orange); box-shadow: 0 0 9px rgba(249,115,22,.8); }
 .settings-section { padding: 15px; display: grid; gap: 13px; border: 1px solid var(--border); border-radius: 12px; background: #101012; }
 .settings-section-title { display: flex; align-items: flex-start; gap: 10px; color: var(--orange); }
 .settings-section-title div { display: grid; gap: 3px; }
 .settings-section-title strong { color: #e4e4e7; font-size: .8rem; }
 .settings-section-title span { color: #71717a; font-size: .68rem; line-height: 1.4; }
+.release-button { position: relative; }
+.release-button em { margin-left: auto; padding: 3px 7px; border-radius: 999px; color: #fed7aa; background: var(--orange-soft); font-size: .58rem; font-style: normal; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.release-button.has-update { border-color: rgba(249,115,22,.38); }
+.whats-new-dialog { width: min(640px, 100%); }
+.whats-new-dialog .eyebrow { display: flex; align-items: center; gap: 7px; }
+.release-list { display: grid; gap: 12px; }
+.release-list article { padding: 17px; display: grid; gap: 12px; border: 1px solid var(--border); border-radius: 13px; background: #101012; }
+.release-list article.important { border-color: rgba(249,115,22,.3); background: linear-gradient(145deg, rgba(249,115,22,.08), #101012 48%); }
+.release-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.release-heading > div { display: grid; gap: 3px; }
+.release-heading strong { color: #f4f4f5; font-size: .95rem; }
+.release-heading span, .release-heading time { color: #71717a; font-size: .65rem; }
+.release-list article > p { color: #a1a1aa; font-size: .78rem; line-height: 1.55; }
+.release-list ul { display: grid; gap: 8px; list-style: none; }
+.release-list li { display: flex; align-items: flex-start; gap: 8px; color: #d4d4d8; font-size: .73rem; line-height: 1.45; }
+.release-list li svg { flex: 0 0 auto; margin-top: 2px; color: #86efac; }
+.app-update-banner { position: fixed; z-index: 190; right: 22px; bottom: 22px; width: min(510px, calc(100vw - 44px)); padding: 13px; display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 11px; border: 1px solid rgba(249,115,22,.32); border-radius: 13px; color: #fed7aa; background: rgba(28,19,13,.97); box-shadow: 0 18px 60px rgba(0,0,0,.55); backdrop-filter: blur(12px); }
+.app-update-banner > span { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; background: var(--orange-soft); }
+.app-update-banner > div { display: grid; gap: 3px; }
+.app-update-banner strong { color: #fafafa; font-size: .76rem; }
+.app-update-banner small { color: #a1a1aa; font-size: .64rem; line-height: 1.35; }
+.app-update-banner .button { white-space: nowrap; }
+.app-update-banner + .toast { bottom: 104px; }
 .settings-project-list { max-height: 205px; padding: 3px; display: grid; gap: 6px; overflow-y: auto; }
 .settings-project-item { min-height: 42px; padding: 4px 4px 4px 7px; display: grid; grid-template-columns: 17px minmax(0, 1fr) 32px; align-items: center; gap: 5px; border: 1px solid var(--border); border-radius: 9px; color: #71717a; background: #171719; cursor: grab; transition: border-color .15s, background .15s, transform .15s; }
 .settings-project-item:active { cursor: grabbing; }
@@ -547,6 +572,11 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 }
 
 @media (max-width: 560px) {
+  .app-update-banner { left: 12px; right: 12px; bottom: 12px; width: auto; grid-template-columns: 30px 1fr; }
+  .app-update-banner > span { width: 30px; height: 30px; }
+  .app-update-banner .button { grid-column: 1 / -1; width: 100%; }
+  .app-update-banner + .toast { bottom: 150px; }
+  .release-heading { flex-direction: column; gap: 5px; }
   .topbar .button.primary { width: 41px; padding: 0; font-size: 0; }
   .topbar .button.primary svg { margin: 0; }
   .topbar h1 { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
