@@ -80,6 +80,11 @@ export async function requireUser(request: FastifyRequest, reply: FastifyReply):
     await reply.code(401).send({ error: 'Authentification requise.' });
     return null;
   }
+  if (user.disabledAt) {
+    await endSession(request, reply);
+    await reply.code(403).send({ error: 'Ce compte utilisateur est désactivé.' });
+    return null;
+  }
   if (!currentToken && legacyToken) {
     reply.setCookie(sessionCookieName, legacyToken, sessionCookieOptions(new Date(Date.now() + sessionLifetimeMs)));
     reply.clearCookie(legacySessionCookieName, sessionCookieOptions());

@@ -1,42 +1,68 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { accountMemberships, accounts, projects, tracks, type Account, type Track } from '../db/schema.js';
+import { accountMemberships, accounts, plans, projects, tracks, type Account, type Plan, type Track } from '../db/schema.js';
 import { evaluateStorageAllowance } from './account-access.js';
 
 export class AccountStorageError extends Error {
   constructor(public readonly reason: 'read-only' | 'quota-exceeded') {
     super(reason === 'quota-exceeded'
       ? 'Votre quota de stockage est atteint. Supprimez des sons ou choisissez un forfait supérieur.'
-      : "Votre espace est en lecture seule. Activez un abonnement pour ajouter de nouveaux sons.");
+      : "Votre espace est en lecture seule. Activez un abonnement pour le modifier.");
   }
 }
 
-export async function accountForUser(userId: string): Promise<Account | null> {
-  const [row] = await db.select({ account: accounts })
+export interface AccountContext {
+  account: Account;
+  plan: Plan;
+  storageQuotaBytes: number;
+}
+
+export async function accountForUser(userId: string): Promise<AccountContext | null> {
+  const [row] = await db.select({ account: accounts, plan: plans })
     .from(accountMemberships)
     .innerJoin(accounts, eq(accountMemberships.accountId, accounts.id))
+    .innerJoin(plans, eq(accounts.planCode, plans.code))
     .where(eq(accountMemberships.userId, userId))
     .orderBy(accountMemberships.createdAt)
     .limit(1);
-  return row?.account ?? null;
+  if (!row) return null;
+  return {
+    ...row,
+    storageQuotaBytes: row.account.storageQuotaOverrideBytes ?? row.plan.storageQuotaBytes,
+  };
 }
 
 export async function accountUsage(userId: string) {
-  const account = await accountForUser(userId);
-  if (!account) return null;
+  const context = await accountForUser(userId);
+  if (!context) return null;
   const [usage] = await db.select({
     usedBytes: sql<number>`coalesce(sum(${tracks.sizeBytes}), 0)::bigint`,
   }).from(projects)
     .leftJoin(tracks, eq(tracks.projectId, projects.id))
-    .where(eq(projects.accountId, account.id));
-  return { account, usedBytes: Number(usage?.usedBytes ?? 0) };
+    .where(eq(projects.accountId, context.account.id));
+  return { ...context, usedBytes: Number(usage?.usedBytes ?? 0) };
+}
+
+export async function requireWritableAccount(userId: string): Promise<AccountContext> {
+  const context = await accountForUser(userId);
+  if (!context) throw new Error('Espace de travail introuvable.');
+  const allowance = evaluateStorageAllowance({
+    accessStatus: context.account.accessStatus,
+    trialEndsAt: context.account.trialEndsAt,
+    storageQuotaBytes: context.storageQuotaBytes,
+    usedBytes: 0,
+    incomingBytes: 0,
+  });
+  if (!allowance.allowed) throw new AccountStorageError('read-only');
+  return context;
 }
 
 export async function insertTrackWithinQuota(userId: string, values: typeof tracks.$inferInsert): Promise<Track> {
   return db.transaction(async (transaction) => {
-    const [membership] = await transaction.select({ account: accounts, projectId: projects.id })
+    const [membership] = await transaction.select({ account: accounts, plan: plans, projectId: projects.id })
       .from(accountMemberships)
       .innerJoin(accounts, eq(accountMemberships.accountId, accounts.id))
+      .innerJoin(plans, eq(accounts.planCode, plans.code))
       .innerJoin(projects, and(eq(projects.accountId, accounts.id), eq(projects.id, values.projectId)))
       .where(eq(accountMemberships.userId, userId))
       .limit(1);
@@ -49,9 +75,9 @@ export async function insertTrackWithinQuota(userId: string, values: typeof trac
       .leftJoin(tracks, eq(tracks.projectId, projects.id))
       .where(eq(projects.accountId, membership.account.id));
     const allowance = evaluateStorageAllowance({
-      subscriptionStatus: membership.account.subscriptionStatus,
+      accessStatus: membership.account.accessStatus,
       trialEndsAt: membership.account.trialEndsAt,
-      storageQuotaBytes: membership.account.storageQuotaBytes,
+      storageQuotaBytes: membership.account.storageQuotaOverrideBytes ?? membership.plan.storageQuotaBytes,
       usedBytes: Number(usage?.usedBytes ?? 0),
       incomingBytes: values.sizeBytes,
     });

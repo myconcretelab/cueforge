@@ -29,6 +29,10 @@ features:
     title: Télécommande
     details: Rôles du lecteur principal et du contrôleur distant.
     link: /guides/telecommande
+  - icon: "⚙"
+    title: Administration commerciale
+    details: Comptes, forfaits, quotas, essais et rôles de plateforme.
+    link: /reference/administration-commerciale
 ---
 
 ## Contenu
@@ -39,12 +43,10 @@ features:
 - **Dépannage** : symptômes, causes possibles et opérations de diagnostic.
 - **Notes de version** : modifications apportées par chaque version.
 
-## Éditions
+## Service
 
-**CueForge Cloud** est l’édition hébergée. Le service gère l’exécution de l’application, la base de données et le stockage des médias.
-
-**CueForge Community** est l’édition auto-hébergée disponible sur [GitHub](https://github.com/myconcretelab/cueforge). Son installation utilise Node.js, PostgreSQL et un stockage persistant. La procédure est décrite dans [Installation de CueForge Community](./community/installation.md).
+CueForge est une application hébergée. Le service gère l’exécution de l’application, la base de données et le stockage des médias.
 
 ## Support
 
-Les incidents peuvent être déclarés dans les [issues GitHub](https://github.com/myconcretelab/cueforge/issues). Les informations utiles sont la version de CueForge, le navigateur, le système d’exploitation, les étapes de reproduction et le message d’erreur.
+Une déclaration d’incident contient la version de CueForge, le navigateur, le système d’exploitation, les étapes de reproduction et le message d’erreur.

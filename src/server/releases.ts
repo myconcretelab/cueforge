@@ -9,6 +9,19 @@ export interface AppRelease {
 
 export const APP_RELEASES: AppRelease[] = [
   {
+    version: '0.5.0',
+    date: '2026-08-25',
+    title: 'Administration commerciale',
+    summary: 'CueForge intègre désormais la gestion de ses comptes, forfaits, essais, quotas et rôles administratifs.',
+    important: true,
+    changes: [
+      'Le tableau de bord commercial est disponible sous /admin.',
+      'Les forfaits définissent le stockage, la durée d’essai et les prix mensuel et annuel.',
+      'Les comptes disposent d’états d’accès distincts de leur abonnement.',
+      'Les modifications administratives sont consignées dans un journal d’audit.',
+    ],
+  },
+  {
     version: '0.4.0',
     date: '2026-08-25',
     title: 'CueForge entre en scène',

@@ -1,4 +1,4 @@
-import type { AccountSummary, Category, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ReleaseInfo, SoundShowAnalysis, Track, User } from '../types';
+import type { AccountSummary, AdminAccount, AdminOverview, AdminUser, AuditEntry, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ReleaseInfo, SoundShowAnalysis, Track, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -32,6 +32,15 @@ export const api = {
   releases: () => request<ReleaseInfo>('/api/releases'),
   markReleaseSeen: (version: string) => request<void>(`/api/releases/${encodeURIComponent(version)}/seen`, { method: 'POST' }),
   account: () => request<{ account: AccountSummary }>('/api/account'),
+  adminOverview: () => request<{ overview: AdminOverview; recentAudit: AuditEntry[] }>('/api/admin/overview'),
+  adminAccounts: (search = '') => request<{ accounts: AdminAccount[] }>(`/api/admin/accounts?search=${encodeURIComponent(search)}`),
+  adminAccount: (id: string) => request<Record<string, unknown>>(`/api/admin/accounts/${id}`),
+  updateAdminAccount: (id: string, input: Record<string, unknown>) => request<{ account: AdminAccount }>(`/api/admin/accounts/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+  adminUsers: (search = '') => request<{ users: AdminUser[] }>(`/api/admin/users?search=${encodeURIComponent(search)}`),
+  updateAdminUser: (id: string, input: { platformRole?: User['platformRole']; disabled?: boolean }) => request<{ user: AdminUser }>(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+  adminPlans: () => request<{ plans: CommercialPlan[] }>('/api/admin/plans'),
+  createAdminPlan: (input: Omit<CommercialPlan, 'createdAt' | 'updatedAt'>) => request<{ plan: CommercialPlan }>('/api/admin/plans', { method: 'POST', body: JSON.stringify(input) }),
+  updateAdminPlan: (code: string, input: Partial<Omit<CommercialPlan, 'code' | 'createdAt' | 'updatedAt'>>) => request<{ plan: CommercialPlan }>(`/api/admin/plans/${encodeURIComponent(code)}`, { method: 'PATCH', body: JSON.stringify(input) }),
   projects: () => request<{ projects: Project[] }>('/api/projects'),
   createProject: (name: string) => request<{ project: Project }>('/api/projects', {
     method: 'POST', body: JSON.stringify({ name }),

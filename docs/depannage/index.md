@@ -53,7 +53,7 @@ Une nouvelle version PWA est téléchargée en arrière-plan. Le bouton **Mettre
 
 ## Informations de diagnostic
 
-Une déclaration dans les [issues GitHub](https://github.com/myconcretelab/cueforge/issues) peut contenir :
+Une déclaration d’incident peut contenir :
 
 - la version de CueForge affichée dans l’application ;
 - le nom et la version du navigateur ;

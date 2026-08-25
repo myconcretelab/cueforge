@@ -15,9 +15,11 @@ import { trackRoutes } from './routes/tracks.js';
 import { importRoutes } from './routes/imports.js';
 import { freesoundRoutes } from './routes/freesound.js';
 import { accountRoutes } from './routes/account.js';
+import { adminRoutes } from './routes/admin.js';
 import { releaseRoutes } from './routes/releases.js';
 import { CURRENT_VERSION } from './releases.js';
-import { AccountStorageError } from './services/accounts.js';
+import { AccountStorageError, requireWritableAccount } from './services/accounts.js';
+import { requireUser } from './services/auth.js';
 
 export async function buildApp() {
   const app = Fastify({ logger: true, trustProxy: true });
@@ -32,15 +34,6 @@ export async function buildApp() {
     limits: { fileSize: 250 * 1024 * 1024, files: 1, fields: 20 },
   });
 
-  app.get('/api/health', async () => ({ status: 'ok', version: CURRENT_VERSION }));
-  await app.register(authRoutes);
-  await app.register(accountRoutes);
-  await app.register(releaseRoutes);
-  await app.register(projectRoutes);
-  await app.register(trackRoutes);
-  await app.register(importRoutes);
-  await app.register(freesoundRoutes);
-
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ZodError) {
       return reply.code(400).send({ error: 'Données invalides.', details: error.issues });
@@ -54,6 +47,24 @@ export async function buildApp() {
     app.log.error(error);
     return reply.code(500).send({ error: 'Une erreur interne est survenue.' });
   });
+
+  app.addHook('preHandler', async (request, reply) => {
+    if (!['POST', 'PUT', 'PATCH'].includes(request.method)) return;
+    if (!['/api/projects', '/api/tracks', '/api/imports'].some((prefix) => request.url.startsWith(prefix))) return;
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    await requireWritableAccount(user.id);
+  });
+
+  app.get('/api/health', async () => ({ status: 'ok', version: CURRENT_VERSION }));
+  await app.register(authRoutes);
+  await app.register(accountRoutes);
+  await app.register(adminRoutes);
+  await app.register(releaseRoutes);
+  await app.register(projectRoutes);
+  await app.register(trackRoutes);
+  await app.register(importRoutes);
+  await app.register(freesoundRoutes);
 
   if (config.isProduction) {
     const currentDir = path.dirname(fileURLToPath(import.meta.url));

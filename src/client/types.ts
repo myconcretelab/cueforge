@@ -2,6 +2,7 @@ export interface User {
   id: string;
   email: string;
   displayName: string;
+  platformRole: 'user' | 'support' | 'admin' | 'super_admin';
 }
 
 export interface AppRelease {
@@ -40,10 +41,71 @@ export interface AccountSummary {
   id: string;
   name: string;
   planCode: string;
-  subscriptionStatus: string;
+  planName: string;
+  accessStatus: 'trialing' | 'active' | 'grace_period' | 'read_only' | 'suspended';
   storageQuotaBytes: number | null;
   storageUsedBytes: number;
   trialEndsAt: string | null;
+}
+
+export interface CommercialPlan {
+  code: string;
+  name: string;
+  description: string;
+  storageQuotaBytes: number;
+  monthlyPriceCents: number | null;
+  annualPriceCents: number | null;
+  trialDays: number;
+  isDefault: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminOverview {
+  users: number;
+  accounts: number;
+  trialingAccounts: number;
+  activeAccounts: number;
+  restrictedAccounts: number;
+  storageUsedBytes: number;
+}
+
+export interface AuditEntry {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  details: Record<string, unknown>;
+  createdAt: string;
+  actorEmail: string | null;
+}
+
+export interface AdminAccount {
+  id: string;
+  name: string;
+  planCode: string;
+  planName: string;
+  accessStatus: AccountSummary['accessStatus'];
+  trialEndsAt: string | null;
+  storageQuotaOverrideBytes: number | null;
+  storageQuotaBytes: number;
+  storageUsedBytes: number;
+  memberCount: number;
+  projectCount: number;
+  subscriptionStatus: string | null;
+  billingInterval: string | null;
+  updatedAt: string;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  displayName: string;
+  platformRole: User['platformRole'];
+  disabledAt: string | null;
+  createdAt: string;
+  accountCount: number;
 }
 
 export interface Category {

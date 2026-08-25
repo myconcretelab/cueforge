@@ -8,14 +8,15 @@ export async function accountRoutes(app: FastifyInstance): Promise<void> {
     if (!user) return;
     const result = await accountUsage(user.id);
     if (!result) return reply.code(404).send({ error: 'Espace de travail introuvable.' });
-    const { account, usedBytes } = result;
+    const { account, plan, storageQuotaBytes, usedBytes } = result;
     return {
       account: {
         id: account.id,
         name: account.name,
         planCode: account.planCode,
-        subscriptionStatus: account.subscriptionStatus,
-        storageQuotaBytes: account.storageQuotaBytes,
+        planName: plan.name,
+        accessStatus: account.accessStatus,
+        storageQuotaBytes,
         storageUsedBytes: usedBytes,
         trialEndsAt: account.trialEndsAt,
       },

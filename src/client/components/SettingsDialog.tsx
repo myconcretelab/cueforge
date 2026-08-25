@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, CloudDownload, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, LogOut, Palette, Plus, Settings2, Smartphone, Trash2, Waves, X } from 'lucide-react';
+import { BookOpen, CloudDownload, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, LogOut, Palette, Plus, Settings2, ShieldCheck, Smartphone, Trash2, Waves, X } from 'lucide-react';
 import { api } from '../lib/api';
 import type { AccountSummary, KeyAction, Project, ProjectColor, User } from '../types';
 
@@ -148,7 +148,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
       <section className="settings-section">
         <div className="settings-section-title"><HardDrive size={16} /><div><strong>Offre et stockage</strong><span>{account?.name ?? 'Chargement de votre espace…'}</span></div></div>
         {account && <div className="account-plan">
-          <div><strong>{account.planCode === 'community' ? 'Community' : account.planCode === 'trial' ? 'Essai Cloud' : account.planCode}</strong><span>{trialDaysLeft !== null ? `${trialDaysLeft} jour${trialDaysLeft > 1 ? 's' : ''} restant${trialDaysLeft > 1 ? 's' : ''}` : 'Accès actif'}</span></div>
+          <div><strong>{account.planName}</strong><span>{account.accessStatus === 'trialing' && trialDaysLeft !== null ? `${trialDaysLeft} jour${trialDaysLeft > 1 ? 's' : ''} restant${trialDaysLeft > 1 ? 's' : ''}` : account.accessStatus === 'active' ? 'Accès actif' : account.accessStatus === 'grace_period' ? 'Délai de grâce' : account.accessStatus === 'suspended' ? 'Accès suspendu' : 'Lecture seule'}</span></div>
           <div className="storage-summary"><span>{formatBytes(account.storageUsedBytes)} utilisés</span><strong>{account.storageQuotaBytes === null ? 'Stockage illimité' : `sur ${formatBytes(account.storageQuotaBytes)}`}</strong></div>
           {account.storageQuotaBytes !== null && <div className="storage-meter" role="progressbar" aria-label="Stockage utilisé" aria-valuemin={0} aria-valuemax={account.storageQuotaBytes} aria-valuenow={account.storageUsedBytes}><i style={{ width: `${storagePercent}%` }} /></div>}
         </div>}
@@ -157,6 +157,10 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         <div className="settings-section-title"><BookOpen size={16} /><div><strong>Aide et documentation</strong><span>Guides de prise en main, référence et dépannage.</span></div></div>
         <a className="button ghost wide" href="/docs/" target="_blank" rel="noopener noreferrer"><BookOpen size={17} />Ouvrir la documentation</a>
       </section>
+      {(user.platformRole === 'admin' || user.platformRole === 'super_admin') && <section className="settings-section">
+        <div className="settings-section-title"><ShieldCheck size={16} /><div><strong>Administration commerciale</strong><span>Comptes, forfaits, quotas et utilisateurs.</span></div></div>
+        <a className="button ghost wide" href="/admin"><ShieldCheck size={17} />Ouvrir l’administration</a>
+      </section>}
       <section className="settings-section">
         <div className="settings-section-title"><Gift size={16} /><div><strong>Nouveautés</strong><span>Vous utilisez CueForge {appVersion ?? '—'}.</span></div></div>
         <button className={`button ghost wide release-button ${hasUnseenReleases ? 'has-update' : ''}`} onClick={onOpenWhatsNew}><Gift size={17} />Voir les notes de version{hasUnseenReleases && <em>Nouveau</em>}</button>

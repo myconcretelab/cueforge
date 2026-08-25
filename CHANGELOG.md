@@ -2,6 +2,23 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.5.0] - 2026-08-25
+
+### Ajouté
+
+- tableau de bord commercial intégré sous `/admin` ;
+- gestion des comptes, utilisateurs, rôles de plateforme, forfaits, quotas et essais ;
+- modèle d’abonnement indépendant du prestataire de paiement ;
+- journal d’audit des modifications administratives ;
+- contrôle centralisé des écritures selon l’état d’accès du compte ;
+- configuration `SUPER_ADMIN_EMAILS` pour la création des premiers super-administrateurs.
+
+### Modifié
+
+- suppression du mode Community et des paramètres `SAAS_MODE`, `TRIAL_DAYS` et `TRIAL_STORAGE_BYTES` ;
+- attribution systématique du forfait commercial par défaut aux nouveaux comptes ;
+- passage de l’application à la version `0.5.0`.
+
 ## [0.4.0] - 2026-08-25
 
 ### Modifié

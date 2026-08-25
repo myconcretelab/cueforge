@@ -28,7 +28,6 @@ export default defineConfig({
         text: `v${packageMetadata.version}`,
         items: [
           { text: 'Ouvrir CueForge', link: 'https://cueforge.sebastienj.com' },
-          { text: 'Version Community', link: 'https://github.com/myconcretelab/cueforge' },
         ],
       },
     ],
@@ -55,6 +54,7 @@ export default defineConfig({
         items: [
           { text: 'Formats et limites', link: '/reference/formats-et-limites' },
           { text: 'Raccourcis et commandes', link: '/reference/raccourcis' },
+          { text: 'Administration commerciale', link: '/reference/administration-commerciale' },
         ],
       },
       {
@@ -62,7 +62,6 @@ export default defineConfig({
         items: [
           { text: 'Dépannage', link: '/depannage/' },
           { text: 'Notes de version', link: '/nouveautes/' },
-          { text: 'Installer Community', link: '/community/installation' },
         ],
       },
     ],
@@ -80,13 +79,8 @@ export default defineConfig({
       },
     },
     outline: { level: [2, 3], label: 'Sur cette page' },
-    editLink: {
-      pattern: 'https://github.com/myconcretelab/cueforge/edit/main/docs/:path',
-      text: 'Proposer une amélioration',
-    },
     lastUpdated: { text: 'Mis à jour le', formatOptions: { dateStyle: 'long' } },
     docFooter: { prev: 'Page précédente', next: 'Page suivante' },
-    socialLinks: [{ icon: 'github', link: 'https://github.com/myconcretelab/cueforge' }],
     footer: {
       message: 'Documentation de CueForge',
       copyright: 'Documentation de CueForge',

@@ -9,6 +9,7 @@ L’identité visuelle repose sur le monogramme **CF** ; les identifiants techni
 ## Fonctionnalités actuelles
 
 - comptes multiples avec espace de travail isolé, sessions sécurisées et mots de passe dérivés avec `scrypt` ;
+- administration commerciale intégrée sous `/admin` avec gestion des utilisateurs, comptes, forfaits, quotas, essais et rôles de plateforme ;
 - plusieurs spectacles et catégories colorées, réordonnables et supprimables, avec recherche globale ;
 - import MP3, WAV, OGG, FLAC et AAC jusqu’à 250 Mo ;
 - recherche Freesound avec filtres de durée minimale et maximale, préécoute, renommage et import dans la catégorie choisie ;
@@ -96,12 +97,10 @@ STORAGE_PATH=/home/<compte>/cueforge/storage
 PUBLIC_URL=https://<votre-domaine>
 LEGACY_PUBLIC_URLS=
 FREESOUND_API_KEY=<clé-api-freesound>
-SAAS_MODE=false
-TRIAL_DAYS=14
-TRIAL_STORAGE_BYTES=2147483648
+SUPER_ADMIN_EMAILS=<adresse-du-super-administrateur>
 ```
 
-`SAAS_MODE=false` conserve le fonctionnement communautaire sans quota. Avec `SAAS_MODE=true`, chaque nouvelle inscription reçoit un essai dont la durée et le stockage sont définis par `TRIAL_DAYS` et `TRIAL_STORAGE_BYTES`. Les comptes communautaires existants restent actifs et sans quota lors de la migration.
+`SUPER_ADMIN_EMAILS` accepte plusieurs adresses séparées par des virgules. Lors de l’inscription, une adresse présente dans cette liste reçoit le rôle `super_admin`. Les autres utilisateurs reçoivent le rôle `user`. Le forfait `Solo`, créé par la migration du module commercial, fournit 5 Go et 14 jours d’essai ; ses valeurs et les autres forfaits se modifient dans `/admin`.
 
 `LEGACY_PUBLIC_URLS` accepte, au besoin, plusieurs anciennes origines séparées par des virgules. Elles restent autorisées temporairement pour les installations PWA et les télécommandes pendant un changement de domaine.
 

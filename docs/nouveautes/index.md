@@ -2,6 +2,15 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.5.0 — 25 août 2026
+
+- ajout du tableau de bord `/admin` ;
+- ajout des forfaits, quotas, essais et états d’accès ;
+- ajout des rôles de plateforme et du journal d’audit ;
+- suppression de l’édition Community.
+
+[Détails de la version 0.5.0](./0.5.0.md)
+
 ## Version 0.4.0 — 25 août 2026
 
 - changement du nom de l’application vers CueForge ;
