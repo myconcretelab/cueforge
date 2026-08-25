@@ -5,4 +5,5 @@ dist/
 storage/*
 !storage/.gitkeep
 coverage/
+docs/.vitepress/.temp/
 *.log

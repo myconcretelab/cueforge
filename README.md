@@ -24,6 +24,7 @@ Le produit est présenté principalement sous son monogramme **S1**, également 
 - téléchargement d’un projet dans le cache hors ligne ;
 - interface responsive installable comme PWA.
 - notes de version par utilisateur et installation différée des mises à jour PWA afin de ne jamais interrompre une lecture.
+- centre de documentation public avec recherche, guides pratiques, référence, dépannage et notes de version.
 
 ## Développement local
 
@@ -38,6 +39,12 @@ npm run dev
 ```
 
 L’interface est disponible sur `http://localhost:5173` et l’API sur `http://127.0.0.1:8100`.
+
+La documentation se développe séparément sur `http://localhost:5174` :
+
+```bash
+npm run dev:docs
+```
 
 ## Vérification
 
@@ -60,7 +67,7 @@ Le script refuse un dépôt sale ou non poussé, récupère les variables du sit
 
 ## Publier une version
 
-Chaque version doit être déclarée simultanément dans `package.json`, `CHANGELOG.md` et `src/server/releases.ts`. Avant de committer une publication :
+Chaque version doit être déclarée simultanément dans `package.json`, `CHANGELOG.md`, `src/server/releases.ts` et `docs/nouveautes/<version>.md`. Avant de committer une publication :
 
 ```bash
 npm run release:check
@@ -124,6 +131,7 @@ src/server/db/    schéma et migrations Drizzle
 migrations/       migrations PostgreSQL versionnées
 storage/          médias locaux, ignorés par Git
 public/           manifeste, icône et service worker
+docs/             documentation VitePress publiée sous /docs/
 ```
 
 ## Importer un projet SoundShow

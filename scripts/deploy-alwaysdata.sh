@@ -71,6 +71,7 @@ printf '%s\n' "$site_environment" | ssh "$ALWAYSDATA_ACCOUNT@$ALWAYSDATA_SSH_HOS
   npm run db:migrate
   test -f dist/server/index.js
   test -f dist/client/index.html
+  test -f dist/client/docs/index.html
   test -z \"\$(git status --porcelain)\"
 "
 
@@ -92,5 +93,9 @@ for _attempt in {1..20}; do
 done
 
 [[ "$health_ok" == true ]] || fail "le contrôle de santé du site a échoué après le redémarrage."
+
+if ! curl --fail --silent --show-error "$ALWAYSDATA_SITE_URL/docs/" | grep --quiet '<title>Documentation S1'; then
+  fail "la documentation publique n'est pas disponible après le redémarrage."
+fi
 
 printf 'Standby One est déployé : %s (%s)\n' "$ALWAYSDATA_SITE_URL" "$local_commit"

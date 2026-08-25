@@ -1,0 +1,287 @@
+:root {
+  --vp-c-brand-1: #f97316;
+  --vp-c-brand-2: #fb923c;
+  --vp-c-brand-3: #fdba74;
+  --vp-c-brand-soft: rgba(249, 115, 22, 0.14);
+  --vp-c-bg: #09090b;
+  --vp-c-bg-alt: #0f0f12;
+  --vp-c-bg-elv: #151518;
+  --vp-c-bg-soft: #121215;
+  --vp-c-border: #29292f;
+  --vp-c-divider: #222227;
+  --vp-c-gutter: #09090b;
+  --vp-c-text-1: #f4f4f5;
+  --vp-c-text-2: #b9b9c2;
+  --vp-c-text-3: #777780;
+  --vp-code-font-size: 0.86em;
+  --vp-font-family-base: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --vp-font-family-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #fff 15%, #fdba74 55%, #f97316);
+  --vp-home-hero-image-background-image: radial-gradient(circle, rgba(249, 115, 22, 0.34), rgba(139, 92, 246, 0.16) 44%, transparent 72%);
+  --vp-home-hero-image-filter: blur(46px);
+  --vp-button-brand-border: #f97316;
+  --vp-button-brand-text: #170b04;
+  --vp-button-brand-bg: #f97316;
+  --vp-button-brand-hover-border: #fb923c;
+  --vp-button-brand-hover-bg: #fb923c;
+  --vp-button-alt-border: #34343a;
+  --vp-button-alt-text: #f4f4f5;
+  --vp-button-alt-bg: #151518;
+  --vp-button-alt-hover-border: #52525b;
+  --vp-button-alt-hover-bg: #1d1d21;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  overflow-x: hidden;
+  background-image:
+    radial-gradient(circle at 12% 4%, rgba(249, 115, 22, 0.08), transparent 24rem),
+    radial-gradient(circle at 88% 22%, rgba(139, 92, 246, 0.07), transparent 26rem);
+}
+
+.VPNavBar {
+  border-bottom-color: rgba(255, 255, 255, 0.07) !important;
+  background: rgba(9, 9, 11, 0.82) !important;
+  backdrop-filter: blur(18px);
+}
+
+.VPNavBarTitle .logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.VPNavBarTitle .title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.VPNavBarMenuLink,
+.VPNavBarMenuGroup .text {
+  font-size: 0.77rem;
+  font-weight: 650;
+}
+
+.DocSearch-Button,
+.VPLocalSearchBox .shell {
+  border-color: #2d2d32 !important;
+  background: #151518 !important;
+}
+
+.VPSidebar {
+  background: rgba(9, 9, 11, 0.94) !important;
+}
+
+.VPSidebarItem.level-0 > .item > .text {
+  color: #f4f4f5;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.VPSidebarItem .link > .text {
+  font-size: 0.78rem;
+}
+
+.VPSidebarItem.is-active > .item .link > .text {
+  color: #fb923c;
+}
+
+.VPHomeHero {
+  padding-top: 108px !important;
+}
+
+.VPHomeHero .container {
+  min-height: 500px;
+  align-items: center;
+}
+
+.VPHomeHero .name,
+.VPHomeHero .text {
+  max-width: 760px;
+  letter-spacing: -0.055em;
+}
+
+.VPHomeHero .name {
+  font-size: clamp(3.6rem, 8vw, 6.8rem);
+  line-height: 0.9;
+}
+
+.VPHomeHero .text {
+  margin-top: 20px;
+  color: #f4f4f5;
+  font-size: clamp(2rem, 4vw, 3.7rem);
+  line-height: 0.98;
+}
+
+.VPHomeHero .tagline {
+  max-width: 650px;
+  margin-top: 28px;
+  color: #a1a1aa;
+  font-size: 1.08rem;
+  line-height: 1.7;
+}
+
+.VPHomeHero .image-src {
+  width: 230px;
+  height: 230px;
+  border-radius: 50px;
+  filter: drop-shadow(0 30px 50px rgba(0, 0, 0, 0.45));
+}
+
+.VPFeature {
+  border-color: #29292f !important;
+  border-radius: 18px !important;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)) !important;
+  transition: transform 180ms ease, border-color 180ms ease;
+}
+
+.VPFeature:hover {
+  transform: translateY(-3px);
+  border-color: rgba(249, 115, 22, 0.38) !important;
+}
+
+.VPFeature .icon {
+  border: 1px solid rgba(249, 115, 22, 0.22);
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.VPFeature .title {
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.VPFeature .details {
+  color: #8d8d97;
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+.vp-doc h1 {
+  margin-bottom: 28px;
+  font-size: clamp(2.35rem, 5vw, 4.4rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+}
+
+.vp-doc h2 {
+  margin-top: 56px;
+  border-top-color: #29292f;
+  font-size: 1.75rem;
+  letter-spacing: -0.035em;
+}
+
+.vp-doc h3 {
+  margin-top: 34px;
+  letter-spacing: -0.025em;
+}
+
+.vp-doc p,
+.vp-doc li {
+  color: #b9b9c2;
+  line-height: 1.78;
+}
+
+.vp-doc strong {
+  color: #f4f4f5;
+}
+
+.vp-doc a {
+  text-underline-offset: 3px;
+}
+
+.vp-doc div[class*='language-'],
+.vp-doc .custom-block {
+  border: 1px solid #29292f;
+  border-radius: 14px;
+}
+
+.vp-doc .custom-block.tip {
+  border-color: rgba(249, 115, 22, 0.28);
+  background: rgba(249, 115, 22, 0.07);
+}
+
+.vp-doc table {
+  display: table;
+  width: 100%;
+}
+
+.vp-doc tr {
+  border-color: #29292f;
+  background: transparent;
+}
+
+.vp-doc tr:nth-child(2n) {
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.vp-doc th,
+.vp-doc td {
+  border-color: #29292f;
+}
+
+.release-card {
+  margin: 24px 0;
+  padding: 24px;
+  border: 1px solid #2d2d32;
+  border-radius: 16px;
+  background: linear-gradient(140deg, rgba(249, 115, 22, 0.08), rgba(255, 255, 255, 0.018));
+}
+
+.release-card p:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .VPHomeHero {
+    padding-top: 70px !important;
+  }
+
+  .VPHomeHero .name {
+    font-size: 3.25rem;
+  }
+
+  .VPHomeHero .text {
+    font-size: 2.15rem;
+    line-height: 1.04;
+  }
+
+  .VPHomeHero .main,
+  .VPHomeHero .name,
+  .VPHomeHero .text,
+  .VPHomeHero .tagline,
+  .VPHomeHero .actions {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .VPHomeHero .actions {
+    margin: 0;
+  }
+
+  .VPHomeHero .action {
+    width: 100%;
+    padding-inline: 0;
+  }
+
+  .VPHomeHero .action .VPButton {
+    width: 100%;
+  }
+
+  .VPHomeHero .image {
+    margin-top: 10px;
+  }
+
+  .VPHomeHero .image-src {
+    width: 150px;
+    height: 150px;
+    border-radius: 34px;
+  }
+}

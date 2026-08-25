@@ -10,9 +10,10 @@ describe('app releases', () => {
   });
 
   it('retourne uniquement les versions encore non consultées', () => {
-    expect(releasesAfter(null).map((release) => release.version)).toEqual(['0.2.0']);
-    expect(releasesAfter('0.1.0').map((release) => release.version)).toEqual(['0.2.0']);
-    expect(releasesAfter('0.2.0')).toEqual([]);
+    expect(releasesAfter(null)).toEqual(APP_RELEASES);
+    expect(releasesAfter('0.1.0')).toEqual(APP_RELEASES);
+    expect(releasesAfter('0.2.0').map((release) => release.version)).toEqual(['0.3.0']);
+    expect(releasesAfter(CURRENT_VERSION)).toEqual([]);
   });
 
   it('compare les versions sémantiques numériquement', () => {

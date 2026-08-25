@@ -20,7 +20,7 @@ export function WhatsNewDialog({ releases, currentVersion, onClose }: Props) {
           <ul>{release.changes.map((change) => <li key={change}><Check size={15} />{change}</li>)}</ul>
         </article>)}
       </div>
-      <footer><button className="button primary" onClick={onClose}>J’ai compris</button></footer>
+      <footer><a className="button ghost" href={`/docs/nouveautes/${currentVersion}.html`} target="_blank" rel="noopener noreferrer">Lire la note complète</a><button className="button primary" onClick={onClose}>J’ai compris</button></footer>
     </section>
   </div>;
 }

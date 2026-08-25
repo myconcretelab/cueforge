@@ -9,6 +9,19 @@ export interface AppRelease {
 
 export const APP_RELEASES: AppRelease[] = [
   {
+    version: '0.3.0',
+    date: '2026-08-25',
+    title: 'La documentation entre en scène',
+    summary: 'S1 dispose désormais d’un centre d’aide public, consultable depuis l’application et le site de présentation.',
+    important: true,
+    changes: [
+      'Une documentation moderne accompagne la prise en main et la préparation des spectacles.',
+      'Les guides couvrent l’import, l’organisation, le mode hors ligne et la télécommande.',
+      'Une section de dépannage et une référence des formats sont disponibles sans connexion au compte.',
+      'Chaque note de version peut renvoyer vers une présentation détaillée.',
+    ],
+  },
+  {
     version: '0.2.0',
     date: '2026-08-25',
     title: 'Des mises à jour plus sereines',

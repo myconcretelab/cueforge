@@ -2,6 +2,22 @@
 
 Toutes les évolutions notables de Standby One sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.3.0] - 2026-08-25
+
+### Ajouté
+
+- centre de documentation public intégré au déploiement de S1 ;
+- recherche locale, navigation thématique et design aux couleurs de Standby One ;
+- guides de prise en main, préparation, import, mode hors ligne et télécommande ;
+- référence des formats, raccourcis, dépannage et installation Community ;
+- accès à la documentation depuis les paramètres, les notes de version et le site WordPress ;
+- vérification automatique de la page de documentation associée à chaque publication.
+
+### Modifié
+
+- passage de l’application à la version `0.3.0` ;
+- le build de production compile désormais l’application, la documentation et le serveur.
+
 ## [0.2.0] - 2026-08-25
 
 ### Ajouté
