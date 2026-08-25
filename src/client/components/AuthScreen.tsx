@@ -5,22 +5,32 @@ import type { User } from '../types';
 
 interface Props { onAuthenticated: (user: User) => void }
 
+type AuthMode = 'login' | 'register' | 'forgot';
+
 export function AuthScreen({ onAuthenticated }: Props) {
-  const [register, setRegister] = useState(false);
+  const [mode, setMode] = useState<AuthMode>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError('');
+    setMessage('');
     const data = new FormData(event.currentTarget);
     try {
+      const email = String(data.get('email'));
+      if (mode === 'forgot') {
+        const result = await api.forgotPassword(email);
+        setMessage(result.message);
+        return;
+      }
       const payload = {
-        email: String(data.get('email')),
+        email,
         password: String(data.get('password')),
       };
-      const result = register
+      const result = mode === 'register'
         ? await api.register({ ...payload, displayName: String(data.get('displayName')) })
         : await api.login(payload);
       onAuthenticated(result.user);
@@ -43,16 +53,20 @@ export function AuthScreen({ onAuthenticated }: Props) {
       <form className="auth-card" onSubmit={submit}>
         <div>
           <p className="eyebrow">CueForge</p>
-          <h2>{register ? 'Créer votre régie' : 'Heureux de vous revoir'}</h2>
-          <p>{register ? 'Votre premier projet sera prêt immédiatement.' : 'Connectez-vous pour reprendre votre spectacle.'}</p>
+          <h2>{mode === 'register' ? 'Créer votre régie' : mode === 'forgot' ? 'Réinitialiser le mot de passe' : 'Heureux de vous revoir'}</h2>
+          <p>{mode === 'register' ? 'Votre premier projet sera prêt immédiatement.' : mode === 'forgot' ? 'Saisissez l’adresse e-mail associée à votre compte.' : 'Connectez-vous pour reprendre votre spectacle.'}</p>
         </div>
-        {register && <label>Nom affiché<input name="displayName" autoComplete="name" required minLength={2} placeholder="Votre nom" /></label>}
+        {mode === 'register' && <label>Nom affiché<input name="displayName" autoComplete="name" required minLength={2} placeholder="Votre nom" /></label>}
         <label>Adresse e-mail<input name="email" type="email" autoComplete="email" required placeholder="vous@exemple.fr" /></label>
-        <label>Mot de passe<input name="password" type="password" autoComplete={register ? 'new-password' : 'current-password'} required minLength={8} placeholder="8 caractères minimum" /></label>
+        {mode !== 'forgot' && <label>Mot de passe<input name="password" type="password" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} required minLength={8} placeholder="8 caractères minimum" /></label>}
         {error && <p className="form-error">{error}</p>}
-        <button className="button primary wide" disabled={loading}>{loading && <LoaderCircle className="spin" size={18} />}{register ? 'Créer mon compte' : 'Se connecter'}</button>
-        <button className="text-button" type="button" onClick={() => { setRegister(!register); setError(''); }}>
-          {register ? 'J’ai déjà un compte' : 'Créer un nouveau compte'}
+        {message && <p className="form-success">{message}</p>}
+        <button className="button primary wide" disabled={loading}>{loading && <LoaderCircle className="spin" size={18} />}{mode === 'register' ? 'Créer mon compte' : mode === 'forgot' ? 'Envoyer le lien' : 'Se connecter'}</button>
+        {mode === 'login' && <button className="text-button" type="button" onClick={() => { setMode('forgot'); setError(''); setMessage(''); }}>
+          Mot de passe oublié ?
+        </button>}
+        <button className="text-button" type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setMessage(''); }}>
+          {mode === 'register' ? 'J’ai déjà un compte' : mode === 'forgot' ? 'Retour à la connexion' : 'Créer un nouveau compte'}
         </button>
       </form>
     </section>

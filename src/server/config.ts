@@ -23,7 +23,31 @@ const schema = z.object({
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean))
     .pipe(z.array(z.string().email())),
+  MAIL_FROM: z.string().trim().min(1).default('CueForge <noreply@cueforge.fr>'),
+  SMTP_HOST: z.preprocess(
+    (value) => value === '' ? undefined : value,
+    z.string().trim().min(1).optional(),
+  ),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_SECURE: z.string().default('false').transform((value) => value === 'true'),
+  SMTP_USER: z.preprocess(
+    (value) => value === '' ? undefined : value,
+    z.string().trim().min(1).optional(),
+  ),
+  SMTP_PASSWORD: z.preprocess(
+    (value) => value === '' ? undefined : value,
+    z.string().min(1).optional(),
+  ),
+  SENDMAIL_PATH: z.string().trim().min(1).default('/usr/sbin/sendmail'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+}).superRefine((value, context) => {
+  if (Boolean(value.SMTP_USER) !== Boolean(value.SMTP_PASSWORD)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['SMTP_USER'],
+      message: 'SMTP_USER et SMTP_PASSWORD doivent être définis ensemble.',
+    });
+  }
 });
 
 const parsed = schema.safeParse({

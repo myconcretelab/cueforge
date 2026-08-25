@@ -11,6 +11,8 @@ La page de connexion propose deux opérations :
 
 Une session authentifiée donne accès aux spectacles associés au compte.
 
+Le lien **Mot de passe oublié ?** ouvre le formulaire de demande de réinitialisation. Le message envoyé contient un lien valable pendant 30 minutes et utilisable une seule fois. Après la définition du nouveau mot de passe, toutes les sessions précédentes sont fermées.
+
 ## Spectacle
 
 Un spectacle contient :

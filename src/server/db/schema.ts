@@ -85,6 +85,17 @@ export const sessions = pgTable('sessions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [index('sessions_user_id_idx').on(table.userId), index('sessions_expires_at_idx').on(table.expiresAt)]);
 
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  tokenHash: text('token_hash').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('password_reset_tokens_user_id_idx').on(table.userId),
+  index('password_reset_tokens_expires_at_idx').on(table.expiresAt),
+]);
+
 export const projects = pgTable('projects', {
   id: uuid('id').primaryKey().defaultRandom(),
   accountId: uuid('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),

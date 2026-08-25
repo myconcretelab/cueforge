@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { hashPassword, verifyPassword } from '../src/server/services/auth.js';
+import { passwordResetMessage } from '../src/server/services/mail.js';
+import { createPasswordResetToken, hashPasswordResetToken, passwordResetLifetimeMs } from '../src/server/services/password-reset.js';
 import { parseByteRange } from '../src/server/services/range.js';
 import { evaluateStorageAllowance } from '../src/server/services/account-access.js';
 
@@ -15,6 +17,25 @@ describe('password hashing', () => {
     const first = await hashPassword('mot-de-passe-identique');
     const second = await hashPassword('mot-de-passe-identique');
     expect(first).not.toBe(second);
+  });
+});
+
+describe('password reset', () => {
+  it('crée un jeton aléatoire et ne conserve qu’une empreinte exploitable', () => {
+    const now = new Date('2030-01-01T12:00:00Z');
+    const first = createPasswordResetToken(now);
+    const second = createPasswordResetToken(now);
+    expect(first.token).not.toBe(second.token);
+    expect(first.tokenHash).toBe(hashPasswordResetToken(first.token));
+    expect(first.tokenHash).not.toContain(first.token);
+    expect(first.expiresAt.getTime()).toBe(now.getTime() + passwordResetLifetimeMs);
+  });
+
+  it('échappe le nom affiché dans la version HTML de l’e-mail', () => {
+    const message = passwordResetMessage('<script>alert(1)</script>', 'https://app.cueforge.fr/reset-password?token=abc');
+    expect(message.html).not.toContain('<script>');
+    expect(message.html).toContain('&lt;script&gt;');
+    expect(message.text).toContain('expire dans 30 minutes');
   });
 });
 

@@ -9,6 +9,18 @@ export interface AppRelease {
 
 export const APP_RELEASES: AppRelease[] = [
   {
+    version: '0.7.0',
+    date: '2026-08-25',
+    title: 'Réinitialisation du mot de passe',
+    summary: 'La page de connexion permet désormais de définir un nouveau mot de passe par e-mail.',
+    important: false,
+    changes: [
+      'Le lien « Mot de passe oublié ? » est disponible sur la page de connexion.',
+      'Le lien reçu par e-mail expire après 30 minutes et ne fonctionne qu’une fois.',
+      'La modification du mot de passe ferme toutes les sessions précédentes.',
+    ],
+  },
+  {
     version: '0.6.0',
     date: '2026-08-25',
     title: 'CueForge sur son propre domaine',

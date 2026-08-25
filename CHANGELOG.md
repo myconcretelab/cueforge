@@ -2,6 +2,20 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.7.0] - 2026-08-25
+
+### Ajouté
+
+- demande de réinitialisation du mot de passe depuis la page de connexion ;
+- envoi d’un lien temporaire et à usage unique par e-mail ;
+- formulaire public de définition du nouveau mot de passe sous `/reset-password` ;
+- invalidation des anciennes sessions après la modification du mot de passe ;
+- limitation du nombre de demandes et réponse uniforme pour empêcher l’identification des comptes.
+
+### Modifié
+
+- passage de l’application à la version `0.7.0`.
+
 ## [0.6.0] - 2026-08-25
 
 ### Modifié

@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.7.0 — 25 août 2026
+
+- ajout de la demande de réinitialisation depuis la page de connexion ;
+- envoi d’un lien temporaire et à usage unique par e-mail ;
+- fermeture des sessions existantes après la modification du mot de passe.
+
+[Détails de la version 0.7.0](./0.7.0.md)
+
 ## Version 0.6.0 — 25 août 2026
 
 - mise en ligne du site de présentation sur `cueforge.fr` ;

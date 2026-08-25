@@ -27,6 +27,10 @@ export const api = {
     request<{ user: User }>('/api/auth/register', { method: 'POST', body: JSON.stringify(input) }),
   login: (input: { email: string; password: string }) =>
     request<{ user: User }>('/api/auth/login', { method: 'POST', body: JSON.stringify(input) }),
+  forgotPassword: (email: string) =>
+    request<{ message: string }>('/api/auth/password/forgot', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (token: string, password: string) =>
+    request<void>('/api/auth/password/reset', { method: 'POST', body: JSON.stringify({ token, password }) }),
   logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
   version: () => request<{ version: string; releasedAt: string }>('/api/version'),
   releases: () => request<ReleaseInfo>('/api/releases'),
