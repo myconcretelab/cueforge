@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.6.0 — 25 août 2026
+
+- mise en ligne du site de présentation sur `cueforge.fr` ;
+- déplacement de l’application sur `app.cueforge.fr` ;
+- maintien de la documentation sous `/docs/` sur le domaine de l’application.
+
+[Détails de la version 0.6.0](./0.6.0.md)
+
 ## Version 0.5.0 — 25 août 2026
 
 - ajout du tableau de bord `/admin` ;

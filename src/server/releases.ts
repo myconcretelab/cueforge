@@ -9,6 +9,19 @@ export interface AppRelease {
 
 export const APP_RELEASES: AppRelease[] = [
   {
+    version: '0.6.0',
+    date: '2026-08-25',
+    title: 'CueForge sur son propre domaine',
+    summary: 'Le site et l’application utilisent désormais le domaine cueforge.fr.',
+    important: true,
+    changes: [
+      'Le site de présentation est disponible sur cueforge.fr.',
+      'L’application et son administration sont disponibles sur app.cueforge.fr.',
+      'La documentation reste intégrée à l’application sous /docs/.',
+      'Les liens Community et GitHub ont été retirés du site de présentation.',
+    ],
+  },
+  {
     version: '0.5.0',
     date: '2026-08-25',
     title: 'Administration commerciale',

@@ -4,11 +4,11 @@ set -Eeuo pipefail
 
 readonly DEPLOY_BRANCH="main"
 readonly ALWAYSDATA_ACCOUNT="myconcretelab"
-readonly ALWAYSDATA_SITE_ID="1070157"
+readonly ALWAYSDATA_SITE_ID="1070862"
 readonly ALWAYSDATA_KEYCHAIN_SERVICE="cueforge-alwaysdata-api"
 readonly ALWAYSDATA_SSH_HOST="ssh-myconcretelab.alwaysdata.net"
 readonly ALWAYSDATA_REMOTE_DIR="/home/myconcretelab/www/cueforge"
-readonly ALWAYSDATA_SITE_URL="https://cueforge.sebastienj.com"
+readonly ALWAYSDATA_SITE_URL="https://app.cueforge.fr"
 
 fail() {
   printf 'Erreur : %s\n' "$*" >&2

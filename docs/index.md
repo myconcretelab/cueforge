@@ -14,7 +14,7 @@ hero:
       link: /premiers-pas/
     - theme: alt
       text: Ouvrir l’application
-      link: https://cueforge.sebastienj.com
+      link: https://app.cueforge.fr
 
 features:
   - icon: "▶"

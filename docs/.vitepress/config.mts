@@ -27,7 +27,7 @@ export default defineConfig({
       {
         text: `v${packageMetadata.version}`,
         items: [
-          { text: 'Ouvrir CueForge', link: 'https://cueforge.sebastienj.com' },
+          { text: 'Ouvrir CueForge', link: 'https://app.cueforge.fr' },
         ],
       },
     ],

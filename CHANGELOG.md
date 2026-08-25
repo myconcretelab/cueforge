@@ -2,6 +2,16 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.6.0] - 2026-08-25
+
+### Modifié
+
+- mise en ligne du site WordPress sur `cueforge.fr` ;
+- déplacement de l’application, de l’API, de l’administration et de la documentation sur `app.cueforge.fr` ;
+- redirection de `www.cueforge.fr` vers le domaine principal ;
+- suppression des références publiques à l’ancienne édition Community ;
+- passage de l’application à la version `0.6.0`.
+
 ## [0.5.0] - 2026-08-25
 
 ### Ajouté
