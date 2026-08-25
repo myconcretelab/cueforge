@@ -3,14 +3,14 @@ layout: home
 
 hero:
   name: "CueForge"
-  text: "Play sound. Play the scene."
-  tagline: Préparez vos sons, organisez votre spectacle et déclenchez chaque scène au bon moment.
+  text: "Documentation"
+  tagline: Fonctions, commandes, paramètres, formats et limites de l’application.
   image:
     src: /cueforge-mark.svg
     alt: Logo de CueForge
   actions:
     - theme: brand
-      text: Prendre en main CueForge
+      text: Fonctionnement général
       link: /premiers-pas/
     - theme: alt
       text: Ouvrir l’application
@@ -18,38 +18,33 @@ hero:
 
 features:
   - icon: "▶"
-    title: Démarrer rapidement
-    details: Créez un spectacle, importez quelques sons et préparez votre première conduite.
-    link: /premiers-pas/premier-spectacle
+    title: Spectacles et médias
+    details: Comptes, spectacles, catégories, couleurs, pistes et playlists.
+    link: /guides/organiser-un-spectacle
   - icon: "⌁"
-    title: Jouer sans connexion
-    details: Rendez un spectacle disponible hors ligne avant d’entrer en salle.
+    title: Lecture hors ligne
+    details: Mise en cache locale des médias et comportement sans réseau.
     link: /guides/mode-hors-ligne
   - icon: "↗"
-    title: Piloter à distance
-    details: Utilisez une seconde fenêtre ou un téléphone comme télécommande de la régie.
+    title: Télécommande
+    details: Rôles du lecteur principal et du contrôleur distant.
     link: /guides/telecommande
 ---
 
-## Trouver la bonne réponse
+## Contenu
 
-La documentation de **CueForge** est organisée selon ce que vous cherchez à accomplir :
+- **Fonctionnement général** : création d’un compte, structure d’un spectacle, import et lecture.
+- **Guides** : description détaillée d’une fonction et de ses commandes.
+- **Référence** : formats, limites, raccourcis et actions configurables.
+- **Dépannage** : symptômes, causes possibles et opérations de diagnostic.
+- **Notes de version** : modifications apportées par chaque version.
 
-- suivez les **premiers pas** pour découvrir l’application en situation réelle ;
-- consultez les **guides pratiques** lorsque vous avez un objectif précis ;
-- utilisez la **référence** pour vérifier un format, une limite ou une commande ;
-- ouvrez le **dépannage** lorsqu’un comportement vous empêche d’avancer.
+## Éditions
 
-::: tip Avant un spectacle
-Consultez la [check-list de préparation](./premiers-pas/premier-spectacle.md#avant-dentrer-en-salle) et rendez le projet disponible hors ligne.
-:::
+**CueForge Cloud** est l’édition hébergée. Le service gère l’exécution de l’application, la base de données et le stockage des médias.
 
-## Deux façons d’utiliser CueForge
+**CueForge Community** est l’édition auto-hébergée disponible sur [GitHub](https://github.com/myconcretelab/cueforge). Son installation utilise Node.js, PostgreSQL et un stockage persistant. La procédure est décrite dans [Installation de CueForge Community](./community/installation.md).
 
-**CueForge Cloud** est la version hébergée : vous ouvrez l’application, créez votre compte et vos données sont gérées par le service.
+## Support
 
-**CueForge Community** est la version libre disponible sur GitHub. Elle contient les mêmes fonctions de régie, mais son installation, son stockage et ses sauvegardes sont à votre charge. Consultez le guide [Installer CueForge Community](./community/installation.md).
-
-## Besoin d’aide ?
-
-Commencez par le [guide de dépannage](./depannage/index.md). Si le problème persiste, vous pouvez [ouvrir une demande sur GitHub](https://github.com/myconcretelab/cueforge/issues) en indiquant votre navigateur, votre système et les étapes permettant de reproduire le problème.
+Les incidents peuvent être déclarés dans les [issues GitHub](https://github.com/myconcretelab/cueforge/issues). Les informations utiles sont la version de CueForge, le navigateur, le système d’exploitation, les étapes de reproduction et le message d’erreur.

@@ -1,53 +1,42 @@
-# Préparer votre premier spectacle
+# Configuration d’un spectacle
 
-Une bonne conduite doit rester lisible sous pression. Préparez-la dans l’ordre où vous travaillerez en représentation.
+Chaque spectacle possède ses propres médias, catégories, couleurs, playlists et commandes.
 
-## Construire la régie
+## Catégories
 
-### Créer des catégories simples
+Une catégorie regroupe des pistes et filtre la grille. Une piste peut appartenir à une catégorie ou rester sans catégorie.
 
-Commencez avec quelques familles faciles à reconnaître, par exemple :
+La sélection de **Tous les sons** annule le filtre. L’ordre des catégories est modifiable par glisser-déposer.
 
-- Ambiances ;
-- Musiques ;
-- Transitions ;
-- Effets ;
-- Final.
+## Titres et ordre
 
-Évitez de multiplier les catégories au départ. Une catégorie doit vous aider à trouver un son plus vite, pas créer une décision supplémentaire.
+Le titre identifie la piste dans la grille, la recherche, les playlists et la colonne de lecture. L’ordre des pistes est modifiable lorsque le mode de réorganisation est actif.
 
-### Nommer les sons pour le direct
+## Paramètres d’une piste
 
-Utilisez un nom court et sans ambiguïté : `Ouverture`, `Entrée public`, `Orage scène 4`. Si l’ordre est important, ajoutez un numéro au début du titre.
+La fenêtre d’édition d’une piste expose :
 
-### Régler chaque média
+| Paramètre | Effet |
+| --- | --- |
+| Point d’entrée | Position de début de lecture |
+| Point de sortie | Position de fin de lecture |
+| Volume | Niveau appliqué à la piste |
+| Boucle | Reprise au point d’entrée après le point de sortie |
+| Fondu d’entrée | Montée progressive du volume au démarrage |
+| Fondu de sortie | Descente progressive du volume à l’arrêt |
+| Couleur | Repère visuel de la carte |
+| Catégorie | Groupe utilisé par le filtre |
 
-Pour chaque son important, vérifiez :
+## Actions de lecture
 
-1. le point d’entrée ;
-2. le point de sortie ;
-3. le volume ;
-4. la boucle ;
-5. les fondus d’entrée et de sortie.
+Le clic gauche et le clic droit possèdent chacun une action configurable : démarrer, fondu enchaîné, fondu d’entrée, remplacer, arrêter ou aucune action.
 
-## Répéter comme en représentation
+Les touches **Échap**, **Retour arrière** et **Espace** peuvent arrêter les lectures avec leurs fondus, les arrêter immédiatement ou ne déclencher aucune action.
 
-Effectuez au moins une répétition avec le même ordinateur, le même navigateur et la même interface audio que le jour du spectacle.
+## Disponibilité hors ligne
 
-Testez les arrêts globaux et les enchaînements. Si vous utilisez une playlist, jouez-la du début à la fin sans sauter d’étape.
+La commande **Paramètres → Bibliothèque → Rendre disponible hors ligne** copie les médias du spectacle dans le stockage local du navigateur. Le fonctionnement et les limites de ce stockage sont décrits dans [Mode hors ligne](../guides/mode-hors-ligne.md).
 
-## Avant d’entrer en salle
+## Télécommande
 
-- [ ] Le bon spectacle est sélectionné.
-- [ ] Tous les sons importants ont été écoutés.
-- [ ] Le projet est [disponible hors ligne](../guides/mode-hors-ligne.md).
-- [ ] L’ordinateur est alimenté et les économies d’énergie sont désactivées.
-- [ ] Les notifications du système sont coupées.
-- [ ] La bonne sortie audio est sélectionnée au niveau du système.
-- [ ] Les raccourcis d’arrêt ont été testés.
-- [ ] La télécommande est connectée si elle doit être utilisée.
-- [ ] Aucun autre onglet ne diffuse du son.
-
-::: tip Gardez une solution de secours
-Pour les représentations critiques, conservez les médias essentiels sur un second appareil ou un lecteur indépendant.
-:::
+Une seconde session connectée au même compte et au même spectacle peut être utilisée comme contrôleur. Le son reste produit par le lecteur principal. Voir [Télécommande](../guides/telecommande.md).

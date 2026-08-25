@@ -1,41 +1,36 @@
 # Notes de version
 
-Les mises à jour de CueForge sont publiées par ensembles cohérents. L’application vous avertit lorsqu’une nouvelle version est prête et vous laisse choisir le moment de l’installer.
-
-<div class="release-card">
+Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
 ## Version 0.4.0 — 25 août 2026
 
-**CueForge entre en scène.** Une nouvelle identité pour toute la régie, avec sa signature : Play sound. Play the scene.
+- changement du nom de l’application vers CueForge ;
+- changement des domaines, chemins, identifiants techniques et éléments graphiques ;
+- migration des préférences locales, du cache audio et des cookies de session ;
+- maintien temporaire de l’ancienne origine pour les PWA et télécommandes existantes.
 
-[Découvrir la version 0.4.0](./0.4.0.md)
-
-</div>
-
-<div class="release-card">
+[Détails de la version 0.4.0](./0.4.0.md)
 
 ## Version 0.3.0 — 25 août 2026
 
-**La documentation entre en scène.** Guides pratiques, recherche, dépannage et notes de version sont maintenant réunis dans un centre d’aide public.
+- ajout de la documentation publique ;
+- ajout de la recherche et de la navigation par rubrique ;
+- intégration de la documentation au build et au déploiement.
 
-[Découvrir la version 0.3.0](./0.3.0.md)
-
-</div>
-
-<div class="release-card">
+[Détails de la version 0.3.0](./0.3.0.md)
 
 ## Version 0.2.0 — 25 août 2026
 
-**Des mises à jour plus sereines.** CueForge présente désormais ses nouveautés et ne recharge jamais la régie au milieu d’une lecture.
+- ajout des notes de version dans l’application ;
+- détection et installation différée des mises à jour PWA ;
+- exposition de la version par l’API.
 
-[Découvrir la version 0.2.0](./0.2.0.md)
+[Détails de la version 0.2.0](./0.2.0.md)
 
-</div>
+## Cycle de mise à jour
 
-## Politique de mise à jour
-
-- Les correctifs et fonctionnalités sont d’abord vérifiés puis publiés ensemble.
-- Une version prête apparaît dans l’application.
-- L’installation attend votre confirmation.
-- Le bouton reste bloqué tant qu’un son est en lecture.
-- Une sauvegarde de production précède les migrations de données.
+1. La nouvelle version du service worker est téléchargée en arrière-plan.
+2. L’application affiche une notification de mise à jour.
+3. Le bouton reste désactivé pendant une lecture audio.
+4. L’activation remplace le service worker courant et recharge l’interface.
+5. Les nouveautés non consultées sont affichées après la connexion.

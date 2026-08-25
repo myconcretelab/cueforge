@@ -6,7 +6,7 @@ const packageMetadata = JSON.parse(readFileSync(new URL('../../package.json', im
 export default defineConfig({
   lang: 'fr-FR',
   title: 'Documentation CueForge',
-  description: 'CueForge — Play sound. Play the scene. Guides et documentation de la régie son web pensée pour la scène.',
+  description: 'Documentation fonctionnelle de CueForge : commandes, paramètres, formats et limites.',
   base: '/docs/',
   outDir: '../dist/client/docs',
   cleanUrls: false,
@@ -20,8 +20,8 @@ export default defineConfig({
     logo: '/cueforge-mark.svg',
     siteTitle: 'CueForge · Documentation',
     nav: [
-      { text: 'Premiers pas', link: '/premiers-pas/' },
-      { text: 'Guides', link: '/guides/importer-des-sons' },
+      { text: 'Fonctionnement', link: '/premiers-pas/' },
+      { text: 'Fonctions', link: '/guides/importer-des-sons' },
       { text: 'Dépannage', link: '/depannage/' },
       { text: 'Nouveautés', link: '/nouveautes/' },
       {
@@ -34,20 +34,20 @@ export default defineConfig({
     ],
     sidebar: [
       {
-        text: 'Commencer',
+        text: 'Général',
         items: [
-          { text: 'Bienvenue', link: '/' },
-          { text: 'Prise en main', link: '/premiers-pas/' },
-          { text: 'Premier spectacle', link: '/premiers-pas/premier-spectacle' },
+          { text: 'Vue d’ensemble', link: '/' },
+          { text: 'Fonctionnement général', link: '/premiers-pas/' },
+          { text: 'Configuration d’un spectacle', link: '/premiers-pas/premier-spectacle' },
         ],
       },
       {
-        text: 'Guides pratiques',
+        text: 'Fonctions',
         items: [
-          { text: 'Importer des sons', link: '/guides/importer-des-sons' },
-          { text: 'Organiser un spectacle', link: '/guides/organiser-un-spectacle' },
-          { text: 'Préparer le mode hors ligne', link: '/guides/mode-hors-ligne' },
-          { text: 'Utiliser la télécommande', link: '/guides/telecommande' },
+          { text: 'Import des sons', link: '/guides/importer-des-sons' },
+          { text: 'Organisation d’un spectacle', link: '/guides/organiser-un-spectacle' },
+          { text: 'Mode hors ligne', link: '/guides/mode-hors-ligne' },
+          { text: 'Télécommande', link: '/guides/telecommande' },
         ],
       },
       {
@@ -88,7 +88,7 @@ export default defineConfig({
     docFooter: { prev: 'Page précédente', next: 'Page suivante' },
     socialLinks: [{ icon: 'github', link: 'https://github.com/myconcretelab/cueforge' }],
     footer: {
-      message: 'CueForge · Play sound. Play the scene.',
+      message: 'Documentation de CueForge',
       copyright: 'Documentation de CueForge',
     },
   },

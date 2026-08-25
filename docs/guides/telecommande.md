@@ -1,29 +1,31 @@
-# Utiliser la télécommande
+# Télécommande
 
-La vue télécommande permet de piloter le spectacle depuis une autre fenêtre ou un téléphone. Les commandes sont transmises à la régie principale en temps réel.
+La télécommande transmet des commandes de lecture à une autre instance de CueForge connectée au même spectacle.
 
-## Ouvrir la vue distante
+## Rôles
 
-1. Sur la régie principale, ouvrez le spectacle concerné.
-2. Sur l’appareil distant, connectez-vous avec le même compte et sélectionnez ce spectacle.
-3. Sur cet appareil, allez dans **Paramètres → Télécommande**.
-4. Cliquez sur **Ouvrir la télécommande**.
+| Rôle | Fonction |
+| --- | --- |
+| Lecteur principal | Charge les médias et produit le son |
+| Contrôleur | Affiche les pistes et envoie les commandes |
 
-La barre d’état indique si l’appareil agit comme **Lecteur principal** ou comme **Contrôleur**.
+Le contrôleur ne lit pas les médias sur sa propre sortie audio.
 
-## Pendant le spectacle
+## Ouverture
 
-Le son est joué par la régie principale. Le téléphone ou la seconde fenêtre envoie les ordres de lecture et d’arrêt ; il ne doit pas être raccordé au système de diffusion.
+1. Connecter les deux appareils avec le même compte.
+2. Sélectionner le même spectacle sur les deux appareils.
+3. Sur l’appareil distant, ouvrir **Paramètres → Télécommande**.
+4. Exécuter **Ouvrir la télécommande**.
 
-Gardez la régie principale visible et vérifiez son indicateur de connexion avant le lever de rideau.
+L’interface affiche le rôle actif et l’état de la connexion temps réel.
 
-## Si la télécommande ne répond plus
+## Commandes transmises
 
-1. Vérifiez la connexion Internet des deux appareils.
-2. Vérifiez que le même compte et le même spectacle sont sélectionnés.
-3. Revenez à la régie principale pour conserver le contrôle local.
-4. Rechargez uniquement la télécommande si aucune lecture critique n’en dépend.
+La télécommande peut transmettre le démarrage d’une piste, les actions configurées, l’arrêt d’une piste et les arrêts globaux. Le lecteur principal vérifie que le spectacle appartient au compte avant d’accepter la commande.
 
-::: tip Priorité à la régie principale
-La télécommande est un confort. Placez toujours l’ordinateur principal à un endroit où une personne peut reprendre la main immédiatement.
-:::
+## Connexion
+
+Les deux instances utilisent une connexion WebSocket au serveur. Une interruption de cette connexion désactive la transmission des commandes et modifie l’indicateur d’état. Les commandes locales du lecteur principal restent disponibles.
+
+Le rétablissement du réseau déclenche une tentative de reconnexion. Le compte et le spectacle sélectionné doivent rester identiques sur les deux instances.

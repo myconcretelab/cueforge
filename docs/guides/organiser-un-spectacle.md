@@ -1,33 +1,42 @@
-# Organiser un spectacle
+# Organisation d’un spectacle
 
-CueForge propose plusieurs niveaux d’organisation : le spectacle, les catégories, les couleurs et les playlists.
+CueForge utilise quatre niveaux d’organisation : spectacles, catégories, couleurs et playlists.
 
 ## Spectacles
 
-Un spectacle constitue un espace indépendant. Ses médias et ses réglages ne se mélangent pas avec ceux des autres productions.
+Un spectacle est un espace indépendant associé au compte. Il contient ses propres médias, réglages et collections.
 
-Depuis **Paramètres → Spectacles**, vous pouvez :
+La section **Paramètres → Spectacles** permet de :
 
-- créer ou sélectionner un spectacle ;
-- faire glisser les spectacles pour les réordonner ;
-- supprimer un spectacle devenu inutile.
+- créer un spectacle ;
+- sélectionner le spectacle affiché ;
+- modifier l’ordre par glisser-déposer ;
+- supprimer un spectacle.
 
-::: danger Suppression définitive
-La suppression d’un spectacle retire également les sons et les données qui lui sont associés. Vérifiez attentivement le nom avant de confirmer.
-:::
+La suppression retire le spectacle, ses catégories, ses pistes, ses playlists et les fichiers audio qui ne sont plus référencés. Cette opération est définitive.
 
 ## Catégories
 
-Les catégories servent à filtrer rapidement la grille. Utilisez-les pour des familles fonctionnelles qui gardent du sens pendant le direct : ambiances, jingles, transitions ou scènes.
+Une catégorie regroupe des pistes. La catégorie sélectionnée filtre la grille ; **Tous les sons** affiche l’ensemble des pistes du spectacle.
+
+Les catégories possèdent un nom, une couleur et un ordre. Leur ordre est modifiable par glisser-déposer.
 
 ## Couleurs
 
-La palette du spectacle crée des repères visuels complémentaires. Dans les paramètres, ajoutez une couleur puis faites glisser les pastilles pour modifier leur ordre.
+La palette du spectacle fournit les couleurs disponibles pour les catégories et les pistes. Les couleurs sont ajoutées, supprimées et réordonnées dans les paramètres.
 
-Retirer une couleur de la palette ne modifie pas automatiquement les morceaux qui l’utilisent déjà.
+La suppression d’une couleur de la palette ne modifie pas les pistes qui utilisent déjà cette valeur.
 
 ## Playlists
 
-Une playlist prépare une suite de sons dans un ordre déterminé. Utilisez-la lorsque la conduite est stable ou qu’un enchaînement doit rester visible à côté de la grille principale.
+Une playlist contient une liste ordonnée de pistes. Les éléments sont ajoutés depuis la grille puis réordonnés dans le panneau de playlist.
 
-Avant le direct, vérifiez l’ordre, le comportement de chaque élément et le passage au son suivant.
+Les paramètres d’une playlist comprennent :
+
+- l’ordre séquentiel ou aléatoire ;
+- la répétition de la liste ;
+- le démarrage automatique de la piste suivante ;
+- un silence entre deux pistes ;
+- un fondu enchaîné entre deux pistes.
+
+Une playlist enregistrée appartient au spectacle sélectionné.

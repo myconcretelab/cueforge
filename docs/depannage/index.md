@@ -1,40 +1,62 @@
 # Dépannage
 
-Commencez par identifier si le problème concerne un seul média, un spectacle ou toute l’application.
-
 ## Aucun son ne sort
 
-1. Vérifiez que le volume du son et celui du système ne sont pas à zéro.
-2. Vérifiez la sortie audio sélectionnée par le système.
-3. Testez un autre fichier dans CueForge.
-4. Testez le fichier d’origine dans un lecteur indépendant.
-5. Fermez les autres applications susceptibles d’utiliser exclusivement l’interface audio.
+Points de contrôle :
 
-## Un fichier est refusé
+1. volume de la piste dans CueForge ;
+2. volume du système ;
+3. sortie audio sélectionnée par le système ;
+4. lecture d’une autre piste dans CueForge ;
+5. lecture du fichier d’origine dans un lecteur externe ;
+6. accès exclusif éventuel d’une autre application à l’interface audio.
 
-Vérifiez son extension et sa taille dans la page [Formats et limites](../reference/formats-et-limites.md). Un fichier portant une extension compatible peut tout de même utiliser un codec que le navigateur ne sait pas décoder.
+Si une seule piste échoue, le problème peut provenir du fichier ou de son codec. Si toutes les pistes échouent, le problème concerne généralement la sortie audio, le navigateur ou le système.
 
-## Le mode hors ligne ne retrouve pas les sons
+## Fichier refusé
 
-- Reconnectez l’appareil puis relancez **Rendre disponible hors ligne**.
-- Vérifiez que le navigateur autorise le stockage pour CueForge.
-- Vérifiez que vous n’utilisez pas une fenêtre privée.
-- Contrôlez l’espace disponible sur l’appareil.
+Causes traitées par l’application :
 
-## La télécommande ne répond pas
+- extension absente de la liste prise en charge ;
+- fichier supérieur à 250 Mo ;
+- quota de stockage insuffisant ;
+- fichier vide ou transfert interrompu.
 
-Vérifiez que les deux appareils sont connectés, authentifiés avec le même compte et positionnés sur le même spectacle. Continuez depuis la régie principale pendant le diagnostic.
+Un fichier accepté à l’import peut encore échouer au décodage si son codec n’est pas fourni par le navigateur. Voir [Formats et limites](../reference/formats-et-limites.md).
 
-## Une mise à jour est proposée pendant la régie
+## Média absent hors ligne
 
-CueForge n’actualise jamais l’application automatiquement pendant une lecture. Laissez la notification en attente et choisissez **Mettre à jour** lorsque tous les sons sont arrêtés et que la régie est disponible.
+Points de contrôle :
 
-## Demander de l’aide
+- état final de l’opération **Rendre disponible hors ligne** ;
+- autorisation de stockage du domaine CueForge ;
+- profil et navigateur utilisés lors de la mise en cache ;
+- utilisation éventuelle d’une fenêtre privée ;
+- espace disponible sur l’appareil.
 
-Si le problème persiste, [ouvrez une demande sur GitHub](https://github.com/myconcretelab/cueforge/issues) avec :
+Une nouvelle exécution de **Rendre disponible hors ligne** télécharge les médias absents du cache.
 
-- la version de CueForge affichée en bas de l’application ;
-- le navigateur et sa version ;
+## Télécommande sans effet
+
+Les deux instances doivent remplir les conditions suivantes :
+
+- session authentifiée avec le même compte ;
+- même spectacle sélectionné ;
+- connexion temps réel active ;
+- une instance en rôle de lecteur principal et l’autre en rôle de contrôleur.
+
+L’indicateur de connexion signale une interruption du WebSocket. Les commandes locales restent utilisables sur le lecteur principal.
+
+## Mise à jour en attente
+
+Une nouvelle version PWA est téléchargée en arrière-plan. Le bouton **Mettre à jour** reste désactivé pendant une lecture audio. Lorsqu’il est activé, son utilisation remplace la version courante et recharge l’interface.
+
+## Informations de diagnostic
+
+Une déclaration dans les [issues GitHub](https://github.com/myconcretelab/cueforge/issues) peut contenir :
+
+- la version de CueForge affichée dans l’application ;
+- le nom et la version du navigateur ;
 - le système d’exploitation ;
-- les étapes exactes du problème ;
-- le message d’erreur, sans donnée personnelle ni mot de passe.
+- les étapes de reproduction ;
+- le message d’erreur sans donnée d’authentification.

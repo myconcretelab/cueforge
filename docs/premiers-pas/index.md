@@ -1,46 +1,42 @@
-# Prise en main
+# Fonctionnement général
 
-Ce parcours vous accompagne jusqu’au déclenchement de votre premier son. Comptez quelques minutes.
+CueForge organise les données par compte et par spectacle. La lecture audio est exécutée dans le navigateur utilisé comme lecteur principal.
 
-## 1. Créer votre compte
+## Compte
 
-1. Ouvrez [CueForge](https://cueforge.sebastienj.com).
-2. Sélectionnez **Créer un nouveau compte**.
-3. Renseignez votre nom, votre adresse e-mail et un mot de passe d’au moins huit caractères.
-4. Validez avec **Créer mon compte**.
+La page de connexion propose deux opérations :
 
-Vous arrivez directement dans votre espace de régie.
+- **Se connecter** avec une adresse e-mail et un mot de passe existants ;
+- **Créer un nouveau compte** avec un nom affiché, une adresse e-mail et un mot de passe d’au moins huit caractères.
 
-## 2. Créer un spectacle
+Une session authentifiée donne accès aux spectacles associés au compte.
 
-1. Ouvrez les **Paramètres** avec le bouton en forme de roue dentée.
-2. Dans la section **Spectacles**, choisissez **Nouveau spectacle**.
-3. Donnez-lui un nom facile à identifier en salle.
-4. Sélectionnez-le dans la liste.
+## Spectacle
 
-Un spectacle regroupe ses sons, ses catégories, ses couleurs, ses playlists et ses réglages de commande.
+Un spectacle contient :
 
-## 3. Ajouter un son
+- des pistes audio ;
+- des catégories ;
+- une palette de couleurs ;
+- des playlists ;
+- les actions de la souris et des raccourcis clavier.
 
-1. Fermez les paramètres.
-2. Cliquez sur **Ajouter un son**.
-3. Choisissez un fichier audio compatible.
-4. Corrigez son titre si nécessaire, puis affectez éventuellement une catégorie.
-5. Cliquez sur **Importer**.
+La création et la sélection s’effectuent dans **Paramètres → Spectacles**. Le spectacle sélectionné détermine le contenu affiché dans la grille.
 
-Le son apparaît dans la grille. Un clic sur sa carte démarre sa lecture.
+## Piste audio
 
-## 4. Tester les commandes essentielles
+Le bouton **Ajouter un son** ouvre la fenêtre d’import. Une piste possède notamment un titre, une catégorie facultative, une couleur, un volume, un mode boucle, des points d’entrée et de sortie et des durées de fondu.
 
-- Cliquez sur un son pour le lancer.
-- Utilisez son bouton d’arrêt pour l’interrompre.
-- Vérifiez l’action des touches **Échap**, **Retour arrière** et **Espace**.
-- Ouvrez un son pour régler ses points d’entrée, de sortie et ses fondus.
+Après l’import, la carte de la piste apparaît dans la grille. L’action exécutée par un clic dépend du réglage du spectacle.
 
-::: warning Protégez vos oreilles et votre matériel
-Avant un premier essai, baissez le niveau de votre système de diffusion. CueForge ne remplace pas le réglage de gain de votre interface audio ou de votre console.
-:::
+## Lecture
 
-## Étape suivante
+Une piste en cours de lecture apparaît dans la colonne **En lecture**. Cette colonne affiche la position, le volume et les commandes de pause, de boucle, de fondu sortant et d’arrêt immédiat.
 
-Préparez maintenant votre [premier spectacle complet](./premier-spectacle.md) ou découvrez comment [organiser les sons](../guides/organiser-un-spectacle.md).
+Les commandes globales d’arrêt sont associées aux touches **Échap**, **Retour arrière** et **Espace**. Leur action est configurable dans les paramètres du spectacle.
+
+## Paramètres
+
+Les paramètres regroupent la gestion des spectacles, des couleurs, de la bibliothèque, du mode hors ligne, de la télécommande, des raccourcis, du compte et du stockage.
+
+Les pages suivantes décrivent la [configuration d’un spectacle](./premier-spectacle.md) et l’[organisation des sons](../guides/organiser-un-spectacle.md).

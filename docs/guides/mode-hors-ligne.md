@@ -1,33 +1,35 @@
-# Préparer le mode hors ligne
+# Mode hors ligne
 
-Le mode hors ligne conserve localement les médias d’un spectacle sur l’appareil utilisé. Il protège la lecture contre une coupure de réseau, mais nécessite une préparation avant la représentation.
+Le mode hors ligne stocke dans le navigateur les fichiers audio d’un spectacle et les ressources nécessaires à l’interface.
 
-## Télécharger un spectacle
+## Mise en cache
 
-1. Connectez l’appareil à Internet.
-2. Ouvrez le spectacle à préparer.
-3. Allez dans **Paramètres → Bibliothèque**.
-4. Cliquez sur **Rendre disponible hors ligne**.
-5. Attendez la confirmation avant de fermer la fenêtre ou de changer de réseau.
+1. Ouvrir le spectacle concerné avec une connexion réseau active.
+2. Ouvrir **Paramètres → Bibliothèque**.
+3. Exécuter **Rendre disponible hors ligne**.
+4. Attendre la fin de la progression.
 
-## Vérifier la disponibilité
+Chaque fichier audio est téléchargé puis ajouté au cache du navigateur. La confirmation indique que l’opération est terminée.
 
-Une fois le téléchargement terminé :
+## Lecture
 
-1. laissez CueForge ouvert ;
-2. coupez temporairement le Wi-Fi ;
-3. rechargez l’application ;
-4. déclenchez plusieurs sons, notamment les plus longs ;
-5. rétablissez la connexion.
+Lorsqu’un média est présent dans le cache, CueForge utilise cette copie locale pour la lecture. Une requête réseau reste nécessaire pour un média absent du cache.
 
-::: warning Un cache local n’est pas une sauvegarde
-Le navigateur peut supprimer ses données locales lorsqu’il manque d’espace ou lorsqu’un utilisateur efface les données du site. Refaites la vérification avant chaque représentation importante.
-:::
+La liste des spectacles et les dernières données consultées sont également conservées localement. Les modifications et imports restent des opérations serveur et ne sont pas disponibles sans connexion.
 
-## Bonnes pratiques
+## Périmètre du stockage
 
-- Préparez le mode hors ligne sur chaque appareil utilisé.
-- Ne naviguez pas en mode privé : les données peuvent être supprimées à la fermeture.
-- Gardez suffisamment d’espace libre sur l’appareil.
-- Évitez de vider le cache du navigateur après la préparation.
-- Ouvrez CueForge une première fois après chaque mise à jour, avant le spectacle.
+Le cache appartient :
+
+- au navigateur utilisé ;
+- au profil du navigateur ;
+- à l’appareil ;
+- au domaine de CueForge.
+
+La mise en cache d’un spectacle sur un appareil ne le rend pas disponible sur les autres appareils. Une fenêtre privée utilise un stockage séparé qui peut être supprimé à sa fermeture.
+
+## Suppression du cache
+
+Les fichiers hors ligne disparaissent lorsque les données du site ou le cache de CueForge sont supprimés. Le navigateur peut également libérer cet espace selon sa politique de stockage.
+
+Le cache hors ligne est distinct du stockage serveur et ne constitue pas une copie de sauvegarde des projets.

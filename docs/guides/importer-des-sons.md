@@ -1,33 +1,33 @@
-# Importer des sons
+# Import des sons
 
-CueForge accepte les fichiers audio depuis le sélecteur de fichiers ou par glisser-déposer dans la régie.
+CueForge accepte un fichier unique, une sélection de fichiers, une source Freesound ou un projet SoundShow.
 
-## Importer un fichier
+## Fichier unique
 
-1. Sélectionnez le spectacle concerné.
-2. Cliquez sur **Ajouter un son**.
-3. Choisissez le fichier.
-4. Saisissez son titre et sa catégorie.
-5. Cliquez sur **Importer**.
+1. Sélectionner un spectacle.
+2. Ouvrir **Ajouter un son**.
+3. Sélectionner un fichier audio.
+4. Définir le titre et la catégorie.
+5. Exécuter **Importer**.
 
-Le titre proposé reprend automatiquement le nom du fichier sans son extension.
+Le titre initial correspond au nom du fichier sans son extension. Le fichier est envoyé vers le stockage du compte et une piste est créée dans le spectacle sélectionné.
 
-## Importer plusieurs fichiers
+## Sélection de fichiers
 
-Glissez une sélection de fichiers audio depuis le Finder ou l’Explorateur de fichiers vers la fenêtre de CueForge. La progression globale apparaît pendant l’import.
+Une sélection de fichiers peut être déposée sur la fenêtre de CueForge. Les fichiers sont importés dans la catégorie active et la progression globale est affichée pendant le transfert.
 
-Les fichiers non reconnus sont ignorés. Les fichiers dépassant la limite de taille sont refusés sans interrompre les sons déjà importés.
+Un fichier dont l’extension n’est pas reconnue est ignoré. Un fichier qui dépasse la taille maximale ou le quota disponible est refusé sans annuler les imports terminés.
 
-## Rechercher sur Freesound
+## Freesound
 
-Dans **Paramètres → Bibliothèque**, choisissez **Rechercher sur Freesound**. Vous pouvez rechercher un effet, le préécouter, puis l’ajouter au spectacle ouvert.
+La commande **Paramètres → Bibliothèque → Rechercher sur Freesound** ouvre la recherche. Les résultats peuvent être filtrés par durée, préécoutés puis importés dans le spectacle sélectionné.
 
-Les contenus disponibles sur Freesound restent soumis à la licence indiquée par leur auteur. Vérifiez qu’elle convient à votre utilisation.
+CueForge propose les résultats sous licence CC0 ou CC BY. Lors de l’import, l’application conserve le nom de l’auteur, la licence et l’adresse de la source. La préécoute haute qualité devient un média du compte.
 
-## Importer un projet SoundShow
+## Projet SoundShow
 
-Dans **Paramètres → Bibliothèque**, sélectionnez **Importer SoundShow** puis choisissez votre fichier `.ssp` et les médias associés lorsque CueForge les demande.
+La commande **Paramètres → Bibliothèque → Importer SoundShow** analyse un fichier `.ssp`. Les dossiers de médias associés peuvent être ajoutés pendant l’analyse.
 
-Après l’import, contrôlez les catégories, les boucles, les points de lecture et les fondus avant la représentation.
+L’import recrée les catégories, leurs couleurs, les pistes, les boucles et les points d’entrée et de sortie détectés. Les playlists et les séquences SoundShow ne sont pas recréées.
 
-Consultez aussi les [formats et limites](../reference/formats-et-limites.md).
+Les extensions et tailles acceptées sont listées dans [Formats et limites](../reference/formats-et-limites.md).

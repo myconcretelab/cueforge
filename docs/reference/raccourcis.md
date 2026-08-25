@@ -2,7 +2,7 @@
 
 ## Commandes globales
 
-Trois touches peuvent recevoir une action d’arrêt dans **Paramètres → Raccourcis clavier** :
+Les actions des trois touches sont configurées dans **Paramètres → Raccourcis clavier**.
 
 | Touche | Réglage initial | Actions disponibles |
 | --- | --- | --- |
@@ -12,15 +12,21 @@ Trois touches peuvent recevoir une action d’arrêt dans **Paramètres → Racc
 
 Ces réglages appartiennent au spectacle sélectionné.
 
+## Numéros de piste
+
+Les touches `1` à `9` déclenchent les neuf premières pistes visibles dans la catégorie active.
+
 ## Actions de la souris
 
-Le clic gauche et le clic droit peuvent recevoir une action différente pour chaque spectacle. Les deux sélecteurs apparaissent dans la barre latérale de la régie principale.
+Le clic gauche et le clic droit possèdent un réglage indépendant pour chaque spectacle.
 
-Les actions disponibles sont : démarrer, fondu enchaîné, fondu d’entrée, remplacer, arrêter ou aucune action.
+| Action | Effet |
+| --- | --- |
+| Démarrer | Ajoute une nouvelle lecture de la piste |
+| Fondu enchaîné | Arrête toutes les lectures avec leurs fondus puis démarre la piste |
+| Fondu d’entrée | Démarre la piste avec son fondu d’entrée |
+| Remplacer | Arrête immédiatement toutes les lectures puis démarre la piste |
+| Arrêter | Arrête les instances actives de la piste |
+| Aucune action | Ignore le clic correspondant |
 
-## Conseils
-
-- Évitez les raccourcis utilisés par le navigateur ou le système.
-- Testez chaque commande après avoir modifié les réglages.
-- Ne donnez pas plusieurs rôles critiques à une même touche.
-- Gardez une action d’arrêt immédiat facile à atteindre.
+Les deux sélecteurs sont affichés dans la barre latérale du lecteur principal.

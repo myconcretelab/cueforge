@@ -2,8 +2,6 @@
 
 ## Fichiers audio
 
-CueForge reconnaît actuellement les extensions suivantes :
-
 | Format | Extension |
 | --- | --- |
 | MPEG Audio | `.mp3` |
@@ -15,16 +13,22 @@ CueForge reconnaît actuellement les extensions suivantes :
 
 La taille maximale d’un fichier importé est de **250 Mo**.
 
-La lecture réelle dépend aussi des codecs pris en charge par le navigateur et le système. Pour une régie destinée à plusieurs appareils, MP3 et WAV sont généralement les formats les plus simples à vérifier.
+L’extension est contrôlée par CueForge. Le décodage dépend ensuite des codecs fournis par le navigateur et le système d’exploitation.
 
-## Stockage
+## Stockage du compte
 
-Le quota disponible apparaît dans **Paramètres → Offre et stockage**. CueForge bloque un import lorsqu’il ferait dépasser le quota du compte.
+L’utilisation et le quota apparaissent dans **Paramètres → Offre et stockage**. Un import est bloqué lorsque sa taille ferait dépasser le quota.
 
-Le stockage hors ligne est distinct : il utilise l’espace local du navigateur sur chaque appareil.
+Le stockage des médias est isolé par compte. Les fichiers sont transmis uniquement après contrôle de la session.
+
+## Stockage hors ligne
+
+Le stockage hors ligne utilise le cache du navigateur. Sa capacité et sa durée de conservation dépendent du navigateur, du profil et de l’espace disponible sur l’appareil.
 
 ## Navigateurs
 
-Utilisez une version récente de Chrome, Edge, Firefox ou Safari. Testez toujours le navigateur et l’interface audio réellement prévus pour la représentation.
+CueForge fonctionne avec les API Web Audio, Cache Storage, Service Worker et WebSocket. La disponibilité des codecs audio, la lecture automatique et la persistance du stockage varient selon le navigateur et le système.
 
-Les navigateurs mobiles peuvent appliquer des restrictions supplémentaires à la lecture automatique et au stockage en arrière-plan.
+## Import SoundShow
+
+L’import `.ssp` traite les catégories, les couleurs, les pistes, les boucles et les points de lecture. Les playlists et séquences SoundShow sont détectées mais ne sont pas recréées.
