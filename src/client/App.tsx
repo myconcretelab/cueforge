@@ -17,6 +17,7 @@ import { UploadDialog } from './components/UploadDialog';
 import { WhatsNewDialog } from './components/WhatsNewDialog';
 import { api, ApiError } from './lib/api';
 import { applyAppUpdate, subscribeToAppUpdate } from './lib/app-update';
+import { appNoticesEnabled } from './lib/app-mode';
 import { audioEngine, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
@@ -113,6 +114,7 @@ export default function App() {
   const remote = new URLSearchParams(window.location.search).get('remote') === '1';
   const unseenReleases = useMemo(() => releaseInfo?.releases.filter((release) => releaseInfo.unseenVersions.includes(release.version)) ?? [], [releaseInfo]);
   const releasesForDialog = unseenReleases.length > 0 ? unseenReleases : releaseInfo?.releases ?? [];
+  const noticesEnabled = appNoticesEnabled(user);
 
   useEffect(() => audioEngine.subscribe(setActivePlaybacks), []);
   useEffect(() => audioEngine.subscribeHistory(setPlaybackHistory), []);
@@ -124,19 +126,19 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!noticesEnabled) {
       setReleaseInfo(undefined);
       releaseAutoShownRef.current = false;
       return;
     }
     api.releases().then(setReleaseInfo).catch(() => setReleaseInfo(undefined));
-  }, [user]);
+  }, [noticesEnabled]);
 
   useEffect(() => {
-    if (releaseAutoShownRef.current || unseenReleases.length === 0 || activePlaybacks.length > 0) return;
+    if (!noticesEnabled || releaseAutoShownRef.current || unseenReleases.length === 0 || activePlaybacks.length > 0) return;
     releaseAutoShownRef.current = true;
     setWhatsNewOpen(true);
-  }, [activePlaybacks.length, unseenReleases.length]);
+  }, [activePlaybacks.length, noticesEnabled, unseenReleases.length]);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(timer);
@@ -1260,7 +1262,7 @@ export default function App() {
         {dropUploadProgress && <i><b style={{ transform: `scaleX(${dropUploadProgress.total ? dropUploadProgress.done / dropUploadProgress.total : 0})` }} /></i>}
       </div>
     </div>}
-    {updateAvailable && <AppUpdateBanner playbackActive={activePlaybacks.length > 0} onApply={() => { if (!applyAppUpdate()) setError('La mise à jour n’est plus disponible.'); }} />}
+    {noticesEnabled && updateAvailable && <AppUpdateBanner playbackActive={activePlaybacks.length > 0} onApply={() => { if (!applyAppUpdate()) setError('La mise à jour n’est plus disponible.'); }} />}
     {error && <Toast message={error} onClose={() => setError('')} />}
   </div>;
 }

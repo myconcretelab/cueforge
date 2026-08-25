@@ -2,6 +2,15 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.10.1] - 2026-08-25
+
+### Modifié
+
+- masquage de la bannière de mise à jour dans les espaces de démonstration ;
+- masquage de la fenêtre automatique et de la rubrique **Nouveautés** dans les espaces de démonstration ;
+- maintien des messages de version pour les comptes personnels ;
+- passage de l’application à la version `0.10.1`.
+
 ## [0.10.0] - 2026-08-25
 
 ### Ajouté

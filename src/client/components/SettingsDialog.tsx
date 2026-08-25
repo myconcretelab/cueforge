@@ -161,10 +161,10 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         <div className="settings-section-title"><ShieldCheck size={16} /><div><strong>Administration commerciale</strong><span>Comptes, forfaits, quotas et utilisateurs.</span></div></div>
         <a className="button ghost wide" href="/admin"><ShieldCheck size={17} />Ouvrir l’administration</a>
       </section>}
-      <section className="settings-section">
+      {!user.isDemo && <section className="settings-section">
         <div className="settings-section-title"><Gift size={16} /><div><strong>Nouveautés</strong><span>Vous utilisez CueForge {appVersion ?? '—'}.</span></div></div>
         <button className={`button ghost wide release-button ${hasUnseenReleases ? 'has-update' : ''}`} onClick={onOpenWhatsNew}><Gift size={17} />Voir les notes de version{hasUnseenReleases && <em>Nouveau</em>}</button>
-      </section>
+      </section>}
       <section className="settings-account">
         <span>{user.displayName.slice(0, 1).toUpperCase()}</span><div><strong>{user.displayName}</strong><small>{user.isDemo ? 'Espace supprimé après 24 h d’inactivité' : user.email}</small></div><button className="button danger" onClick={onLogout}><LogOut size={16} />Se déconnecter</button>
       </section>

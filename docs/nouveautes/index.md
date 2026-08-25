@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.10.1 — 25 août 2026
+
+- masquage des messages de mise à jour dans les démonstrations ;
+- masquage de la fenêtre et de la rubrique Nouveautés dans les démonstrations ;
+- maintien de ces messages dans les espaces personnels.
+
+[Détails de la version 0.10.1](./0.10.1.md)
+
 ## Version 0.10.0 — 25 août 2026
 
 - ajout de la démonstration sans compte sous `/demo` ;

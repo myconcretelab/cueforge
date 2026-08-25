@@ -9,6 +9,18 @@ export interface AppRelease {
 
 export const APP_RELEASES: AppRelease[] = [
   {
+    version: '0.10.1',
+    date: '2026-08-25',
+    title: 'Démonstration sans interruption',
+    summary: 'Les messages liés aux mises à jour sont désormais réservés aux espaces personnels.',
+    important: false,
+    changes: [
+      'La bannière de mise à jour n’apparaît plus dans une démonstration.',
+      'La fenêtre automatique et la rubrique Nouveautés sont masquées dans une démonstration.',
+      'Les comptes personnels continuent de recevoir les informations de version.',
+    ],
+  },
+  {
     version: '0.10.0',
     date: '2026-08-25',
     title: 'Essai immédiat sans compte',
