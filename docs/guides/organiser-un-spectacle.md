@@ -1,6 +1,6 @@
 # Organiser un spectacle
 
-S1 propose plusieurs niveaux d’organisation : le spectacle, les catégories, les couleurs et les playlists.
+CueForge propose plusieurs niveaux d’organisation : le spectacle, les catégories, les couleurs et les playlists.
 
 ## Spectacles
 

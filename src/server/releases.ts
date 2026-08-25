@@ -9,10 +9,23 @@ export interface AppRelease {
 
 export const APP_RELEASES: AppRelease[] = [
   {
+    version: '0.4.0',
+    date: '2026-08-25',
+    title: 'CueForge entre en scène',
+    summary: 'CueForge devient la nouvelle identité de la régie, avec une signature claire : Play sound. Play the scene.',
+    important: true,
+    changes: [
+      'Toute l’application adopte le nom CueForge et le monogramme CF.',
+      'L’application et sa documentation disposent de nouvelles adresses CueForge.',
+      'Les préférences, sessions et sons hors ligne existants sont repris automatiquement sur l’ancienne adresse.',
+      'L’ancienne adresse reste disponible pendant la transition.',
+    ],
+  },
+  {
     version: '0.3.0',
     date: '2026-08-25',
     title: 'La documentation entre en scène',
-    summary: 'S1 dispose désormais d’un centre d’aide public, consultable depuis l’application et le site de présentation.',
+    summary: 'CueForge dispose désormais d’un centre d’aide public, consultable depuis l’application et le site de présentation.',
     important: true,
     changes: [
       'Une documentation moderne accompagne la prise en main et la préparation des spectacles.',
@@ -25,7 +38,7 @@ export const APP_RELEASES: AppRelease[] = [
     version: '0.2.0',
     date: '2026-08-25',
     title: 'Des mises à jour plus sereines',
-    summary: 'S1 présente désormais clairement ses nouveautés et laisse la régie choisir quand actualiser l’application.',
+    summary: 'CueForge présente désormais clairement ses nouveautés et laisse la régie choisir quand actualiser l’application.',
     important: true,
     changes: [
       'Une fenêtre Nouveautés présente les évolutions importantes.',

@@ -5,6 +5,6 @@ export default defineConfig({
   out: './migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? 'postgresql://s1:password@localhost:5432/s1',
+    url: process.env.DATABASE_URL ?? 'postgresql://cueforge:password@localhost:5432/cueforge',
   },
 });

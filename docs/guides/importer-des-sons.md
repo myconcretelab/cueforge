@@ -1,6 +1,6 @@
 # Importer des sons
 
-S1 accepte les fichiers audio depuis le sélecteur de fichiers ou par glisser-déposer dans la régie.
+CueForge accepte les fichiers audio depuis le sélecteur de fichiers ou par glisser-déposer dans la régie.
 
 ## Importer un fichier
 
@@ -14,7 +14,7 @@ Le titre proposé reprend automatiquement le nom du fichier sans son extension.
 
 ## Importer plusieurs fichiers
 
-Glissez une sélection de fichiers audio depuis le Finder ou l’Explorateur de fichiers vers la fenêtre de S1. La progression globale apparaît pendant l’import.
+Glissez une sélection de fichiers audio depuis le Finder ou l’Explorateur de fichiers vers la fenêtre de CueForge. La progression globale apparaît pendant l’import.
 
 Les fichiers non reconnus sont ignorés. Les fichiers dépassant la limite de taille sont refusés sans interrompre les sons déjà importés.
 
@@ -26,7 +26,7 @@ Les contenus disponibles sur Freesound restent soumis à la licence indiquée pa
 
 ## Importer un projet SoundShow
 
-Dans **Paramètres → Bibliothèque**, sélectionnez **Importer SoundShow** puis choisissez votre fichier `.ssp` et les médias associés lorsque S1 les demande.
+Dans **Paramètres → Bibliothèque**, sélectionnez **Importer SoundShow** puis choisissez votre fichier `.ssp` et les médias associés lorsque CueForge les demande.
 
 Après l’import, contrôlez les catégories, les boucles, les points de lecture et les fondus avant la représentation.
 

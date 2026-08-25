@@ -2,7 +2,7 @@
 
 ## Fichiers audio
 
-S1 reconnaît actuellement les extensions suivantes :
+CueForge reconnaît actuellement les extensions suivantes :
 
 | Format | Extension |
 | --- | --- |
@@ -19,7 +19,7 @@ La lecture réelle dépend aussi des codecs pris en charge par le navigateur et 
 
 ## Stockage
 
-Le quota disponible apparaît dans **Paramètres → Offre et stockage**. S1 bloque un import lorsqu’il ferait dépasser le quota du compte.
+Le quota disponible apparaît dans **Paramètres → Offre et stockage**. CueForge bloque un import lorsqu’il ferait dépasser le quota du compte.
 
 Le stockage hors ligne est distinct : il utilise l’espace local du navigateur sur chaque appareil.
 

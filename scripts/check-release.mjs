@@ -12,6 +12,6 @@ const releaseNotes = await readFile(new URL(`docs/nouveautes/${version}.md`, roo
 if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`Version invalide dans package.json : ${version}`);
 if (!changelog.includes(`## [${version}]`)) throw new Error(`CHANGELOG.md ne contient pas la version ${version}.`);
 if (!releaseCatalog.includes(`version: '${version}'`)) throw new Error(`Le catalogue des nouveautés ne contient pas la version ${version}.`);
-if (!releaseNotes.includes(`# S1 ${version}`)) throw new Error(`La note de version ${version} ne contient pas le titre attendu.`);
+if (!releaseNotes.includes(`# CueForge ${version}`)) throw new Error(`La note de version ${version} ne contient pas le titre attendu.`);
 
 process.stdout.write(`Version ${version} cohérente avec le changelog, le catalogue et la documentation.\n`);

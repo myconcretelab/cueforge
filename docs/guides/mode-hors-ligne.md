@@ -14,7 +14,7 @@ Le mode hors ligne conserve localement les médias d’un spectacle sur l’appa
 
 Une fois le téléchargement terminé :
 
-1. laissez S1 ouvert ;
+1. laissez CueForge ouvert ;
 2. coupez temporairement le Wi-Fi ;
 3. rechargez l’application ;
 4. déclenchez plusieurs sons, notamment les plus longs ;
@@ -30,4 +30,4 @@ Le navigateur peut supprimer ses données locales lorsqu’il manque d’espace 
 - Ne naviguez pas en mode privé : les données peuvent être supprimées à la fermeture.
 - Gardez suffisamment d’espace libre sur l’appareil.
 - Évitez de vider le cache du navigateur après la préparation.
-- Ouvrez S1 une première fois après chaque mise à jour, avant le spectacle.
+- Ouvrez CueForge une première fois après chaque mise à jour, avant le spectacle.

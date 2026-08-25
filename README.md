@@ -1,8 +1,10 @@
-# Standby One · S1
+# CueForge
 
-Standby One est une régie son web inspirée de SoundShow. Les médias sont stockés en ligne, préparés hors connexion dans une PWA, puis joués localement avec Web Audio pour éviter la latence du réseau pendant un spectacle.
+> Play sound. Play the scene.
 
-Le produit est présenté principalement sous son monogramme **S1**, également utilisé pour ses identifiants techniques et son déploiement.
+CueForge est une régie son web inspirée de SoundShow. Les médias sont stockés en ligne, préparés hors connexion dans une PWA, puis joués localement avec Web Audio pour éviter la latence du réseau pendant un spectacle.
+
+L’identité visuelle repose sur le monogramme **CF** ; les identifiants techniques et le déploiement utilisent le nom `cueforge`.
 
 ## Fonctionnalités actuelles
 
@@ -63,7 +65,7 @@ Pour mettre à jour la production depuis le Mac d’administration après avoir 
 ./scripts/deploy-alwaysdata.sh
 ```
 
-Le script refuse un dépôt sale ou non poussé, récupère les variables du site via l’API Alwaysdata, compile l’application, applique les migrations, redémarre le site et contrôle son endpoint de santé. Le jeton d’API n’est jamais stocké dans Git : il est lu dans le trousseau Apple (`s1-alwaysdata-api` / `myconcretelab`).
+Le script refuse un dépôt sale ou non poussé, récupère les variables du site via l’API Alwaysdata, compile l’application, applique les migrations, redémarre le site et contrôle son endpoint de santé. Le jeton d’API n’est jamais stocké dans Git : il est lu dans le trousseau Apple (`cueforge-alwaysdata-api` / `myconcretelab`).
 
 ## Publier une version
 
@@ -83,14 +85,14 @@ Pour une installation initiale manuelle :
 
 1. Créer une base PostgreSQL et un utilisateur dans **Bases de données > PostgreSQL**.
 2. Choisir Node.js 24 dans **Environnement > Node.js**.
-3. Déployer le dépôt dans `/home/<compte>/s1`.
+3. Déployer le dépôt dans `/home/<compte>/cueforge`.
 4. Configurer les variables d’environnement suivantes dans le site Node.js :
 
 ```dotenv
 NODE_ENV=production
 DATABASE_URL=postgresql://<utilisateur>:<mot-de-passe>@postgresql-<compte>.alwaysdata.net:5433/<base>
 SESSION_SECRET=<une-valeur-aleatoire-d-au-moins-32-caracteres>
-STORAGE_PATH=/home/<compte>/s1/storage
+STORAGE_PATH=/home/<compte>/cueforge/storage
 PUBLIC_URL=https://<votre-domaine>
 FREESOUND_API_KEY=<clé-api-freesound>
 SAAS_MODE=false
@@ -103,7 +105,7 @@ TRIAL_STORAGE_BYTES=2147483648
 5. Depuis SSH, préparer l’application :
 
 ```bash
-cd /home/<compte>/s1
+cd /home/<compte>/cueforge
 npm ci --include=optional
 npm run build
 npm run db:migrate
@@ -113,14 +115,14 @@ npm prune --omit=dev
 6. Créer un site de type **Node.js** avec cette commande :
 
 ```bash
-node /home/<compte>/s1/dist/server/index.js
+node /home/<compte>/cueforge/dist/server/index.js
 ```
 
 Le serveur utilise automatiquement les variables `IP` et `PORT` fournies par Alwaysdata. Dans les réglages avancés du site, mettre le temps d’inactivité à `0` afin de conserver les connexions WebSocket. Activer HTTPS et vérifier que `PUBLIC_URL` contient exactement l’origine publique.
 
 Les fichiers audio résident dans `STORAGE_PATH`, jamais dans PostgreSQL. Ils sont servis uniquement après contrôle de la session et avec prise en charge des requêtes HTTP `Range`.
 
-La recherche Freesound utilise `FREESOUND_API_KEY` exclusivement côté serveur. Les préécoutes peuvent être écoutées sans stockage ou importées dans le spectacle sous un nouveau nom et dans la catégorie choisie. Standby One télécharge alors la préécoute haute qualité dans `STORAGE_PATH` et conserve l’auteur, la licence et l’URL source. Seuls les résultats CC0 et CC BY sont proposés.
+La recherche Freesound utilise `FREESOUND_API_KEY` exclusivement côté serveur. Les préécoutes peuvent être écoutées sans stockage ou importées dans le spectacle sous un nouveau nom et dans la catégorie choisie. CueForge télécharge alors la préécoute haute qualité dans `STORAGE_PATH` et conserve l’auteur, la licence et l’URL source. Seuls les résultats CC0 et CC BY sont proposés.
 
 ## Structure
 

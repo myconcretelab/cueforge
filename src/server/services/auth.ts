@@ -6,8 +6,19 @@ import { db } from '../db/index.js';
 import { sessions, users, type User } from '../db/schema.js';
 
 const scrypt = promisify(scryptCallback);
-export const sessionCookieName = 'sf_session';
+export const sessionCookieName = 'cueforge_session';
+export const legacySessionCookieName = 'sf_session';
 const sessionLifetimeMs = 30 * 24 * 60 * 60 * 1000;
+
+function sessionCookieOptions(expires?: Date) {
+  return {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    secure: process.env.NODE_ENV === 'production',
+    ...(expires ? { expires } : {}),
+  };
+}
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16);
@@ -31,19 +42,14 @@ export async function startSession(userId: string, reply: FastifyReply): Promise
   const token = randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + sessionLifetimeMs);
   await db.insert(sessions).values({ tokenHash: tokenHash(token), userId, expiresAt });
-  reply.setCookie(sessionCookieName, token, {
-    path: '/',
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    expires: expiresAt,
-  });
+  reply.setCookie(sessionCookieName, token, sessionCookieOptions(expiresAt));
 }
 
 export async function endSession(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-  const token = request.cookies[sessionCookieName];
+  const token = request.cookies[sessionCookieName] ?? request.cookies[legacySessionCookieName];
   if (token) await db.delete(sessions).where(eq(sessions.tokenHash, tokenHash(token)));
-  reply.clearCookie(sessionCookieName, { path: '/' });
+  reply.clearCookie(sessionCookieName, sessionCookieOptions());
+  reply.clearCookie(legacySessionCookieName, sessionCookieOptions());
 }
 
 export async function userFromToken(token?: string): Promise<User | null> {
@@ -67,10 +73,16 @@ export function cookieValue(cookieHeader: string | undefined, name: string): str
 }
 
 export async function requireUser(request: FastifyRequest, reply: FastifyReply): Promise<User | null> {
-  const user = await userFromToken(request.cookies[sessionCookieName]);
+  const currentToken = request.cookies[sessionCookieName];
+  const legacyToken = request.cookies[legacySessionCookieName];
+  const user = await userFromToken(currentToken ?? legacyToken);
   if (!user) {
     await reply.code(401).send({ error: 'Authentification requise.' });
     return null;
+  }
+  if (!currentToken && legacyToken) {
+    reply.setCookie(sessionCookieName, legacyToken, sessionCookieOptions(new Date(Date.now() + sessionLifetimeMs)));
+    reply.clearCookie(legacySessionCookieName, sessionCookieOptions());
   }
   return user;
 }

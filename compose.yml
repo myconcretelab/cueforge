@@ -2,18 +2,18 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: s1
-      POSTGRES_USER: s1
+      POSTGRES_DB: cueforge
+      POSTGRES_USER: cueforge
       POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
     volumes:
-      - s1-postgres:/var/lib/postgresql/data
+      - cueforge-postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U s1 -d s1"]
+      test: ["CMD-SHELL", "pg_isready -U cueforge -d cueforge"]
       interval: 3s
       timeout: 3s
       retries: 10
 
 volumes:
-  s1-postgres:
+  cueforge-postgres:

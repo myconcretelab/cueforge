@@ -33,16 +33,16 @@ export function AuthScreen({ onAuthenticated }: Props) {
 
   return <main className="auth-shell">
     <section className="auth-intro">
-      <div className="brand-mark" aria-label="Standby One">S1</div>
+      <div className="brand-mark" aria-label="CueForge">CF</div>
       <p className="eyebrow">Régie son en ligne</p>
-      <h1>Chaque son.<br /><span>Au bon moment.</span></h1>
+      <h1>Play sound.<br /><span>Play the scene.</span></h1>
       <p className="auth-copy">Préparez votre spectacle, déclenchez vos sons instantanément et gardez toute votre bibliothèque à portée de main.</p>
       <div className="signal-lines" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /></div>
     </section>
     <section className="auth-panel">
       <form className="auth-card" onSubmit={submit}>
         <div>
-          <p className="eyebrow">S1 · Standby One</p>
+          <p className="eyebrow">CueForge</p>
           <h2>{register ? 'Créer votre régie' : 'Heureux de vous revoir'}</h2>
           <p>{register ? 'Votre premier projet sera prêt immédiatement.' : 'Connectez-vous pour reprendre votre spectacle.'}</p>
         </div>

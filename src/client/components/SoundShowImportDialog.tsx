@@ -83,7 +83,7 @@ export function SoundShowImportDialog({ onClose, onImported }: Props) {
     <section className="dialog soundshow-dialog">
       <header><div><p className="eyebrow">Migration</p><h2>Importer un projet SoundShow</h2></div><button className="icon-button" disabled={busy} onClick={onClose}><X /></button></header>
       {!analysis && !result && <>
-        <div className="import-explainer"><FileArchive size={34} /><div><strong>Sélectionnez le dossier de votre projet</strong><p>Standby One trouvera le fichier `.ssp`, les sous-dossiers et tous les médias disponibles.</p></div></div>
+        <div className="import-explainer"><FileArchive size={34} /><div><strong>Sélectionnez le dossier de votre projet</strong><p>CueForge trouvera le fichier `.ssp`, les sous-dossiers et tous les médias disponibles.</p></div></div>
         <input ref={(node) => { directoryInput.current = node; node?.setAttribute('webkitdirectory', ''); }} hidden type="file" multiple onChange={(event) => { addFiles(event.target.files); event.target.value = ''; }} />
         <input ref={fileInput} hidden type="file" multiple accept=".ssp,audio/*,.flac" onChange={(event) => { addFiles(event.target.files); event.target.value = ''; }} />
         <div className="import-actions"><button className="button primary" onClick={() => directoryInput.current?.click()}><FolderInput size={17} />Choisir un dossier</button><button className="button ghost" onClick={() => fileInput.current?.click()}><Plus size={17} />Ajouter des fichiers</button></div>

@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { Server } from 'socket.io';
 import { z } from 'zod';
 import { config } from './config.js';
-import { cookieValue, sessionCookieName, userFromToken } from './services/auth.js';
+import { cookieValue, legacySessionCookieName, sessionCookieName, userFromToken } from './services/auth.js';
 import { ownsProject } from './services/ownership.js';
 
 const commandSchema = z.discriminatedUnion('type', [
@@ -25,7 +25,8 @@ export function registerSocketServer(app: FastifyInstance): Server {
 
   io.use(async (socket, next) => {
     try {
-      const token = cookieValue(socket.handshake.headers.cookie, sessionCookieName);
+      const token = cookieValue(socket.handshake.headers.cookie, sessionCookieName)
+        ?? cookieValue(socket.handshake.headers.cookie, legacySessionCookieName);
       const user = await userFromToken(token);
       if (!user) return next(new Error('unauthorized'));
       socket.data.userId = user.id;

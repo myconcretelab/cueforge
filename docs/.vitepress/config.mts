@@ -5,20 +5,20 @@ const packageMetadata = JSON.parse(readFileSync(new URL('../../package.json', im
 
 export default defineConfig({
   lang: 'fr-FR',
-  title: 'Documentation S1',
-  description: 'Guides et documentation de Standby One, la régie son web pensée pour la scène.',
+  title: 'Documentation CueForge',
+  description: 'CueForge — Play sound. Play the scene. Guides et documentation de la régie son web pensée pour la scène.',
   base: '/docs/',
   outDir: '../dist/client/docs',
   cleanUrls: false,
   lastUpdated: true,
   head: [
-    ['link', { rel: 'icon', href: '/docs/s1-mark.svg', type: 'image/svg+xml' }],
+    ['link', { rel: 'icon', href: '/docs/cueforge-mark.svg', type: 'image/svg+xml' }],
     ['meta', { name: 'theme-color', content: '#09090b' }],
     ['meta', { property: 'og:locale', content: 'fr_FR' }],
   ],
   themeConfig: {
-    logo: '/s1-mark.svg',
-    siteTitle: 'S1 · Documentation',
+    logo: '/cueforge-mark.svg',
+    siteTitle: 'CueForge · Documentation',
     nav: [
       { text: 'Premiers pas', link: '/premiers-pas/' },
       { text: 'Guides', link: '/guides/importer-des-sons' },
@@ -27,8 +27,8 @@ export default defineConfig({
       {
         text: `v${packageMetadata.version}`,
         items: [
-          { text: 'Ouvrir S1', link: 'https://s1.sebastienj.com' },
-          { text: 'Version Community', link: 'https://github.com/myconcretelab/s1' },
+          { text: 'Ouvrir CueForge', link: 'https://cueforge.sebastienj.com' },
+          { text: 'Version Community', link: 'https://github.com/myconcretelab/cueforge' },
         ],
       },
     ],
@@ -81,15 +81,15 @@ export default defineConfig({
     },
     outline: { level: [2, 3], label: 'Sur cette page' },
     editLink: {
-      pattern: 'https://github.com/myconcretelab/s1/edit/main/docs/:path',
+      pattern: 'https://github.com/myconcretelab/cueforge/edit/main/docs/:path',
       text: 'Proposer une amélioration',
     },
     lastUpdated: { text: 'Mis à jour le', formatOptions: { dateStyle: 'long' } },
     docFooter: { prev: 'Page précédente', next: 'Page suivante' },
-    socialLinks: [{ icon: 'github', link: 'https://github.com/myconcretelab/s1' }],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/myconcretelab/cueforge' }],
     footer: {
-      message: 'Standby One · Une régie fiable quand le spectacle commence.',
-      copyright: 'Documentation de S1',
+      message: 'CueForge · Play sound. Play the scene.',
+      copyright: 'Documentation de CueForge',
     },
   },
 });

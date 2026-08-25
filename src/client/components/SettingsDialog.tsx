@@ -95,7 +95,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
 
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="dialog settings-dialog">
-      <header><div><p className="eyebrow">S1 · Standby One</p><h2>Paramètres</h2></div><button className="icon-button" onClick={onClose} aria-label="Fermer les paramètres"><X /></button></header>
+      <header><div><p className="eyebrow">CueForge</p><h2>Paramètres</h2></div><button className="icon-button" onClick={onClose} aria-label="Fermer les paramètres"><X /></button></header>
       <section className="settings-section">
         <div className="settings-section-title"><Settings2 size={16} /><div><strong>Spectacles</strong><span>Sélectionnez, glissez ou supprimez une régie.</span></div></div>
         <div className="settings-project-list">
@@ -158,7 +158,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         <a className="button ghost wide" href="/docs/" target="_blank" rel="noopener noreferrer"><BookOpen size={17} />Ouvrir la documentation</a>
       </section>
       <section className="settings-section">
-        <div className="settings-section-title"><Gift size={16} /><div><strong>Nouveautés</strong><span>Vous utilisez S1 {appVersion ?? '—'}.</span></div></div>
+        <div className="settings-section-title"><Gift size={16} /><div><strong>Nouveautés</strong><span>Vous utilisez CueForge {appVersion ?? '—'}.</span></div></div>
         <button className={`button ghost wide release-button ${hasUnseenReleases ? 'has-update' : ''}`} onClick={onOpenWhatsNew}><Gift size={17} />Voir les notes de version{hasUnseenReleases && <em>Nouveau</em>}</button>
       </section>
       <section className="settings-account">

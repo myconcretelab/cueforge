@@ -1,6 +1,6 @@
-# Installer S1 Community
+# Installer CueForge Community
 
-S1 Community est la version libre et auto-hébergée de Standby One. Elle convient aux personnes capables d’administrer une application Node.js et une base PostgreSQL.
+CueForge Community est la version libre et auto-hébergée de CueForge. Elle convient aux personnes capables d’administrer une application Node.js et une base PostgreSQL.
 
 ## Prérequis
 
@@ -13,8 +13,8 @@ S1 Community est la version libre et auto-hébergée de Standby One. Elle convie
 ## Installation locale
 
 ```bash
-git clone https://github.com/myconcretelab/s1.git
-cd s1
+git clone https://github.com/myconcretelab/cueforge.git
+cd cueforge
 npm install
 cp .env.example .env
 npm run db:migrate
@@ -46,4 +46,4 @@ Avec Community, vous gérez vous-même :
 - les quotas de stockage ;
 - la restauration après incident.
 
-Pour contribuer ou signaler un problème, consultez le [dépôt GitHub](https://github.com/myconcretelab/s1).
+Pour contribuer ou signaler un problème, consultez le [dépôt GitHub](https://github.com/myconcretelab/cueforge).

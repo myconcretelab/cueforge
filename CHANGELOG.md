@@ -1,13 +1,27 @@
 # Changelog
 
-Toutes les évolutions notables de Standby One sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
+Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
+
+## [0.4.0] - 2026-08-25
+
+### Modifié
+
+- nouvelle identité globale **CueForge**, accompagnée de la signature « Play sound. Play the scene. » ;
+- renommage de l’application, de la PWA, de la documentation, du dépôt, des domaines et des chemins de déploiement ;
+- nouveau monogramme `CF` dans l’interface et les icônes.
+
+### Migration
+
+- reprise automatique des préférences navigateur enregistrées sous les anciennes clés `s1-*` ;
+- transfert du cache audio hors ligne existant vers le cache CueForge ;
+- prise en charge transitoire de l’ancien cookie de session afin de conserver les connexions valides.
 
 ## [0.3.0] - 2026-08-25
 
 ### Ajouté
 
-- centre de documentation public intégré au déploiement de S1 ;
-- recherche locale, navigation thématique et design aux couleurs de Standby One ;
+- centre de documentation public intégré au déploiement de CueForge ;
+- recherche locale, navigation thématique et design aux couleurs de CueForge ;
 - guides de prise en main, préparation, import, mode hors ligne et télécommande ;
 - référence des formats, raccourcis, dépannage et installation Community ;
 - accès à la documentation depuis les paramètres, les notes de version et le site WordPress ;
@@ -36,5 +50,5 @@ Toutes les évolutions notables de Standby One sont documentées ici. Le projet 
 
 ## [0.1.0] - 2026-08-24
 
-- première version publique de Standby One ;
+- première version publique de CueForge ;
 - régie sonore, projets, catégories, playlists, import et fonctionnement hors ligne.

@@ -1,6 +1,16 @@
 # Notes de version
 
-Les mises à jour de S1 sont publiées par ensembles cohérents. L’application vous avertit lorsqu’une nouvelle version est prête et vous laisse choisir le moment de l’installer.
+Les mises à jour de CueForge sont publiées par ensembles cohérents. L’application vous avertit lorsqu’une nouvelle version est prête et vous laisse choisir le moment de l’installer.
+
+<div class="release-card">
+
+## Version 0.4.0 — 25 août 2026
+
+**CueForge entre en scène.** Une nouvelle identité pour toute la régie, avec sa signature : Play sound. Play the scene.
+
+[Découvrir la version 0.4.0](./0.4.0.md)
+
+</div>
 
 <div class="release-card">
 
@@ -16,7 +26,7 @@ Les mises à jour de S1 sont publiées par ensembles cohérents. L’application
 
 ## Version 0.2.0 — 25 août 2026
 
-**Des mises à jour plus sereines.** S1 présente désormais ses nouveautés et ne recharge jamais la régie au milieu d’une lecture.
+**Des mises à jour plus sereines.** CueForge présente désormais ses nouveautés et ne recharge jamais la régie au milieu d’une lecture.
 
 [Découvrir la version 0.2.0](./0.2.0.md)
 

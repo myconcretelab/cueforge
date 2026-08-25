@@ -4,7 +4,7 @@ Ce parcours vous accompagne jusqu’au déclenchement de votre premier son. Comp
 
 ## 1. Créer votre compte
 
-1. Ouvrez [S1](https://s1.sebastienj.com).
+1. Ouvrez [CueForge](https://cueforge.sebastienj.com).
 2. Sélectionnez **Créer un nouveau compte**.
 3. Renseignez votre nom, votre adresse e-mail et un mot de passe d’au moins huit caractères.
 4. Validez avec **Créer mon compte**.
@@ -38,7 +38,7 @@ Le son apparaît dans la grille. Un clic sur sa carte démarre sa lecture.
 - Ouvrez un son pour régler ses points d’entrée, de sortie et ses fondus.
 
 ::: warning Protégez vos oreilles et votre matériel
-Avant un premier essai, baissez le niveau de votre système de diffusion. S1 ne remplace pas le réglage de gain de votre interface audio ou de votre console.
+Avant un premier essai, baissez le niveau de votre système de diffusion. CueForge ne remplace pas le réglage de gain de votre interface audio ou de votre console.
 :::
 
 ## Étape suivante
