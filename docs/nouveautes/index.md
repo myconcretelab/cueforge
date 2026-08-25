@@ -2,6 +2,15 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.9.0 — 25 août 2026
+
+- ajout des réglages de publication des forfaits ;
+- ajout de l’API publique `/api/public/plans` ;
+- synchronisation du bloc tarifaire WordPress ;
+- ajout du cache et du repli sur la dernière réponse valide.
+
+[Détails de la version 0.9.0](./0.9.0.md)
+
 ## Version 0.8.0 — 25 août 2026
 
 - ajout des indicateurs d’utilisation des forfaits ;

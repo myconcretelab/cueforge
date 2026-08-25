@@ -58,6 +58,9 @@ export interface CommercialPlan {
   trialDays: number;
   isDefault: boolean;
   active: boolean;
+  visibleOnWebsite: boolean;
+  featuredOnWebsite: boolean;
+  displayOrder: number;
   accountCount: number;
   createdAt: string;
   updatedAt: string;

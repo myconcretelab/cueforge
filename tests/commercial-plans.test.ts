@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planDeletionError } from '../src/server/services/commercial-plans.js';
+import { planDeletionError, planPublicationError } from '../src/server/services/commercial-plans.js';
 
 describe('commercial plan deletion', () => {
   it('refuse la suppression du forfait par défaut', () => {
@@ -12,5 +12,19 @@ describe('commercial plan deletion', () => {
 
   it('autorise la suppression d’un forfait inutilisé', () => {
     expect(planDeletionError({ isDefault: false, accountCount: 0 })).toBeNull();
+  });
+});
+
+describe('commercial plan publication', () => {
+  it('refuse la mise en avant d’un forfait masqué', () => {
+    expect(planPublicationError({ visibleOnWebsite: false, featuredOnWebsite: true })).toBe('Un forfait mis en avant doit être visible sur le site.');
+  });
+
+  it('autorise un forfait visible mis en avant', () => {
+    expect(planPublicationError({ visibleOnWebsite: true, featuredOnWebsite: true })).toBeNull();
+  });
+
+  it('autorise un forfait actif réservé à une attribution interne', () => {
+    expect(planPublicationError({ visibleOnWebsite: false, featuredOnWebsite: false })).toBeNull();
   });
 });

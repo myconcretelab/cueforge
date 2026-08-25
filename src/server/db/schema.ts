@@ -34,6 +34,9 @@ export const plans = pgTable('plans', {
   trialDays: integer('trial_days').notNull().default(14),
   isDefault: boolean('is_default').notNull().default(false),
   active: boolean('active').notNull().default(true),
+  visibleOnWebsite: boolean('visible_on_website').notNull().default(false),
+  featuredOnWebsite: boolean('featured_on_website').notNull().default(false),
+  displayOrder: integer('display_order').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

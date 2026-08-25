@@ -51,6 +51,16 @@ Un forfait peut être supprimé uniquement s’il n’est attribué à aucun com
 
 La fenêtre de gestion d’un compte affiche les prix, le quota et la durée d’essai du forfait sélectionné. Le quota exceptionnel du compte remplace le quota du forfait lorsqu’il est défini.
 
+### Publication sur le site
+
+Le réglage **Visible sur le site** publie le forfait dans l’API `/api/public/plans`. Seuls les forfaits actifs et visibles sont retournés par cette API.
+
+Le réglage **Mis en avant** ajoute l’état de mise en avant au forfait publié. Un seul forfait peut être mis en avant à la fois. Un forfait mis en avant doit être visible sur le site.
+
+Le champ **Ordre d’affichage** est un entier positif. Les forfaits publics sont triés par cette valeur, puis par nom.
+
+La réponse publique contient le code, le nom, la description, les prix mensuel et annuel, le quota de stockage, la durée d’essai, l’état de mise en avant, l’ordre d’affichage, la devise et l’adresse d’inscription. Elle ne contient pas le nombre de comptes, les abonnements ni les données utilisateur.
+
 ## Abonnements
 
 La table des abonnements conserve le prestataire, les identifiants du client et de l’abonnement, l’intervalle de facturation, l’état, la période courante et la demande de résiliation en fin de période. Le prestataire `manual` et l’état `none` sont utilisés avant la connexion d’un système de paiement.

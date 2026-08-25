@@ -17,6 +17,7 @@ import { freesoundRoutes } from './routes/freesound.js';
 import { accountRoutes } from './routes/account.js';
 import { adminRoutes } from './routes/admin.js';
 import { releaseRoutes } from './routes/releases.js';
+import { publicPlanRoutes } from './routes/public-plans.js';
 import { CURRENT_VERSION } from './releases.js';
 import { AccountStorageError, requireWritableAccount } from './services/accounts.js';
 import { requireUser } from './services/auth.js';
@@ -61,6 +62,7 @@ export async function buildApp() {
   await app.register(accountRoutes);
   await app.register(adminRoutes);
   await app.register(releaseRoutes);
+  await app.register(publicPlanRoutes);
   await app.register(projectRoutes);
   await app.register(trackRoutes);
   await app.register(importRoutes);

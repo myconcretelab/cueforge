@@ -9,6 +9,19 @@ export interface AppRelease {
 
 export const APP_RELEASES: AppRelease[] = [
   {
+    version: '0.9.0',
+    date: '2026-08-25',
+    title: 'Forfaits synchronisés avec le site',
+    summary: 'Les forfaits publics du dashboard alimentent désormais automatiquement le bloc tarifaire WordPress.',
+    important: false,
+    changes: [
+      'Chaque forfait dispose de réglages de visibilité, de mise en avant et d’ordre d’affichage.',
+      'Une API publique limitée expose les forfaits actifs destinés au site de présentation.',
+      'Le forfait par défaut actuel est publié automatiquement lors de la mise à jour.',
+      'Le bloc WordPress conserve la dernière réponse valide lorsque l’API est indisponible.',
+    ],
+  },
+  {
     version: '0.8.0',
     date: '2026-08-25',
     title: 'Gestion complète des forfaits',

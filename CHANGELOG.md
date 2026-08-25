@@ -2,6 +2,22 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.9.0] - 2026-08-25
+
+### Ajouté
+
+- réglages de visibilité publique, mise en avant et ordre d’affichage pour chaque forfait ;
+- API publique en lecture seule sous `/api/public/plans` ;
+- cache HTTP de la réponse publique ;
+- bloc WordPress dynamique **Forfaits CueForge** ;
+- cache WordPress de cinq minutes avec repli sur la dernière réponse valide.
+
+### Modifié
+
+- publication initiale du forfait par défaut existant ;
+- remplacement de la carte tarifaire statique de la page d’accueil WordPress ;
+- passage de l’application à la version `0.9.0`.
+
 ## [0.8.0] - 2026-08-25
 
 ### Ajouté

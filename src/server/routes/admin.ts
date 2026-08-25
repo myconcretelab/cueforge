@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { db } from '../db/index.js';
 import { accountMemberships, accounts, auditLogs, plans, projects, subscriptions, tracks, users } from '../db/schema.js';
 import { requirePlatformAdmin, requireSuperAdmin, writeAuditLog } from '../services/admin.js';
-import { planDeletionError } from '../services/commercial-plans.js';
+import { planDeletionError, planPublicationError } from '../services/commercial-plans.js';
 
 const accountStatuses = ['trialing', 'active', 'grace_period', 'read_only', 'suspended'] as const;
 const platformRoles = ['user', 'support', 'admin', 'super_admin'] as const;
@@ -21,12 +21,20 @@ const planFieldsSchema = z.object({
   trialDays: z.number().int().min(0).max(365).default(14),
   active: z.boolean().default(true),
   isDefault: z.boolean().default(false),
+  visibleOnWebsite: z.boolean().default(false),
+  featuredOnWebsite: z.boolean().default(false),
+  displayOrder: z.number().int().min(0).max(10_000).default(0),
 });
 
-const planInputSchema = planFieldsSchema.refine((value) => !value.isDefault || value.active, {
-  message: 'Le forfait par défaut doit être actif.',
-  path: ['active'],
-});
+const planInputSchema = planFieldsSchema
+  .refine((value) => !value.isDefault || value.active, {
+    message: 'Le forfait par défaut doit être actif.',
+    path: ['active'],
+  })
+  .refine((value) => !value.featuredOnWebsite || value.visibleOnWebsite, {
+    message: 'Un forfait mis en avant doit être visible sur le site.',
+    path: ['visibleOnWebsite'],
+  });
 
 const planUpdateSchema = planFieldsSchema.omit({ code: true }).partial().refine((value) => Object.keys(value).length > 0, {
   message: 'Aucune modification fournie.',
@@ -223,6 +231,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const input = planInputSchema.parse(request.body);
     const plan = await db.transaction(async (transaction) => {
       if (input.isDefault) await transaction.update(plans).set({ isDefault: false, updatedAt: new Date() });
+      if (input.featuredOnWebsite) await transaction.update(plans).set({ featuredOnWebsite: false, updatedAt: new Date() });
       const [created] = await transaction.insert(plans).values(input).returning();
       return created;
     });
@@ -238,6 +247,8 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const [existing] = await db.select({
       active: plans.active,
       isDefault: plans.isDefault,
+      visibleOnWebsite: plans.visibleOnWebsite,
+      featuredOnWebsite: plans.featuredOnWebsite,
       accountCount: sql<number>`(select count(*)::int from ${accounts} a where a.plan_code = ${plans.code})`,
     }).from(plans).where(eq(plans.code, code)).limit(1);
     if (!existing) return reply.code(404).send({ error: 'Forfait introuvable.' });
@@ -245,8 +256,13 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const nextDefault = input.isDefault ?? existing.isDefault;
     if (nextDefault && !nextActive) return reply.code(400).send({ error: 'Le forfait par défaut doit être actif.' });
     if (existing.isDefault && !nextDefault) return reply.code(400).send({ error: 'Choisissez un autre forfait par défaut avant de désactiver celui-ci.' });
+    const nextVisible = input.visibleOnWebsite ?? existing.visibleOnWebsite;
+    const nextFeatured = input.featuredOnWebsite ?? existing.featuredOnWebsite;
+    const publicationError = planPublicationError({ visibleOnWebsite: nextVisible, featuredOnWebsite: nextFeatured });
+    if (publicationError) return reply.code(400).send({ error: publicationError });
     const plan = await db.transaction(async (transaction) => {
       if (input.isDefault) await transaction.update(plans).set({ isDefault: false, updatedAt: new Date() });
+      if (input.featuredOnWebsite) await transaction.update(plans).set({ featuredOnWebsite: false, updatedAt: new Date() });
       const [updated] = await transaction.update(plans).set({ ...input, updatedAt: new Date() }).where(eq(plans.code, code)).returning();
       return updated;
     });
