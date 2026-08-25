@@ -20,7 +20,7 @@ const commandSchema = z.discriminatedUnion('type', [
 
 export function registerSocketServer(app: FastifyInstance): Server {
   const io = new Server(app.server, {
-    cors: { origin: config.PUBLIC_URL, credentials: true },
+    cors: { origin: config.PUBLIC_ORIGINS, credentials: true },
   });
 
   io.use(async (socket, next) => {

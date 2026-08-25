@@ -9,6 +9,11 @@ const schema = z.object({
   HOST: z.string().default('127.0.0.1'),
   PORT: z.coerce.number().int().positive().default(8100),
   PUBLIC_URL: z.string().url().default('http://localhost:5173'),
+  LEGACY_PUBLIC_URLS: z.string().default('').transform((value) => value
+    .split(',')
+    .map((url) => url.trim())
+    .filter(Boolean))
+    .pipe(z.array(z.string().url())),
   FREESOUND_API_KEY: z.preprocess(
     (value) => value === '' ? undefined : value,
     z.string().trim().min(1).optional(),
@@ -35,5 +40,6 @@ if (parsed.data.NODE_ENV === 'production' && parsed.data.SESSION_SECRET === 'dev
 export const config = {
   ...parsed.data,
   STORAGE_PATH: path.resolve(parsed.data.STORAGE_PATH),
+  PUBLIC_ORIGINS: [parsed.data.PUBLIC_URL, ...parsed.data.LEGACY_PUBLIC_URLS],
   isProduction: parsed.data.NODE_ENV === 'production',
 };

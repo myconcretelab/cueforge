@@ -23,7 +23,7 @@ export async function buildApp() {
   const app = Fastify({ logger: true, trustProxy: true });
   await app.register(cookie, { secret: config.SESSION_SECRET });
   await app.register(cors, {
-    origin: config.isProduction ? config.PUBLIC_URL : true,
+    origin: config.isProduction ? config.PUBLIC_ORIGINS : true,
     credentials: true,
   });
   await app.register(helmet, { contentSecurityPolicy: false });

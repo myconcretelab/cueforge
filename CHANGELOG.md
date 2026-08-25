@@ -15,6 +15,7 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 - reprise automatique des préférences navigateur enregistrées sous les anciennes clés `s1-*` ;
 - transfert du cache audio hors ligne existant vers le cache CueForge ;
 - prise en charge transitoire de l’ancien cookie de session afin de conserver les connexions valides.
+- compatibilité CORS transitoire pour les PWA et télécommandes ouvertes depuis l’ancienne adresse.
 
 ## [0.3.0] - 2026-08-25
 
