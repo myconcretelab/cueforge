@@ -8,8 +8,9 @@ interface Props { onAuthenticated: (user: User) => void }
 type AuthMode = 'login' | 'register' | 'forgot';
 
 export function AuthScreen({ onAuthenticated }: Props) {
-  const [mode, setMode] = useState<AuthMode>('login');
+  const [mode, setMode] = useState<AuthMode>(() => new URLSearchParams(window.location.search).get('register') === '1' ? 'register' : 'login');
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -41,6 +42,19 @@ export function AuthScreen({ onAuthenticated }: Props) {
     }
   }
 
+  async function startDemo() {
+    setDemoLoading(true);
+    setError('');
+    try {
+      const result = await api.startDemo();
+      onAuthenticated(result.user);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Démonstration indisponible.');
+    } finally {
+      setDemoLoading(false);
+    }
+  }
+
   return <main className="auth-shell">
     <section className="auth-intro">
       <div className="brand-mark" aria-label="CueForge">CF</div>
@@ -62,6 +76,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
         {error && <p className="form-error">{error}</p>}
         {message && <p className="form-success">{message}</p>}
         <button className="button primary wide" disabled={loading}>{loading && <LoaderCircle className="spin" size={18} />}{mode === 'register' ? 'Créer mon compte' : mode === 'forgot' ? 'Envoyer le lien' : 'Se connecter'}</button>
+        {mode !== 'forgot' && <><div className="auth-separator"><span>ou</span></div><button className="button demo wide" type="button" disabled={demoLoading} onClick={startDemo}>{demoLoading && <LoaderCircle className="spin" size={18} />}Essayer sans compte</button><small className="demo-auth-note">Espace temporaire · 15 fichiers · 5 Mo maximum par fichier</small></>}
         {mode === 'login' && <button className="text-button" type="button" onClick={() => { setMode('forgot'); setError(''); setMessage(''); }}>
           Mot de passe oublié ?
         </button>}

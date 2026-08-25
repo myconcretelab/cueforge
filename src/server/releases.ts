@@ -9,6 +9,19 @@ export interface AppRelease {
 
 export const APP_RELEASES: AppRelease[] = [
   {
+    version: '0.10.0',
+    date: '2026-08-25',
+    title: 'Essai immédiat sans compte',
+    summary: 'Une démonstration temporaire permet maintenant d’utiliser CueForge immédiatement, sans inscription.',
+    important: false,
+    changes: [
+      'Chaque visiteur dispose d’un espace de démonstration isolé et de trois sons préchargés.',
+      'La démonstration accepte 15 fichiers importés de 5 Mo maximum chacun.',
+      'Les données temporaires sont supprimées après 24 heures d’inactivité.',
+      'La démonstration peut être réinitialisée ou remplacée par un espace personnel depuis l’application.',
+    ],
+  },
+  {
     version: '0.9.0',
     date: '2026-08-25',
     title: 'Forfaits synchronisés avec le site',

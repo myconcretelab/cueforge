@@ -10,8 +10,9 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { db } from '../db/index.js';
 import { accountMemberships, categories, projects, tracks } from '../db/schema.js';
-import { insertTrackWithinQuota } from '../services/accounts.js';
+import { DemoUploadError, insertTrackWithinQuota } from '../services/accounts.js';
 import { requireUser } from '../services/auth.js';
+import { demoMaxFileBytes } from '../services/demo.js';
 import { ownsProject } from '../services/ownership.js';
 import { parseByteRange } from '../services/range.js';
 import { reorderTracks } from '../services/reorder.js';
@@ -71,6 +72,8 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     const parts = request.parts();
     const fields: Record<string, string> = {};
     let uploaded: { key: string; originalFilename: string; mimeType: string; size: number } | undefined;
+    let stagedKey: string | undefined;
+    const userMaxAudioBytes = user.isDemo ? demoMaxFileBytes : maxAudioBytes;
     await mkdir(config.STORAGE_PATH, { recursive: true });
 
     try {
@@ -88,8 +91,18 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
           return reply.code(415).send({ error: 'Format audio non pris en charge.' });
         }
         const key = `${randomUUID()}${extensionFor(part.filename)}`;
+        stagedKey = key;
         const destination = path.join(config.STORAGE_PATH, key);
-        await pipeline(part.file, createWriteStream(destination, { flags: 'wx' }));
+        let received = 0;
+        const limiter = new Transform({
+          transform(chunk: Buffer, _encoding, callback) {
+            received += chunk.length;
+            callback(received > userMaxAudioBytes
+              ? user.isDemo ? new DemoUploadError('file-too-large') : new Error('Fichier audio trop volumineux.')
+              : null, chunk);
+          },
+        });
+        await pipeline(part.file, limiter, createWriteStream(destination, { flags: 'wx' }));
         const info = await stat(destination);
         uploaded = { key, originalFilename: part.filename, mimeType: part.mimetype, size: info.size };
       }
@@ -128,7 +141,8 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
       });
       return reply.code(201).send({ track });
     } catch (error) {
-      if (uploaded) await unlink(path.join(config.STORAGE_PATH, uploaded.key)).catch(() => undefined);
+      const key = uploaded?.key ?? stagedKey;
+      if (key) await unlink(path.join(config.STORAGE_PATH, key)).catch(() => undefined);
       throw error;
     }
   });
@@ -153,8 +167,12 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     if (!response.ok || !response.body) return reply.code(502).send({ error: 'Téléchargement Freesound impossible.' });
     const mimeType = response.headers.get('content-type')?.split(';')[0] ?? 'audio/mpeg';
     if (!isAcceptedAudio(mimeType, remoteUrl.pathname)) return reply.code(415).send({ error: 'Format Freesound non pris en charge.' });
+    const userMaxAudioBytes = user.isDemo ? demoMaxFileBytes : maxAudioBytes;
     const announcedSize = Number(response.headers.get('content-length') ?? 0);
-    if (announcedSize > maxAudioBytes) return reply.code(413).send({ error: 'Le fichier dépasse 250 Mo.' });
+    if (announcedSize > userMaxAudioBytes) {
+      if (user.isDemo) throw new DemoUploadError('file-too-large');
+      return reply.code(413).send({ error: 'Le fichier dépasse 250 Mo.' });
+    }
 
     await mkdir(config.STORAGE_PATH, { recursive: true });
     const key = `${randomUUID()}${extensionFor(remoteUrl.pathname)}`;
@@ -163,7 +181,9 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     const limiter = new Transform({
       transform(chunk: Buffer, _encoding, callback) {
         downloaded += chunk.length;
-        callback(downloaded > maxAudioBytes ? new Error('Fichier distant trop volumineux.') : null, chunk);
+        callback(downloaded > userMaxAudioBytes
+          ? user.isDemo ? new DemoUploadError('file-too-large') : new Error('Fichier distant trop volumineux.')
+          : null, chunk);
       },
     });
     try {

@@ -33,6 +33,15 @@ const mouseActions: Array<{ value: MouseAction; label: string }> = [
   { value: 'none', label: 'Aucune action' },
 ];
 const clockFormatter = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+let authenticationBootstrap: Promise<{ user: User }> | undefined;
+
+function bootstrapAuthentication() {
+  authenticationBootstrap ??= api.me().catch((cause) => {
+    if (cause instanceof ApiError && cause.status === 401 && window.location.pathname === '/demo') return api.startDemo();
+    throw cause;
+  });
+  return authenticationBootstrap;
+}
 
 export default function App() {
   const [user, setUser] = useState<User | null>();
@@ -143,7 +152,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    api.me().then(({ user: current }) => {
+    bootstrapAuthentication().then(({ user: current }) => {
       localStorage.setItem('cueforge-user', JSON.stringify(current));
       setUser(current);
     }).catch((cause) => {
@@ -152,7 +161,8 @@ export default function App() {
         setUser(null);
       } else {
         const cached = readCache<User>('cueforge-user');
-        if (cached) setUser(cached);
+        if (cached?.isDemo) localStorage.removeItem('cueforge-user');
+        if (cached && !cached.isDemo) setUser(cached);
         else { setError('Le serveur est indisponible.'); setUser(null); }
       }
     });
@@ -1067,6 +1077,19 @@ export default function App() {
     setUser(null); setDetail(undefined); setProjects([]);
   }
 
+  async function resetDemo() {
+    await api.resetDemo();
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('cueforge-') || key.startsWith('cueforge:')) localStorage.removeItem(key);
+    }
+    window.location.reload();
+  }
+
+  async function createAccountFromDemo() {
+    await logout();
+    window.location.href = '/?register=1';
+  }
+
   function closeWhatsNew() {
     setWhatsNewOpen(false);
     if (!releaseInfo || releaseInfo.unseenVersions.length === 0) return;
@@ -1113,6 +1136,7 @@ export default function App() {
     {sidebarOpen && <button className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Fermer le menu" />}
 
     <main className="workspace">
+      {user.isDemo && <aside className="demo-banner" aria-label="Démonstration temporaire"><div><strong>Démo temporaire</strong><span>Vos données sont supprimées après 24 h d’inactivité · 15 fichiers importés · 5 Mo maximum par fichier</span></div><button className="demo-reset" onClick={() => resetDemo().catch((cause) => setError(cause instanceof Error ? cause.message : 'Réinitialisation impossible.'))}><RefreshCcw size={15} />Réinitialiser</button><button className="button primary" onClick={() => createAccountFromDemo().catch((cause) => setError(cause instanceof Error ? cause.message : 'Création de compte impossible.'))}>Créer mon espace</button></aside>}
       <header className="topbar">
         <button className="icon-button menu-button" onClick={() => setSidebarOpen(true)}><Menu /></button>
         <div className="topbar-title"><p className="eyebrow">{remote ? 'Télécommande' : 'Régie principale'}<span className={`connection-status ${connected ? 'online' : ''}`} role="img" aria-label={connected ? 'Connexion temps réel active' : 'Connexion temps réel interrompue'} title={connected ? 'Connexion temps réel active' : 'Connexion temps réel interrompue'}>{connected ? <Wifi size={14} /> : <WifiOff size={14} />}</span></p><h1>{detail?.project.name ?? 'Chargement…'}</h1></div>

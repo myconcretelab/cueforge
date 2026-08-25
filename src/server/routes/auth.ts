@@ -5,7 +5,8 @@ import { db } from '../db/index.js';
 import { accountMemberships, accounts, plans, projects, subscriptions, users } from '../db/schema.js';
 import { config } from '../config.js';
 import { CURRENT_VERSION } from '../releases.js';
-import { endSession, hashPassword, requireUser, startSession, verifyPassword } from '../services/auth.js';
+import { endSession, hashPassword, publicUser, requireUser, startSession, verifyPassword } from '../services/auth.js';
+import { createDemoWorkspace, removeDemoUsers } from '../services/demo.js';
 import { sendPasswordResetEmail } from '../services/mail.js';
 import { issuePasswordResetToken, resetPassword, revokePasswordResetToken } from '../services/password-reset.js';
 
@@ -28,6 +29,23 @@ const resetPasswordSchema = z.object({
 });
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
+  app.post('/api/auth/demo', { config: { rateLimit: { max: 12, timeWindow: '1 hour' } } }, async (_request, reply) => {
+    const user = await createDemoWorkspace();
+    await startSession(user.id, reply);
+    return reply.code(201).send({ user: publicUser(user) });
+  });
+
+  app.post('/api/auth/demo/reset', { config: { rateLimit: { max: 10, timeWindow: '1 hour' } } }, async (request, reply) => {
+    const current = await requireUser(request, reply);
+    if (!current) return;
+    if (!current.isDemo) return reply.code(403).send({ error: 'Cette action est réservée à la démonstration.' });
+    await endSession(request, reply);
+    await removeDemoUsers([current.id]);
+    const user = await createDemoWorkspace();
+    await startSession(user.id, reply);
+    return { user: publicUser(user) };
+  });
+
   app.post('/api/auth/register', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const input = registerSchema.parse(request.body);
     const passwordHash = await hashPassword(input.password);
@@ -54,7 +72,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       return created;
     });
     await startSession(user.id, reply);
-    return reply.code(201).send({ user: { id: user.id, email: user.email, displayName: user.displayName, platformRole: user.platformRole } });
+    return reply.code(201).send({ user: publicUser(user) });
   });
 
   app.post('/api/auth/login', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
@@ -64,7 +82,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(401).send({ error: 'Adresse ou mot de passe incorrect.' });
     }
     await startSession(user.id, reply);
-    return { user: { id: user.id, email: user.email, displayName: user.displayName, platformRole: user.platformRole } };
+    return { user: publicUser(user) };
   });
 
   app.post('/api/auth/password/forgot', { config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } }, async (request, reply) => {
@@ -106,6 +124,6 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/auth/me', async (request, reply) => {
     const user = await requireUser(request, reply);
     if (!user) return;
-    return { user: { id: user.id, email: user.email, displayName: user.displayName, platformRole: user.platformRole } };
+    return { user: publicUser(user) };
   });
 }

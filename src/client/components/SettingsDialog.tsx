@@ -148,7 +148,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
       <section className="settings-section">
         <div className="settings-section-title"><HardDrive size={16} /><div><strong>Offre et stockage</strong><span>{account?.name ?? 'Chargement de votre espace…'}</span></div></div>
         {account && <div className="account-plan">
-          <div><strong>{account.planName}</strong><span>{account.accessStatus === 'trialing' && trialDaysLeft !== null ? `${trialDaysLeft} jour${trialDaysLeft > 1 ? 's' : ''} restant${trialDaysLeft > 1 ? 's' : ''}` : account.accessStatus === 'active' ? 'Accès actif' : account.accessStatus === 'grace_period' ? 'Délai de grâce' : account.accessStatus === 'suspended' ? 'Accès suspendu' : 'Lecture seule'}</span></div>
+          <div><strong>{user.isDemo ? 'Démonstration temporaire' : account.planName}</strong><span>{user.isDemo ? '15 fichiers importés · 5 Mo maximum par fichier' : account.accessStatus === 'trialing' && trialDaysLeft !== null ? `${trialDaysLeft} jour${trialDaysLeft > 1 ? 's' : ''} restant${trialDaysLeft > 1 ? 's' : ''}` : account.accessStatus === 'active' ? 'Accès actif' : account.accessStatus === 'grace_period' ? 'Délai de grâce' : account.accessStatus === 'suspended' ? 'Accès suspendu' : 'Lecture seule'}</span></div>
           <div className="storage-summary"><span>{formatBytes(account.storageUsedBytes)} utilisés</span><strong>{account.storageQuotaBytes === null ? 'Stockage illimité' : `sur ${formatBytes(account.storageQuotaBytes)}`}</strong></div>
           {account.storageQuotaBytes !== null && <div className="storage-meter" role="progressbar" aria-label="Stockage utilisé" aria-valuemin={0} aria-valuemax={account.storageQuotaBytes} aria-valuenow={account.storageUsedBytes}><i style={{ width: `${storagePercent}%` }} /></div>}
         </div>}
@@ -166,7 +166,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         <button className={`button ghost wide release-button ${hasUnseenReleases ? 'has-update' : ''}`} onClick={onOpenWhatsNew}><Gift size={17} />Voir les notes de version{hasUnseenReleases && <em>Nouveau</em>}</button>
       </section>
       <section className="settings-account">
-        <span>{user.displayName.slice(0, 1).toUpperCase()}</span><div><strong>{user.displayName}</strong><small>{user.email}</small></div><button className="button danger" onClick={onLogout}><LogOut size={16} />Se déconnecter</button>
+        <span>{user.displayName.slice(0, 1).toUpperCase()}</span><div><strong>{user.displayName}</strong><small>{user.isDemo ? 'Espace supprimé après 24 h d’inactivité' : user.email}</small></div><button className="button danger" onClick={onLogout}><LogOut size={16} />Se déconnecter</button>
       </section>
     </section>
   </div>;

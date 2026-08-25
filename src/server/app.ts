@@ -19,7 +19,7 @@ import { adminRoutes } from './routes/admin.js';
 import { releaseRoutes } from './routes/releases.js';
 import { publicPlanRoutes } from './routes/public-plans.js';
 import { CURRENT_VERSION } from './releases.js';
-import { AccountStorageError, requireWritableAccount } from './services/accounts.js';
+import { AccountStorageError, DemoUploadError, requireWritableAccount } from './services/accounts.js';
 import { requireUser } from './services/auth.js';
 
 export async function buildApp() {
@@ -44,6 +44,9 @@ export async function buildApp() {
     }
     if (error instanceof AccountStorageError) {
       return reply.code(error.reason === 'quota-exceeded' ? 413 : 403).send({ error: error.message, reason: error.reason });
+    }
+    if (error instanceof DemoUploadError) {
+      return reply.code(413).send({ error: error.message, reason: error.reason });
     }
     app.log.error(error);
     return reply.code(500).send({ error: 'Une erreur interne est survenue.' });

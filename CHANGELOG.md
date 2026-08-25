@@ -2,6 +2,27 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.10.0] - 2026-08-25
+
+### Ajouté
+
+- démonstration immédiate sous `/demo`, sans création de compte ;
+- espace et session temporaires isolés pour chaque visiteur ;
+- trois sons WAV préchargés dans le spectacle de démonstration ;
+- réinitialisation de l’espace depuis le bandeau de démonstration ;
+- suppression automatique des espaces après 24 heures d’inactivité.
+
+### Limites
+
+- 15 fichiers importés au maximum, hors sons préchargés ;
+- 5 Mo maximum par fichier local ou importé depuis Freesound.
+
+### Modifié
+
+- exclusion des espaces temporaires des statistiques commerciales ;
+- destination des boutons d’essai public vers `/demo` ;
+- passage de l’application à la version `0.10.0`.
+
 ## [0.9.0] - 2026-08-25
 
 ### Ajouté

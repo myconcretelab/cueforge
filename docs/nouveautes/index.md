@@ -2,6 +2,15 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.10.0 — 25 août 2026
+
+- ajout de la démonstration sans compte sous `/demo` ;
+- création d’un espace temporaire isolé avec trois sons préchargés ;
+- limite de 15 fichiers importés et de 5 Mo par fichier ;
+- suppression après 24 heures d’inactivité et commande de réinitialisation.
+
+[Détails de la version 0.10.0](./0.10.0.md)
+
 ## Version 0.9.0 — 25 août 2026
 
 - ajout des réglages de publication des forfaits ;

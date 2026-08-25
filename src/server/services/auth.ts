@@ -4,6 +4,7 @@ import { and, eq, gt } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { db } from '../db/index.js';
 import { sessions, users, type User } from '../db/schema.js';
+import { demoExpiration, demoLifetimeMs } from './demo.js';
 
 const scrypt = promisify(scryptCallback);
 export const sessionCookieName = 'cueforge_session';
@@ -60,7 +61,20 @@ export async function userFromToken(token?: string): Promise<User | null> {
     .innerJoin(users, eq(sessions.userId, users.id))
     .where(and(eq(sessions.tokenHash, tokenHash(token)), gt(sessions.expiresAt, new Date())))
     .limit(1);
-  return row?.user ?? null;
+  if (!row?.user) return null;
+  if (row.user.isDemo && (!row.user.demoExpiresAt || row.user.demoExpiresAt <= new Date())) return null;
+  return row.user;
+}
+
+export function publicUser(user: User) {
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    platformRole: user.platformRole,
+    isDemo: user.isDemo,
+    demoExpiresAt: user.demoExpiresAt,
+  };
 }
 
 export function cookieValue(cookieHeader: string | undefined, name: string): string | undefined {
@@ -84,6 +98,14 @@ export async function requireUser(request: FastifyRequest, reply: FastifyReply):
     await endSession(request, reply);
     await reply.code(403).send({ error: 'Ce compte utilisateur est désactivé.' });
     return null;
+  }
+  if (user.isDemo) {
+    const now = new Date();
+    if (!user.demoExpiresAt || user.demoExpiresAt.getTime() < now.getTime() + demoLifetimeMs - 60 * 60 * 1000) {
+      const expiresAt = demoExpiration(now);
+      await db.update(users).set({ demoExpiresAt: expiresAt }).where(eq(users.id, user.id));
+      user.demoExpiresAt = expiresAt;
+    }
   }
   if (!currentToken && legacyToken) {
     reply.setCookie(sessionCookieName, legacyToken, sessionCookieOptions(new Date(Date.now() + sessionLifetimeMs)));

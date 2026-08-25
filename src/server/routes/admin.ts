@@ -50,14 +50,16 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     if (!admin) return;
 
     const [userCount, accountCounts, storage, recentAudit] = await Promise.all([
-      db.select({ count: sql<number>`count(*)::int` }).from(users),
+      db.select({ count: sql<number>`count(*)::int` }).from(users).where(eq(users.isDemo, false)),
       db.select({
         total: sql<number>`count(*)::int`,
         trialing: sql<number>`count(*) filter (where ${accounts.accessStatus} = 'trialing')::int`,
         active: sql<number>`count(*) filter (where ${accounts.accessStatus} in ('active', 'grace_period'))::int`,
         restricted: sql<number>`count(*) filter (where ${accounts.accessStatus} in ('read_only', 'suspended'))::int`,
-      }).from(accounts),
-      db.select({ bytes: sql<number>`coalesce(sum(${tracks.sizeBytes}), 0)::bigint` }).from(tracks),
+      }).from(accounts).where(eq(accounts.isDemo, false)),
+      db.select({ bytes: sql<number>`coalesce(sum(${tracks.sizeBytes}), 0)::bigint` }).from(tracks)
+        .innerJoin(projects, eq(tracks.projectId, projects.id))
+        .innerJoin(accounts, and(eq(projects.accountId, accounts.id), eq(accounts.isDemo, false))),
       db.select({
         id: auditLogs.id,
         action: auditLogs.action,
@@ -110,7 +112,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     }).from(accounts)
       .innerJoin(plans, eq(accounts.planCode, plans.code))
       .leftJoin(subscriptions, eq(subscriptions.accountId, accounts.id))
-      .where(filter)
+      .where(and(eq(accounts.isDemo, false), filter))
       .orderBy(desc(accounts.createdAt))
       .limit(200);
     return { accounts: rows.map((row) => ({
@@ -134,7 +136,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     }).from(accounts)
       .innerJoin(plans, eq(accounts.planCode, plans.code))
       .leftJoin(subscriptions, eq(subscriptions.accountId, accounts.id))
-      .where(eq(accounts.id, id)).limit(1);
+      .where(and(eq(accounts.id, id), eq(accounts.isDemo, false))).limit(1);
     if (!account) return reply.code(404).send({ error: 'Compte introuvable.' });
     const members = await db.select({
       userId: users.id,
@@ -172,7 +174,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       ...input,
       suspendedAt: input.accessStatus === 'suspended' ? new Date() : input.accessStatus ? null : undefined,
       updatedAt: new Date(),
-    }).where(eq(accounts.id, id)).returning();
+    }).where(and(eq(accounts.id, id), eq(accounts.isDemo, false))).returning();
     if (!account) return reply.code(404).send({ error: 'Compte introuvable.' });
     await writeAuditLog({ actorUserId: admin.id, action: 'account.updated', entityType: 'account', entityId: id, details: input, ipAddress: request.ip });
     return { account };
@@ -191,7 +193,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       disabledAt: users.disabledAt,
       createdAt: users.createdAt,
       accountCount: sql<number>`(select count(*)::int from ${accountMemberships} am where am.user_id = ${users.id})`,
-    }).from(users).where(filter).orderBy(desc(users.createdAt)).limit(200);
+    }).from(users).where(and(eq(users.isDemo, false), filter)).orderBy(desc(users.createdAt)).limit(200);
     return { users: rows.map((row) => ({ ...row, accountCount: numberValue(row.accountCount) })) };
   });
 
@@ -209,7 +211,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const [user] = await db.update(users).set({
       platformRole: input.platformRole,
       disabledAt: input.disabled === undefined ? undefined : input.disabled ? new Date() : null,
-    }).where(eq(users.id, id)).returning();
+    }).where(and(eq(users.id, id), eq(users.isDemo, false))).returning();
     if (!user) return reply.code(404).send({ error: 'Utilisateur introuvable.' });
     await writeAuditLog({ actorUserId: admin.id, action: 'user.updated', entityType: 'user', entityId: id, details: input, ipAddress: request.ip });
     return { user: { id: user.id, email: user.email, displayName: user.displayName, platformRole: user.platformRole, disabledAt: user.disabledAt } };
@@ -220,7 +222,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     if (!admin) return;
     const rows = await db.select({
       ...getTableColumns(plans),
-      accountCount: sql<number>`(select count(*)::int from ${accounts} a where a.plan_code = ${plans.code})`,
+      accountCount: sql<number>`(select count(*)::int from ${accounts} a where a.plan_code = ${plans.code} and a.is_demo = false)`,
     }).from(plans).orderBy(desc(plans.isDefault), desc(plans.active), asc(plans.name));
     return { plans: rows.map((plan) => ({ ...plan, accountCount: numberValue(plan.accountCount) })) };
   });
@@ -249,7 +251,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       isDefault: plans.isDefault,
       visibleOnWebsite: plans.visibleOnWebsite,
       featuredOnWebsite: plans.featuredOnWebsite,
-      accountCount: sql<number>`(select count(*)::int from ${accounts} a where a.plan_code = ${plans.code})`,
+      accountCount: sql<number>`(select count(*)::int from ${accounts} a where a.plan_code = ${plans.code} and a.is_demo = false)`,
     }).from(plans).where(eq(plans.code, code)).limit(1);
     if (!existing) return reply.code(404).send({ error: 'Forfait introuvable.' });
     const nextActive = input.active ?? existing.active;
@@ -278,7 +280,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       code: plans.code,
       name: plans.name,
       isDefault: plans.isDefault,
-      accountCount: sql<number>`(select count(*)::int from ${accounts} a where a.plan_code = ${plans.code})`,
+      accountCount: sql<number>`(select count(*)::int from ${accounts} a where a.plan_code = ${plans.code} and a.is_demo = false)`,
     }).from(plans).where(eq(plans.code, code)).limit(1);
     if (!plan) return reply.code(404).send({ error: 'Forfait introuvable.' });
     const deletionError = planDeletionError({ isDefault: plan.isDefault, accountCount: numberValue(plan.accountCount) });

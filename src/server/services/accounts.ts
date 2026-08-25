@@ -1,13 +1,22 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { accountMemberships, accounts, plans, projects, tracks, type Account, type Plan, type Track } from '../db/schema.js';
+import { accountMemberships, accounts, plans, projects, tracks, users, type Account, type Plan, type Track } from '../db/schema.js';
 import { evaluateStorageAllowance } from './account-access.js';
+import { demoMaxFileBytes, demoMaxUploads } from './demo.js';
 
 export class AccountStorageError extends Error {
   constructor(public readonly reason: 'read-only' | 'quota-exceeded') {
     super(reason === 'quota-exceeded'
       ? 'Votre quota de stockage est atteint. Supprimez des sons ou choisissez un forfait supérieur.'
       : "Votre espace est en lecture seule. Activez un abonnement pour le modifier.");
+  }
+}
+
+export class DemoUploadError extends Error {
+  constructor(public readonly reason: 'file-too-large' | 'file-count-exceeded') {
+    super(reason === 'file-too-large'
+      ? 'La démonstration accepte des fichiers de 5 Mo maximum.'
+      : 'La démonstration accepte 15 fichiers importés maximum.');
   }
 }
 
@@ -59,8 +68,9 @@ export async function requireWritableAccount(userId: string): Promise<AccountCon
 
 export async function insertTrackWithinQuota(userId: string, values: typeof tracks.$inferInsert): Promise<Track> {
   return db.transaction(async (transaction) => {
-    const [membership] = await transaction.select({ account: accounts, plan: plans, projectId: projects.id })
+    const [membership] = await transaction.select({ account: accounts, plan: plans, projectId: projects.id, isDemo: users.isDemo })
       .from(accountMemberships)
+      .innerJoin(users, eq(accountMemberships.userId, users.id))
       .innerJoin(accounts, eq(accountMemberships.accountId, accounts.id))
       .innerJoin(plans, eq(accounts.planCode, plans.code))
       .innerJoin(projects, and(eq(projects.accountId, accounts.id), eq(projects.id, values.projectId)))
@@ -71,9 +81,12 @@ export async function insertTrackWithinQuota(userId: string, values: typeof trac
     await transaction.execute(sql`select ${accounts.id} from ${accounts} where ${accounts.id} = ${membership.account.id} for update`);
     const [usage] = await transaction.select({
       usedBytes: sql<number>`coalesce(sum(${tracks.sizeBytes}), 0)::bigint`,
+      uploadedFiles: sql<number>`count(*) filter (where ${tracks.demoSeed} = false)::int`,
     }).from(projects)
       .leftJoin(tracks, eq(tracks.projectId, projects.id))
       .where(eq(projects.accountId, membership.account.id));
+    if (membership.isDemo && Number(values.sizeBytes) > demoMaxFileBytes) throw new DemoUploadError('file-too-large');
+    if (membership.isDemo && Number(usage?.uploadedFiles ?? 0) >= demoMaxUploads) throw new DemoUploadError('file-count-exceeded');
     const allowance = evaluateStorageAllowance({
       accessStatus: membership.account.accessStatus,
       trialEndsAt: membership.account.trialEndsAt,

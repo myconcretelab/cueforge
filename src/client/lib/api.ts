@@ -23,6 +23,8 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   me: () => request<{ user: User }>('/api/auth/me'),
+  startDemo: () => request<{ user: User }>('/api/auth/demo', { method: 'POST' }),
+  resetDemo: () => request<{ user: User }>('/api/auth/demo/reset', { method: 'POST' }),
   register: (input: { displayName: string; email: string; password: string }) =>
     request<{ user: User }>('/api/auth/register', { method: 'POST', body: JSON.stringify(input) }),
   login: (input: { email: string; password: string }) =>

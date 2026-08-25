@@ -4,6 +4,7 @@ import { passwordResetMessage } from '../src/server/services/mail.js';
 import { createPasswordResetToken, hashPasswordResetToken, passwordResetLifetimeMs } from '../src/server/services/password-reset.js';
 import { parseByteRange } from '../src/server/services/range.js';
 import { evaluateStorageAllowance } from '../src/server/services/account-access.js';
+import { createDemoTone, demoExpiration, demoLifetimeMs, demoMaxFileBytes, demoMaxUploads } from '../src/server/services/demo.js';
 
 describe('password hashing', () => {
   it('accepte le bon mot de passe et refuse les autres', async () => {
@@ -85,5 +86,24 @@ describe('storage allowance', () => {
   it('refuse les écritures pour un compte suspendu ou en lecture seule', () => {
     expect(evaluateStorageAllowance({ accessStatus: 'read_only', trialEndsAt: null, storageQuotaBytes: 20_000, usedBytes: 0, incomingBytes: 0, now })).toEqual({ allowed: false, reason: 'read-only' });
     expect(evaluateStorageAllowance({ accessStatus: 'suspended', trialEndsAt: null, storageQuotaBytes: 20_000, usedBytes: 0, incomingBytes: 0, now })).toEqual({ allowed: false, reason: 'read-only' });
+  });
+});
+
+describe('temporary demo', () => {
+  it('expire après vingt-quatre heures', () => {
+    const now = new Date('2030-01-01T12:00:00Z');
+    expect(demoExpiration(now).getTime()).toBe(now.getTime() + demoLifetimeMs);
+  });
+
+  it('publie les limites d’import retenues', () => {
+    expect(demoMaxUploads).toBe(15);
+    expect(demoMaxFileBytes).toBe(5 * 1024 * 1024);
+  });
+
+  it('génère un fichier WAV lisible pour les sons de démonstration', () => {
+    const wav = createDemoTone([440, 660]);
+    expect(wav.subarray(0, 4).toString()).toBe('RIFF');
+    expect(wav.subarray(8, 12).toString()).toBe('WAVE');
+    expect(wav.readUInt32LE(40)).toBe(wav.length - 44);
   });
 });

@@ -3,6 +3,8 @@ export interface User {
   email: string;
   displayName: string;
   platformRole: 'user' | 'support' | 'admin' | 'super_admin';
+  isDemo: boolean;
+  demoExpiresAt: string | null;
 }
 
 export interface AppRelease {
