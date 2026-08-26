@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, CloudDownload, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, LogOut, Palette, Plus, Settings2, ShieldCheck, Smartphone, Trash2, Waves, X } from 'lucide-react';
+import { BookOpen, CloudDownload, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, LogOut, Palette, Plus, RefreshCcw, Settings2, ShieldCheck, Smartphone, Trash2, Waves, X } from 'lucide-react';
 import { api } from '../lib/api';
 import type { AccountSummary, KeyAction, Project, ProjectColor, User } from '../types';
 
@@ -12,6 +12,8 @@ interface Props {
   remote: boolean;
   appVersion?: string;
   hasUnseenReleases: boolean;
+  automaticUpdates: boolean;
+  onAutomaticUpdatesChange: (enabled: boolean) => void;
   onChooseProject: (id: string) => void;
   onCreateProject: () => void;
   onReorderProjects: (projectIds: string[]) => Promise<void>;
@@ -47,7 +49,7 @@ function formatBytes(bytes: number): string {
   return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)} ${unit}`;
 }
 
-export function SettingsDialog({ user, projects, projectColors, selectedProjectId, offlineStatus, remote, appVersion, hasUnseenReleases, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
+export function SettingsDialog({ user, projects, projectColors, selectedProjectId, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, onAutomaticUpdatesChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
   const [newColor, setNewColor] = useState('#f97316');
   const [draggedProjectId, setDraggedProjectId] = useState<string>();
@@ -162,7 +164,8 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         <a className="button ghost wide" href="/admin"><ShieldCheck size={17} />Ouvrir l’administration</a>
       </section>}
       {!user.isDemo && <section className="settings-section">
-        <div className="settings-section-title"><Gift size={16} /><div><strong>Nouveautés</strong><span>Vous utilisez CueForge {appVersion ?? '—'}.</span></div></div>
+        <div className="settings-section-title"><RefreshCcw size={16} /><div><strong>Mises à jour</strong><span>CueForge {appVersion ?? '—'} sur cet appareil.</span></div></div>
+        <label className="automatic-update-setting"><span><strong>Installer automatiquement</strong><small>Masque les notifications de version et recharge l’application lorsqu’aucun son n’est en lecture.</small></span><input type="checkbox" checked={automaticUpdates} onChange={(event) => onAutomaticUpdatesChange(event.target.checked)} /><i aria-hidden="true" /></label>
         <button className={`button ghost wide release-button ${hasUnseenReleases ? 'has-update' : ''}`} onClick={onOpenWhatsNew}><Gift size={17} />Voir les notes de version{hasUnseenReleases && <em>Nouveau</em>}</button>
       </section>}
       <section className="settings-account">

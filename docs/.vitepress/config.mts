@@ -54,7 +54,6 @@ export default defineConfig({
         items: [
           { text: 'Formats et limites', link: '/reference/formats-et-limites' },
           { text: 'Raccourcis et commandes', link: '/reference/raccourcis' },
-          { text: 'Administration commerciale', link: '/reference/administration-commerciale' },
         ],
       },
       {

@@ -8,12 +8,18 @@ export interface User {
 }
 
 export interface AppRelease {
+  audience: 'app' | 'admin';
   version: string;
   date: string;
   title: string;
   summary: string;
   important: boolean;
   changes: string[];
+}
+
+export interface AdminReleaseInfo {
+  currentVersion: string;
+  releases: AppRelease[];
 }
 
 export interface ReleaseInfo {

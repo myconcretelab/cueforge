@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Activity, BadgeEuro, Boxes, CircleAlert, Copy, Database, Gauge, HardDrive, LayoutDashboard, LoaderCircle, LogOut, RefreshCcw, Search, ShieldCheck, Trash2, Users, X } from 'lucide-react';
+import { Activity, BadgeEuro, BookOpen, Boxes, CircleAlert, Copy, Database, Gauge, HardDrive, LayoutDashboard, LoaderCircle, LogOut, RefreshCcw, Search, ShieldCheck, Trash2, Users, X } from 'lucide-react';
 import { AuthScreen } from '../components/AuthScreen';
 import { api, ApiError } from '../lib/api';
-import type { AdminAccount, AdminOverview, AdminUser, AuditEntry, CommercialPlan, User } from '../types';
+import type { AdminAccount, AdminOverview, AdminUser, AppRelease, AuditEntry, CommercialPlan, User } from '../types';
 
-type Section = 'overview' | 'accounts' | 'plans' | 'users';
+type Section = 'overview' | 'accounts' | 'plans' | 'users' | 'documentation';
 type AccountStatus = AdminAccount['accessStatus'];
 type PlanEditorTarget = { mode: 'create' | 'edit'; source?: CommercialPlan };
 
@@ -50,6 +50,7 @@ export function AdminApp() {
   const [accounts, setAccounts] = useState<AdminAccount[]>([]);
   const [plans, setPlans] = useState<CommercialPlan[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [adminReleases, setAdminReleases] = useState<AppRelease[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -77,8 +78,10 @@ export function AdminApp() {
         setPlans((await api.adminPlans()).plans);
       } else if (section === 'plans') {
         setPlans((await api.adminPlans()).plans);
-      } else {
+      } else if (section === 'users') {
         setUsers((await api.adminUsers(search)).users);
+      } else {
+        setAdminReleases((await api.adminReleases()).releases);
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Chargement impossible.');
@@ -103,6 +106,7 @@ export function AdminApp() {
     { id: 'accounts', label: 'Comptes', icon: Boxes },
     { id: 'plans', label: 'Forfaits', icon: BadgeEuro },
     { id: 'users', label: 'Utilisateurs', icon: Users },
+    { id: 'documentation', label: 'Documentation', icon: BookOpen },
   ];
 
   return <div className="admin-shell">
@@ -118,9 +122,20 @@ export function AdminApp() {
       {section === 'accounts' && <AccountsSection accounts={accounts} canEdit={user.platformRole === 'super_admin'} search={search} onSearch={setSearch} onSubmitSearch={loadSection} onEdit={setEditingAccount} />}
       {section === 'plans' && <PlansSection plans={plans} canEdit={user.platformRole === 'super_admin'} onEdit={(plan) => setEditingPlan({ mode: 'edit', source: plan })} onCreate={() => setEditingPlan({ mode: 'create' })} onDuplicate={(plan) => setEditingPlan({ mode: 'create', source: plan })} />}
       {section === 'users' && <UsersSection users={users} currentUser={user} search={search} onSearch={setSearch} onSubmitSearch={loadSection} onChanged={loadSection} onError={setError} />}
+      {section === 'documentation' && <AdminDocumentation releases={adminReleases} />}
     </main>
     {editingAccount && <AccountEditor account={editingAccount} plans={plans} onClose={() => setEditingAccount(undefined)} onSaved={() => { setEditingAccount(undefined); loadSection().catch(() => undefined); }} onError={setError} />}
     {editingPlan && <PlanEditor target={editingPlan} onClose={() => setEditingPlan(undefined)} onSaved={() => { setEditingPlan(undefined); loadSection().catch(() => undefined); }} onError={setError} />}
+  </div>;
+}
+
+function AdminDocumentation({ releases }: { releases: AppRelease[] }) {
+  return <div className="admin-content admin-docs">
+    <section className="admin-panel admin-doc-section"><header><div><h2>Accès au dashboard</h2><p>Rôles de plateforme et droits associés à l’adresse /admin.</p></div></header><div className="admin-doc-body"><table><thead><tr><th>Rôle</th><th>Accès</th></tr></thead><tbody><tr><td><code>user</code></td><td>Aucun accès administratif</td></tr><tr><td><code>support</code></td><td>Aucun accès administratif</td></tr><tr><td><code>admin</code></td><td>Consultation des comptes, forfaits, utilisateurs et journaux</td></tr><tr><td><code>super_admin</code></td><td>Consultation et modification des données commerciales</td></tr></tbody></table></div></section>
+    <section className="admin-panel admin-doc-section"><header><div><h2>Comptes et accès</h2><p>Structure commerciale appliquée aux espaces clients.</p></div></header><div className="admin-doc-body"><p>Un compte regroupe ses membres, ses spectacles, son forfait, son état d’accès et son abonnement. Le quota du forfait s’applique sauf lorsqu’un quota exceptionnel est défini sur le compte.</p><dl><div><dt><code>trialing</code></dt><dd>Essai actif jusqu’à la date indiquée.</dd></div><div><dt><code>active</code></dt><dd>Écritures et lecture autorisées.</dd></div><div><dt><code>grace_period</code></dt><dd>Accès maintenu pendant le délai de régularisation.</dd></div><div><dt><code>read_only</code></dt><dd>Lecture autorisée et modifications bloquées.</dd></div><div><dt><code>suspended</code></dt><dd>Modifications bloquées par l’administration.</dd></div></dl></div></section>
+    <section className="admin-panel admin-doc-section"><header><div><h2>Forfaits et publication</h2><p>Prix, quotas, essais et affichage sur cueforge.fr.</p></div></header><div className="admin-doc-body"><p>Un forfait définit son code, son nom, sa description, son quota, sa durée d’essai, ses prix mensuel et annuel, son état actif et son utilisation comme forfait par défaut.</p><ul><li><strong>Visible sur le site</strong> publie le forfait dans l’API publique.</li><li><strong>Mis en avant</strong> sélectionne la carte principale du site ; un seul forfait peut être mis en avant.</li><li><strong>Ordre d’affichage</strong> détermine le classement des cartes, puis le nom départage les valeurs identiques.</li><li>Un forfait ne peut être supprimé que s’il n’est ni attribué, ni défini par défaut.</li></ul></div></section>
+    <section className="admin-panel admin-doc-section"><header><div><h2>Abonnements et journal</h2><p>Données conservées par le pilotage commercial.</p></div></header><div className="admin-doc-body"><p>Un abonnement conserve le prestataire, les identifiants client et abonnement, l’intervalle de facturation, l’état, la période courante et la demande de résiliation en fin de période.</p><p>Les modifications de comptes, forfaits et utilisateurs enregistrent l’auteur, l’action, la cible, la date, l’adresse réseau et les champs modifiés.</p></div></section>
+    <section className="admin-panel admin-doc-section"><header><div><h2>Versions de l’administration</h2><p>Évolutions du dashboard, des forfaits et de la publication commerciale.</p></div></header><div className="admin-release-list">{releases.map((release) => <article key={`${release.audience}-${release.version}`}><header><div><strong>{release.title}</strong><span>Version {release.version}</span></div><time dateTime={release.date}>{new Date(`${release.date}T00:00:00Z`).toLocaleDateString('fr-FR', { timeZone: 'UTC', dateStyle: 'long' })}</time></header><p>{release.summary}</p><ul>{release.changes.map((change) => <li key={change}>{change}</li>)}</ul></article>)}{releases.length === 0 && <p className="admin-empty">Aucune version administrative.</p>}</div></section>
   </div>;
 }
 

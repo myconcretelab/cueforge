@@ -5,6 +5,7 @@ import { db } from '../db/index.js';
 import { accountMemberships, accounts, auditLogs, plans, projects, subscriptions, tracks, users } from '../db/schema.js';
 import { requirePlatformAdmin, requireSuperAdmin, writeAuditLog } from '../services/admin.js';
 import { planDeletionError, planPublicationError } from '../services/commercial-plans.js';
+import { ADMIN_RELEASES, CURRENT_VERSION } from '../releases.js';
 
 const accountStatuses = ['trialing', 'active', 'grace_period', 'read_only', 'suspended'] as const;
 const platformRoles = ['user', 'support', 'admin', 'super_admin'] as const;
@@ -45,6 +46,12 @@ function numberValue(value: unknown): number {
 }
 
 export async function adminRoutes(app: FastifyInstance): Promise<void> {
+  app.get('/api/admin/releases', async (request, reply) => {
+    const admin = await requirePlatformAdmin(request, reply);
+    if (!admin) return;
+    return { currentVersion: CURRENT_VERSION, releases: ADMIN_RELEASES };
+  });
+
   app.get('/api/admin/overview', async (request, reply) => {
     const admin = await requirePlatformAdmin(request, reply);
     if (!admin) return;

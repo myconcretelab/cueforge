@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { APP_RELEASES, compareVersions, CURRENT_VERSION, releasesAfter } from '../src/server/releases.js';
+import { ADMIN_RELEASES, APP_RELEASES, compareVersions, CURRENT_VERSION, releasesAfter } from '../src/server/releases.js';
 
 describe('app releases', () => {
   it('conserve la version applicative alignée avec package.json', () => {
@@ -12,8 +12,15 @@ describe('app releases', () => {
   it('retourne uniquement les versions encore non consultées', () => {
     expect(releasesAfter(null)).toEqual(APP_RELEASES);
     expect(releasesAfter('0.1.0')).toEqual(APP_RELEASES);
-    expect(releasesAfter('0.2.0').map((release) => release.version)).toEqual(['0.10.1', '0.10.0', '0.9.0', '0.8.0', '0.7.0', '0.6.0', '0.5.0', '0.4.0', '0.3.0']);
+    expect(releasesAfter('0.2.0').map((release) => release.version)).toEqual(['0.11.0', '0.10.1', '0.10.0', '0.7.0', '0.6.0', '0.4.0', '0.3.0']);
     expect(releasesAfter(CURRENT_VERSION)).toEqual([]);
+  });
+
+  it('sépare les versions de la régie et de l’administration', () => {
+    expect(APP_RELEASES.every((release) => release.audience === 'app')).toBe(true);
+    expect(ADMIN_RELEASES.every((release) => release.audience === 'admin')).toBe(true);
+    expect(APP_RELEASES.map((release) => release.version)).not.toContain('0.9.0');
+    expect(ADMIN_RELEASES.map((release) => release.version)).toContain('0.9.0');
   });
 
   it('compare les versions sémantiques numériquement', () => {

@@ -17,7 +17,7 @@ import { UploadDialog } from './components/UploadDialog';
 import { WhatsNewDialog } from './components/WhatsNewDialog';
 import { api, ApiError } from './lib/api';
 import { applyAppUpdate, subscribeToAppUpdate } from './lib/app-update';
-import { appNoticesEnabled } from './lib/app-mode';
+import { appNoticesEnabled, shouldApplyAppUpdate, shouldOpenReleaseNotes } from './lib/app-mode';
 import { audioEngine, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
@@ -83,6 +83,7 @@ export default function App() {
   const [releaseInfo, setReleaseInfo] = useState<ReleaseInfo>();
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [automaticUpdates, setAutomaticUpdates] = useState(() => localStorage.getItem('cueforge-automatic-updates') === 'true');
   const [editingTrack, setEditingTrack] = useState<Track>();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarTool, setSidebarTool] = useState<'playlist'>();
@@ -120,6 +121,14 @@ export default function App() {
   useEffect(() => audioEngine.subscribeHistory(setPlaybackHistory), []);
   useEffect(() => subscribeToAppUpdate(setUpdateAvailable), []);
   useEffect(() => {
+    if (!shouldApplyAppUpdate({
+      automaticUpdates: automaticUpdates || Boolean(user?.isDemo),
+      updateAvailable,
+      activePlaybackCount: activePlaybacks.length,
+    })) return;
+    applyAppUpdate();
+  }, [activePlaybacks.length, automaticUpdates, updateAvailable, user?.isDemo]);
+  useEffect(() => {
     const persistProgress = () => audioEngine.persistActiveProgress();
     window.addEventListener('pagehide', persistProgress);
     return () => window.removeEventListener('pagehide', persistProgress);
@@ -135,10 +144,16 @@ export default function App() {
   }, [noticesEnabled]);
 
   useEffect(() => {
-    if (!noticesEnabled || releaseAutoShownRef.current || unseenReleases.length === 0 || activePlaybacks.length > 0) return;
+    if (!shouldOpenReleaseNotes({
+      noticesEnabled,
+      automaticUpdates,
+      unseenReleaseCount: unseenReleases.length,
+      activePlaybackCount: activePlaybacks.length,
+      alreadyOpened: releaseAutoShownRef.current,
+    })) return;
     releaseAutoShownRef.current = true;
     setWhatsNewOpen(true);
-  }, [activePlaybacks.length, noticesEnabled, unseenReleases.length]);
+  }, [activePlaybacks.length, automaticUpdates, noticesEnabled, unseenReleases.length]);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(timer);
@@ -1100,6 +1115,11 @@ export default function App() {
     api.markReleaseSeen(version).catch(() => setError('Impossible d’enregistrer la lecture des nouveautés.'));
   }
 
+  function setAutomaticUpdatePreference(enabled: boolean) {
+    setAutomaticUpdates(enabled);
+    localStorage.setItem('cueforge-automatic-updates', String(enabled));
+  }
+
   if (user === undefined) return <div className="app-loader"><span className="brand-mark loader pulse" aria-hidden="true">CF</span><span>CueForge</span></div>;
   if (!user) return <><AuthScreen onAuthenticated={(authenticated) => { localStorage.setItem('cueforge-user', JSON.stringify(authenticated)); setUser(authenticated); }} />{error && <Toast message={error} onClose={() => setError('')} />}</>;
 
@@ -1249,7 +1269,7 @@ export default function App() {
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
-    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
     {whatsNewOpen && releaseInfo && <WhatsNewDialog releases={releasesForDialog} currentVersion={releaseInfo.currentVersion} onClose={closeWhatsNew} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {freesoundOpen && detail && <FreesoundDialog initialQuery={search} projectId={detail.project.id} categories={detail.categories} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} onImported={refreshProject} onClose={() => setFreesoundOpen(false)} />}
@@ -1262,7 +1282,7 @@ export default function App() {
         {dropUploadProgress && <i><b style={{ transform: `scaleX(${dropUploadProgress.total ? dropUploadProgress.done / dropUploadProgress.total : 0})` }} /></i>}
       </div>
     </div>}
-    {noticesEnabled && updateAvailable && <AppUpdateBanner playbackActive={activePlaybacks.length > 0} onApply={() => { if (!applyAppUpdate()) setError('La mise à jour n’est plus disponible.'); }} />}
+    {noticesEnabled && !automaticUpdates && updateAvailable && <AppUpdateBanner playbackActive={activePlaybacks.length > 0} onApply={() => { if (!applyAppUpdate()) setError('La mise à jour n’est plus disponible.'); }} />}
     {error && <Toast message={error} onClose={() => setError('')} />}
   </div>;
 }

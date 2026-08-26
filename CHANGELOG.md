@@ -2,6 +2,23 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.11.0] - 2026-08-26
+
+### Ajouté
+
+- réglage local **Installer automatiquement** dans les paramètres de l’application ;
+- installation automatique d’un service worker en attente dès qu’aucun son n’est en lecture ;
+- flux de notes de version distinct pour l’administration commerciale ;
+- rubrique **Documentation** protégée dans le dashboard `/admin` ;
+- API administrative en lecture seule sous `/api/admin/releases`.
+
+### Modifié
+
+- retrait des versions commerciales du flux de nouveautés de la régie ;
+- retrait de l’administration commerciale, de ses versions et de ses pages du site documentaire public ;
+- masquage de la bannière et de l’ouverture automatique des nouveautés lorsque l’installation automatique est activée ;
+- passage de l’application à la version `0.11.0`.
+
 ## [0.10.1] - 2026-08-25
 
 ### Modifié

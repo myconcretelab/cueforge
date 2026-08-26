@@ -1,4 +1,5 @@
 export interface AppRelease {
+  audience: 'app' | 'admin';
   version: string;
   date: string;
   title: string;
@@ -7,8 +8,37 @@ export interface AppRelease {
   changes: string[];
 }
 
-export const APP_RELEASES: AppRelease[] = [
+const RELEASES: AppRelease[] = [
   {
+    audience: 'app',
+    version: '0.11.0',
+    date: '2026-08-26',
+    title: 'Mises à jour automatiques',
+    summary: 'Un réglage permet d’installer les nouvelles versions sans afficher de demande de confirmation.',
+    important: false,
+    changes: [
+      'Le mode automatique se règle depuis les paramètres de l’application.',
+      'Une version en attente est installée dès qu’aucun son n’est en lecture.',
+      'Les notifications et l’ouverture automatique des notes sont masquées en mode automatique.',
+      'La bannière de mise à jour reste disponible lorsque le mode automatique est désactivé.',
+      'Les nouveautés affichées concernent uniquement les fonctions de la régie.',
+    ],
+  },
+  {
+    audience: 'admin',
+    version: '0.11.0',
+    date: '2026-08-26',
+    title: 'Documentation administrative séparée',
+    summary: 'La documentation et les versions commerciales sont maintenant regroupées dans le dashboard protégé.',
+    important: false,
+    changes: [
+      'Une rubrique Documentation est disponible dans le dashboard d’administration.',
+      'Les notes de version commerciales sont retirées de la documentation publique.',
+      'Les évolutions de l’application et de l’administration utilisent deux flux distincts.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.10.1',
     date: '2026-08-25',
     title: 'Démonstration sans interruption',
@@ -21,6 +51,7 @@ export const APP_RELEASES: AppRelease[] = [
     ],
   },
   {
+    audience: 'app',
     version: '0.10.0',
     date: '2026-08-25',
     title: 'Essai immédiat sans compte',
@@ -34,6 +65,7 @@ export const APP_RELEASES: AppRelease[] = [
     ],
   },
   {
+    audience: 'admin',
     version: '0.9.0',
     date: '2026-08-25',
     title: 'Forfaits synchronisés avec le site',
@@ -47,6 +79,7 @@ export const APP_RELEASES: AppRelease[] = [
     ],
   },
   {
+    audience: 'admin',
     version: '0.8.0',
     date: '2026-08-25',
     title: 'Gestion complète des forfaits',
@@ -60,6 +93,7 @@ export const APP_RELEASES: AppRelease[] = [
     ],
   },
   {
+    audience: 'app',
     version: '0.7.0',
     date: '2026-08-25',
     title: 'Réinitialisation du mot de passe',
@@ -72,6 +106,7 @@ export const APP_RELEASES: AppRelease[] = [
     ],
   },
   {
+    audience: 'app',
     version: '0.6.0',
     date: '2026-08-25',
     title: 'CueForge sur son propre domaine',
@@ -79,12 +114,13 @@ export const APP_RELEASES: AppRelease[] = [
     important: true,
     changes: [
       'Le site de présentation est disponible sur cueforge.fr.',
-      'L’application et son administration sont disponibles sur app.cueforge.fr.',
+      'L’application est disponible sur app.cueforge.fr.',
       'La documentation reste intégrée à l’application sous /docs/.',
       'Les liens Community et GitHub ont été retirés du site de présentation.',
     ],
   },
   {
+    audience: 'admin',
     version: '0.5.0',
     date: '2026-08-25',
     title: 'Administration commerciale',
@@ -98,6 +134,7 @@ export const APP_RELEASES: AppRelease[] = [
     ],
   },
   {
+    audience: 'app',
     version: '0.4.0',
     date: '2026-08-25',
     title: 'CueForge entre en scène',
@@ -111,6 +148,7 @@ export const APP_RELEASES: AppRelease[] = [
     ],
   },
   {
+    audience: 'app',
     version: '0.3.0',
     date: '2026-08-25',
     title: 'La documentation entre en scène',
@@ -124,6 +162,7 @@ export const APP_RELEASES: AppRelease[] = [
     ],
   },
   {
+    audience: 'app',
     version: '0.2.0',
     date: '2026-08-25',
     title: 'Des mises à jour plus sereines',
@@ -138,7 +177,10 @@ export const APP_RELEASES: AppRelease[] = [
   },
 ];
 
-export const CURRENT_RELEASE = APP_RELEASES[0];
+export const APP_RELEASES = RELEASES.filter((release) => release.audience === 'app');
+export const ADMIN_RELEASES = RELEASES.filter((release) => release.audience === 'admin');
+
+export const CURRENT_RELEASE = APP_RELEASES[0]!;
 export const CURRENT_VERSION = CURRENT_RELEASE.version;
 
 export function compareVersions(left: string, right: string): number {

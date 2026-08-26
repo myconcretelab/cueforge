@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.11.0 — 26 août 2026
+
+- ajout du réglage de mises à jour automatiques ;
+- installation d’une version en attente lorsque aucune lecture n’est active ;
+- affichage de notes de version limitées aux fonctions de la régie.
+
+[Détails de la version 0.11.0](./0.11.0.md)
+
 ## Version 0.10.1 — 25 août 2026
 
 - masquage des messages de mise à jour dans les démonstrations ;
@@ -19,24 +27,6 @@ Chaque entrée décrit les modifications fonctionnelles et techniques d’une ve
 
 [Détails de la version 0.10.0](./0.10.0.md)
 
-## Version 0.9.0 — 25 août 2026
-
-- ajout des réglages de publication des forfaits ;
-- ajout de l’API publique `/api/public/plans` ;
-- synchronisation du bloc tarifaire WordPress ;
-- ajout du cache et du repli sur la dernière réponse valide.
-
-[Détails de la version 0.9.0](./0.9.0.md)
-
-## Version 0.8.0 — 25 août 2026
-
-- ajout des indicateurs d’utilisation des forfaits ;
-- ajout de la duplication et de la suppression contrôlée ;
-- présentation des prix, quotas et essais dans le catalogue ;
-- résumé du forfait dans la fiche d’un compte.
-
-[Détails de la version 0.8.0](./0.8.0.md)
-
 ## Version 0.7.0 — 25 août 2026
 
 - ajout de la demande de réinitialisation depuis la page de connexion ;
@@ -52,15 +42,6 @@ Chaque entrée décrit les modifications fonctionnelles et techniques d’une ve
 - maintien de la documentation sous `/docs/` sur le domaine de l’application.
 
 [Détails de la version 0.6.0](./0.6.0.md)
-
-## Version 0.5.0 — 25 août 2026
-
-- ajout du tableau de bord `/admin` ;
-- ajout des forfaits, quotas, essais et états d’accès ;
-- ajout des rôles de plateforme et du journal d’audit ;
-- suppression de l’édition Community.
-
-[Détails de la version 0.5.0](./0.5.0.md)
 
 ## Version 0.4.0 — 25 août 2026
 
@@ -90,7 +71,8 @@ Chaque entrée décrit les modifications fonctionnelles et techniques d’une ve
 ## Cycle de mise à jour
 
 1. La nouvelle version du service worker est téléchargée en arrière-plan.
-2. L’application affiche une notification de mise à jour.
+2. Lorsque les mises à jour automatiques sont désactivées, l’application affiche une notification.
 3. Le bouton reste désactivé pendant une lecture audio.
-4. L’activation remplace le service worker courant et recharge l’interface.
-5. Les nouveautés non consultées sont affichées après la connexion.
+4. Lorsque les mises à jour automatiques sont activées, la version est installée dès qu’aucun son n’est en lecture.
+5. L’activation remplace le service worker courant et recharge l’interface.
+6. Les nouveautés non consultées sont affichées après la connexion.

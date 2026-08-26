@@ -29,10 +29,6 @@ features:
     title: Télécommande
     details: Rôles du lecteur principal et du contrôleur distant.
     link: /guides/telecommande
-  - icon: "⚙"
-    title: Administration commerciale
-    details: Comptes, forfaits, quotas, essais et rôles de plateforme.
-    link: /reference/administration-commerciale
 ---
 
 ## Contenu
@@ -41,7 +37,7 @@ features:
 - **Guides** : description détaillée d’une fonction et de ses commandes.
 - **Référence** : formats, limites, raccourcis et actions configurables.
 - **Dépannage** : symptômes, causes possibles et opérations de diagnostic.
-- **Notes de version** : modifications apportées par chaque version.
+- **Notes de version** : modifications apportées aux fonctions de l’application.
 
 ## Service
 
