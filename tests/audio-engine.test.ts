@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { audioEngine, playbackVolumeAt, type ActivePlayback } from '../src/client/lib/audio-engine.js';
+import { audioEngine, playbackPositionAt, playbackVolumeAt, type ActivePlayback } from '../src/client/lib/audio-engine.js';
 import type { Track } from '../src/client/types.js';
 
 class FakeAudioParam {
@@ -127,5 +127,28 @@ describe('audio player instance controls', () => {
 
     expect(latest).toHaveLength(0);
     expect(latestHistory.has(track.id)).toBe(false);
+  });
+});
+
+describe('playbackPositionAt', () => {
+  const playback = {
+    durationMs: 60_000,
+    elapsedMs: 10_000,
+    loop: false,
+    paused: false,
+    resumedAtMs: 1_000,
+  };
+
+  it('calcule la position courante depuis la reprise', () => {
+    expect(playbackPositionAt(playback, 1_500)).toBe(10_500);
+  });
+
+  it('fige la position en pause et la limite à la durée', () => {
+    expect(playbackPositionAt({ ...playback, paused: true }, 50_000)).toBe(10_000);
+    expect(playbackPositionAt(playback, 100_000)).toBe(60_000);
+  });
+
+  it('repart du début à chaque boucle', () => {
+    expect(playbackPositionAt({ ...playback, loop: true }, 56_000)).toBe(5_000);
   });
 });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, GripVertical, History, ListMusic, ListPlus, LoaderCircle, Menu, Move, Pause, Play, Plus, Radio,
   RefreshCcw, Repeat2, RotateCcw, Search, Settings, Settings2, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
@@ -18,7 +18,7 @@ import { WhatsNewDialog } from './components/WhatsNewDialog';
 import { api, ApiError } from './lib/api';
 import { applyAppUpdate, subscribeToAppUpdate } from './lib/app-update';
 import { appNoticesEnabled, shouldApplyAppUpdate, shouldOpenReleaseNotes } from './lib/app-mode';
-import { audioEngine, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
+import { audioEngine, playbackPositionAt, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
@@ -1136,11 +1136,9 @@ export default function App() {
         {playingTracks.length === 0 ? <div className="players-empty"><AudioWaveform size={24} /><strong>Aucun son en lecture</strong><span>Les lecteurs actifs apparaîtront ici.</span></div> : playingTracks.map(({ playback, track }) => {
           const category = detail?.categories.find((item) => item.id === track.categoryId);
           const color = track.color ?? category?.color ?? '#71717a';
-          const totalElapsedMs = playback.paused ? playback.elapsedMs : playback.elapsedMs + Math.max(0, performance.now() - playback.resumedAtMs);
-          const positionMs = playback.loop ? totalElapsedMs % playback.durationMs : Math.min(totalElapsedMs, playback.durationMs);
           return <article className={`player-card ${playback.paused ? 'is-paused' : ''}`} key={playback.id} style={{ '--track-color': color } as React.CSSProperties}>
             <div className="player-card-copy"><strong>{track.title}</strong></div>
-            <div className="player-card-time"><span>{formatPlaybackDuration(positionMs)}</span><input className="player-card-seek" type="range" min="0" max={playback.durationMs} step="10" value={Math.round(positionMs)} disabled={playback.fadingOut} onChange={(event) => audioEngine.seekInstance(playback.id, Number(event.target.value) / playback.durationMs)} aria-label={`Position de lecture de ${track.title}`} title="Cliquer ou glisser pour déplacer la lecture" /><span>−{formatPlaybackDuration(Math.max(0, playback.durationMs - positionMs))}</span></div>
+            <PlaybackPositionControl playback={playback} title={track.title} />
             <PlaybackVolumeControl playback={playback} title={track.title} />
             <div className="player-card-controls">
               <button className={playback.loop ? 'active' : ''} disabled={playback.fadingOut} onClick={() => audioEngine.setInstanceLoop(playback.id, !playback.loop)} aria-label={playback.loop ? `Désactiver la boucle de ${track.title}` : `Jouer ${track.title} en boucle`} title="Boucle"><Repeat2 size={15} /></button>
@@ -1348,6 +1346,43 @@ function formatStopwatch(ms: number): string {
 function formatClock(timestamp: number): string {
   return clockFormatter.format(timestamp);
 }
+
+const PlaybackPositionControl = memo(function PlaybackPositionControl({ playback, title }: { playback: ActivePlayback; title: string }) {
+  const elapsedRef = useRef<HTMLSpanElement>(null);
+  const remainingRef = useRef<HTMLSpanElement>(null);
+  const seekRef = useRef<HTMLInputElement>(null);
+  const seekingRef = useRef(false);
+  const initialPositionMs = playbackPositionAt(playback);
+  const { durationMs, elapsedMs, id, loop, paused, resumedAtMs } = playback;
+
+  const displayPosition = useCallback((positionMs: number) => {
+    if (seekRef.current) seekRef.current.valueAsNumber = Math.round(positionMs);
+    if (elapsedRef.current) elapsedRef.current.textContent = formatPlaybackDuration(positionMs);
+    if (remainingRef.current) remainingRef.current.textContent = `−${formatPlaybackDuration(Math.max(0, durationMs - positionMs))}`;
+  }, [durationMs]);
+
+  useEffect(() => {
+    let frame: number | undefined;
+    const update = () => {
+      if (!seekingRef.current) displayPosition(playbackPositionAt({ durationMs, elapsedMs, loop, paused, resumedAtMs }));
+      if (!paused) frame = requestAnimationFrame(update);
+    };
+    update();
+    return () => { if (frame !== undefined) cancelAnimationFrame(frame); };
+  }, [displayPosition, durationMs, elapsedMs, id, loop, paused, resumedAtMs]);
+
+  return <div className="player-card-time">
+    <span ref={elapsedRef}>{formatPlaybackDuration(initialPositionMs)}</span>
+    <input ref={seekRef} className="player-card-seek" type="range" min="0" max={durationMs} step="10" defaultValue={Math.round(initialPositionMs)} disabled={playback.fadingOut}
+      onPointerDown={() => { seekingRef.current = true; }} onPointerUp={() => { seekingRef.current = false; }} onPointerCancel={() => { seekingRef.current = false; }} onBlur={() => { seekingRef.current = false; }}
+      onChange={(event) => {
+        const positionMs = Number(event.target.value);
+        displayPosition(positionMs);
+        audioEngine.seekInstance(playback.id, positionMs / durationMs);
+      }} aria-label={`Position de lecture de ${title}`} title="Cliquer ou glisser pour déplacer la lecture" />
+    <span ref={remainingRef}>−{formatPlaybackDuration(Math.max(0, durationMs - initialPositionMs))}</span>
+  </div>;
+});
 
 function PlaybackVolumeControl({ playback, title }: { playback: ActivePlayback; title: string }) {
   const [displayVolume, setDisplayVolume] = useState(() => playbackVolumeAt(playback));

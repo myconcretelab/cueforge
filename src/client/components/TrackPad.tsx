@@ -34,10 +34,10 @@ export function TrackPad({ track, color, active, playbacks, historyProgress, loa
       <span className="track-title">{track.title}</span>
     </button>
     {(historyProgress > 0 || playbacks.length > 0) && <span className={`track-progress ${playbacks.length > 0 ? 'is-playing' : ''}`} aria-hidden="true">
-      {historyProgress > 0 && <i className="history" style={{ transform: `scaleX(${historyProgress})` }} />}
-      {playbacks.map((playback) => <i className="active" key={playback.id} style={{
+      {playbacks.length === 0 && historyProgress > 0 && <i className="history" style={{ transform: `scaleX(${historyProgress})` }} />}
+      {playbacks.map((playback) => <i className="active" key={`${playback.id}:${playback.resumedAtMs}:${playback.elapsedMs}:${playback.paused}`} style={{
         '--progress-duration': `${playback.durationMs}ms`,
-        '--progress-delay': `-${playback.paused ? playback.elapsedMs : playback.elapsedMs + Math.max(0, performance.now() - playback.resumedAtMs)}ms`,
+        '--progress-delay': `-${playback.elapsedMs}ms`,
         '--progress-iterations': playback.loop ? 'infinite' : '1',
         animationPlayState: playback.paused ? 'paused' : 'running',
       } as React.CSSProperties} />)}

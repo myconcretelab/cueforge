@@ -18,6 +18,16 @@ export interface ActivePlayback {
   fadingOut: boolean;
 }
 
+type PlaybackPosition = Pick<ActivePlayback, 'durationMs' | 'elapsedMs' | 'loop' | 'paused' | 'resumedAtMs'>;
+
+export function playbackPositionAt(playback: PlaybackPosition, atMs = performance.now()): number {
+  const elapsedMs = playback.paused
+    ? playback.elapsedMs
+    : playback.elapsedMs + Math.max(0, atMs - playback.resumedAtMs);
+  if (playback.loop) return elapsedMs % playback.durationMs;
+  return Math.min(elapsedMs, playback.durationMs);
+}
+
 interface Playback extends ActivePlayback {
   source?: AudioBufferSourceNode;
   gain: GainNode;
