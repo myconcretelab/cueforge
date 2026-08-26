@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, CloudDownload, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, LogOut, Palette, Plus, RefreshCcw, Settings2, ShieldCheck, Smartphone, Trash2, Waves, X } from 'lucide-react';
+import { BookOpen, CloudDownload, CreditCard, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, LoaderCircle, LogOut, Palette, Plus, RefreshCcw, Settings2, ShieldCheck, Smartphone, Trash2, Waves, X } from 'lucide-react';
 import { api } from '../lib/api';
-import type { AccountSummary, KeyAction, Project, ProjectColor, User } from '../types';
+import type { AccountSummary, KeyAction, Project, ProjectColor, PublicPlan, User } from '../types';
 
 interface Props {
   user: User;
@@ -49,6 +49,10 @@ function formatBytes(bytes: number): string {
   return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)} ${unit}`;
 }
 
+function formatPrice(cents: number): string {
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100);
+}
+
 export function SettingsDialog({ user, projects, projectColors, selectedProjectId, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, onAutomaticUpdatesChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
   const [newColor, setNewColor] = useState('#f97316');
@@ -58,10 +62,20 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
   const [draggedColorId, setDraggedColorId] = useState<string>();
   const [dropColorId, setDropColorId] = useState<string>();
   const [account, setAccount] = useState<AccountSummary>();
+  const [publicPlans, setPublicPlans] = useState<PublicPlan[]>([]);
+  const [selectedPlanCode, setSelectedPlanCode] = useState('');
+  const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
+  const [billingBusy, setBillingBusy] = useState(false);
+  const [billingError, setBillingError] = useState('');
 
   useEffect(() => {
     api.account().then((result) => setAccount(result.account)).catch(() => setAccount(undefined));
+    api.publicPlans().then((result) => setPublicPlans(result.plans)).catch(() => setPublicPlans([]));
   }, []);
+
+  useEffect(() => {
+    if (account && !selectedPlanCode) setSelectedPlanCode(account.planCode);
+  }, [account, selectedPlanCode]);
 
   const storagePercent = account?.storageQuotaBytes
     ? Math.min(100, (account.storageUsedBytes / account.storageQuotaBytes) * 100)
@@ -93,6 +107,31 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
     onReorderProjectColors(reordered.map((item) => item.id)).catch(() => undefined);
     setDraggedColorId(undefined);
     setDropColorId(undefined);
+  }
+
+  async function startCheckout() {
+    if (!selectedPlanCode) return;
+    setBillingBusy(true);
+    setBillingError('');
+    try {
+      const result = await api.createCheckout({ planCode: selectedPlanCode, billingInterval, requestId: crypto.randomUUID() });
+      window.location.assign(result.url);
+    } catch (error) {
+      setBillingError(error instanceof Error ? error.message : 'Impossible d’ouvrir le paiement Stripe.');
+      setBillingBusy(false);
+    }
+  }
+
+  async function openBillingPortal() {
+    setBillingBusy(true);
+    setBillingError('');
+    try {
+      const result = await api.createBillingPortal();
+      window.location.assign(result.url);
+    } catch (error) {
+      setBillingError(error instanceof Error ? error.message : 'Impossible d’ouvrir le portail de facturation.');
+      setBillingBusy(false);
+    }
   }
 
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
@@ -153,6 +192,22 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
           <div><strong>{user.isDemo ? 'Démonstration temporaire' : account.planName}</strong><span>{user.isDemo ? '15 fichiers importés · 5 Mo maximum par fichier' : account.accessStatus === 'trialing' && trialDaysLeft !== null ? `${trialDaysLeft} jour${trialDaysLeft > 1 ? 's' : ''} restant${trialDaysLeft > 1 ? 's' : ''}` : account.accessStatus === 'active' ? 'Accès actif' : account.accessStatus === 'grace_period' ? 'Délai de grâce' : account.accessStatus === 'suspended' ? 'Accès suspendu' : 'Lecture seule'}</span></div>
           <div className="storage-summary"><span>{formatBytes(account.storageUsedBytes)} utilisés</span><strong>{account.storageQuotaBytes === null ? 'Stockage illimité' : `sur ${formatBytes(account.storageQuotaBytes)}`}</strong></div>
           {account.storageQuotaBytes !== null && <div className="storage-meter" role="progressbar" aria-label="Stockage utilisé" aria-valuemin={0} aria-valuemax={account.storageQuotaBytes} aria-valuenow={account.storageUsedBytes}><i style={{ width: `${storagePercent}%` }} /></div>}
+          {!user.isDemo && account.billing?.checkoutAvailable && account.billing.membershipRole === 'owner' && <div className="billing-controls">
+            {account.billing.customerPortalAvailable && account.billing.provider === 'stripe' && account.billing.status !== 'none'
+              ? <button className="button ghost wide" disabled={billingBusy} onClick={openBillingPortal}>{billingBusy ? <LoaderCircle className="spin" size={16} /> : <CreditCard size={16} />}Gérer l’abonnement et les factures</button>
+              : <>
+                <div className="billing-choice">
+                  <label><span>Forfait</span><select value={selectedPlanCode} onChange={(event) => setSelectedPlanCode(event.target.value)}>{publicPlans.map((plan) => <option value={plan.code} key={plan.code}>{plan.name}</option>)}</select></label>
+                  <label><span>Périodicité</span><select value={billingInterval} onChange={(event) => setBillingInterval(event.target.value as 'month' | 'year')}><option value="month">Mensuelle</option><option value="year">Annuelle</option></select></label>
+                </div>
+                {(() => {
+                  const plan = publicPlans.find((item) => item.code === selectedPlanCode);
+                  const cents = billingInterval === 'month' ? plan?.monthlyPriceCents : plan?.annualPriceCents;
+                  return <button className="button primary wide" disabled={billingBusy || cents === null || cents === undefined} onClick={startCheckout}>{billingBusy ? <LoaderCircle className="spin" size={16} /> : <CreditCard size={16} />}Continuer avec Stripe{cents !== null && cents !== undefined ? ` · ${formatPrice(cents)}${billingInterval === 'month' ? '/mois' : '/an'}` : ''}</button>;
+                })()}
+              </>}
+            {billingError && <p className="billing-error">{billingError}</p>}
+          </div>}
         </div>}
       </section>
       <section className="settings-section">

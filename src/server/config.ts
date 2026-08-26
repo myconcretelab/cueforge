@@ -39,6 +39,23 @@ const schema = z.object({
     z.string().min(1).optional(),
   ),
   SENDMAIL_PATH: z.string().trim().min(1).default('/usr/sbin/sendmail'),
+  STRIPE_MODE: z.enum(['test', 'live']).default('test'),
+  STRIPE_SECRET_KEY: z.preprocess(
+    (value) => value === '' ? undefined : value,
+    z.string().trim().min(1).optional(),
+  ),
+  STRIPE_WEBHOOK_SECRET: z.preprocess(
+    (value) => value === '' ? undefined : value,
+    z.string().trim().min(1).optional(),
+  ),
+  STRIPE_PORTAL_CONFIGURATION_ID: z.preprocess(
+    (value) => value === '' ? undefined : value,
+    z.string().trim().min(1).optional(),
+  ),
+  STRIPE_CHECKOUT_ENABLED: z.string().default('false').transform((value) => value === 'true'),
+  STRIPE_AUTOMATIC_TAX: z.string().default('false').transform((value) => value === 'true'),
+  BILLING_GRACE_PERIOD_DAYS: z.coerce.number().int().min(0).max(90).default(7),
+  BILLING_RECONCILIATION_INTERVAL_MINUTES: z.coerce.number().int().min(0).max(10_080).default(360),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 }).superRefine((value, context) => {
   if (Boolean(value.SMTP_USER) !== Boolean(value.SMTP_PASSWORD)) {
@@ -46,6 +63,30 @@ const schema = z.object({
       code: 'custom',
       path: ['SMTP_USER'],
       message: 'SMTP_USER et SMTP_PASSWORD doivent être définis ensemble.',
+    });
+  }
+  if (value.STRIPE_SECRET_KEY) {
+    const expectedPrefix = value.STRIPE_MODE === 'test' ? /^(sk|rk)_test_/ : /^(sk|rk)_live_/;
+    if (!expectedPrefix.test(value.STRIPE_SECRET_KEY)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['STRIPE_SECRET_KEY'],
+        message: `STRIPE_SECRET_KEY ne correspond pas au mode Stripe ${value.STRIPE_MODE}.`,
+      });
+    }
+  }
+  if (value.STRIPE_WEBHOOK_SECRET && !value.STRIPE_WEBHOOK_SECRET.startsWith('whsec_')) {
+    context.addIssue({
+      code: 'custom',
+      path: ['STRIPE_WEBHOOK_SECRET'],
+      message: 'STRIPE_WEBHOOK_SECRET doit commencer par whsec_.',
+    });
+  }
+  if (value.STRIPE_CHECKOUT_ENABLED && (!value.STRIPE_SECRET_KEY || !value.STRIPE_WEBHOOK_SECRET)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['STRIPE_CHECKOUT_ENABLED'],
+      message: 'Le Checkout Stripe requiert STRIPE_SECRET_KEY et STRIPE_WEBHOOK_SECRET.',
     });
   }
 });

@@ -64,6 +64,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         name: `Espace de ${created.displayName}`,
         planCode: defaultPlan.code,
         accessStatus: 'trialing',
+        trialStartedAt: new Date(),
         trialEndsAt,
       }).returning();
       await tx.insert(accountMemberships).values({ accountId: account.id, userId: created.id, role: 'owner' });

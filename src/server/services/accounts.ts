@@ -58,6 +58,7 @@ export async function requireWritableAccount(userId: string): Promise<AccountCon
   const allowance = evaluateStorageAllowance({
     accessStatus: context.account.accessStatus,
     trialEndsAt: context.account.trialEndsAt,
+    gracePeriodEndsAt: context.account.gracePeriodEndsAt,
     storageQuotaBytes: context.storageQuotaBytes,
     usedBytes: 0,
     incomingBytes: 0,
@@ -90,6 +91,7 @@ export async function insertTrackWithinQuota(userId: string, values: typeof trac
     const allowance = evaluateStorageAllowance({
       accessStatus: membership.account.accessStatus,
       trialEndsAt: membership.account.trialEndsAt,
+      gracePeriodEndsAt: membership.account.gracePeriodEndsAt,
       storageQuotaBytes: membership.account.storageQuotaOverrideBytes ?? membership.plan.storageQuotaBytes,
       usedBytes: Number(usage?.usedBytes ?? 0),
       incomingBytes: values.sizeBytes,

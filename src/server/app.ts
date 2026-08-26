@@ -7,6 +7,7 @@ import helmet from '@fastify/helmet';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
+import fastifyRawBody from 'fastify-raw-body';
 import { ZodError } from 'zod';
 import { config } from './config.js';
 import { authRoutes } from './routes/auth.js';
@@ -18,9 +19,11 @@ import { accountRoutes } from './routes/account.js';
 import { adminRoutes } from './routes/admin.js';
 import { releaseRoutes } from './routes/releases.js';
 import { publicPlanRoutes } from './routes/public-plans.js';
+import { billingRoutes } from './routes/billing.js';
 import { CURRENT_VERSION } from './releases.js';
 import { AccountStorageError, DemoUploadError, requireWritableAccount } from './services/accounts.js';
 import { requireUser } from './services/auth.js';
+import { BillingError } from './services/billing.js';
 
 export async function buildApp() {
   const app = Fastify({ logger: true, trustProxy: true });
@@ -31,6 +34,7 @@ export async function buildApp() {
   });
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(rateLimit, { max: 300, timeWindow: '1 minute' });
+  await app.register(fastifyRawBody, { global: false, encoding: false, runFirst: true });
   await app.register(multipart, {
     limits: { fileSize: 250 * 1024 * 1024, files: 1, fields: 20 },
   });
@@ -47,6 +51,9 @@ export async function buildApp() {
     }
     if (error instanceof DemoUploadError) {
       return reply.code(413).send({ error: error.message, reason: error.reason });
+    }
+    if (error instanceof BillingError) {
+      return reply.code(error.statusCode).send({ error: error.message, reason: error.code });
     }
     app.log.error(error);
     return reply.code(500).send({ error: 'Une erreur interne est survenue.' });
@@ -66,6 +73,7 @@ export async function buildApp() {
   await app.register(adminRoutes);
   await app.register(releaseRoutes);
   await app.register(publicPlanRoutes);
+  await app.register(billingRoutes);
   await app.register(projectRoutes);
   await app.register(trackRoutes);
   await app.register(importRoutes);

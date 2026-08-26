@@ -1,12 +1,13 @@
 import type { FastifyInstance } from 'fastify';
 import { accountUsage } from '../services/accounts.js';
 import { requireUser } from '../services/auth.js';
+import { billingSummaryForUser } from '../services/billing.js';
 
 export async function accountRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/account', async (request, reply) => {
     const user = await requireUser(request, reply);
     if (!user) return;
-    const result = await accountUsage(user.id);
+    const [result, billing] = await Promise.all([accountUsage(user.id), billingSummaryForUser(user.id)]);
     if (!result) return reply.code(404).send({ error: 'Espace de travail introuvable.' });
     const { account, plan, storageQuotaBytes, usedBytes } = result;
     return {
@@ -19,6 +20,8 @@ export async function accountRoutes(app: FastifyInstance): Promise<void> {
         storageQuotaBytes,
         storageUsedBytes: usedBytes,
         trialEndsAt: account.trialEndsAt,
+        gracePeriodEndsAt: account.gracePeriodEndsAt,
+        billing,
       },
     };
   });

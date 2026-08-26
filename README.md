@@ -98,11 +98,42 @@ PUBLIC_URL=https://<votre-domaine>
 LEGACY_PUBLIC_URLS=
 FREESOUND_API_KEY=<clé-api-freesound>
 SUPER_ADMIN_EMAILS=<adresse-du-super-administrateur>
+STRIPE_MODE=test
+STRIPE_SECRET_KEY=<clé-restreinte-ou-secrète-test>
+STRIPE_WEBHOOK_SECRET=<secret-whsec-du-webhook-test>
+STRIPE_PORTAL_CONFIGURATION_ID=
+STRIPE_CHECKOUT_ENABLED=false
+STRIPE_AUTOMATIC_TAX=false
+BILLING_GRACE_PERIOD_DAYS=7
+BILLING_RECONCILIATION_INTERVAL_MINUTES=360
 ```
 
 `SUPER_ADMIN_EMAILS` accepte plusieurs adresses séparées par des virgules. Lors de l’inscription, une adresse présente dans cette liste reçoit le rôle `super_admin`. Les autres utilisateurs reçoivent le rôle `user`. Le forfait `Solo`, créé par la migration du module commercial, fournit 5 Go et 14 jours d’essai ; ses valeurs et les autres forfaits se modifient dans `/admin`.
 
 `LEGACY_PUBLIC_URLS` accepte, au besoin, plusieurs anciennes origines séparées par des virgules. Elles restent autorisées temporairement pour les installations PWA et les télécommandes pendant un changement de domaine.
+
+## Stripe Billing
+
+L’intégration utilise un catalogue distinct par `STRIPE_MODE`. En phase de test, la clé doit commencer par `sk_test_` ou `rk_test_`. Une clé live est refusée tant que le mode vaut `test`.
+
+Le webhook Stripe pointe vers :
+
+```text
+https://app.cueforge.fr/api/billing/webhook
+```
+
+Événements configurés :
+
+- `checkout.session.completed` ;
+- `customer.subscription.created` ;
+- `customer.subscription.updated` ;
+- `customer.subscription.deleted` ;
+- `customer.subscription.trial_will_end` ;
+- `invoice.paid` ;
+- `invoice.payment_failed` ;
+- `invoice.payment_action_required`.
+
+Après définition de la clé et du secret de webhook, chaque forfait est enregistré puis synchronisé depuis **Administration → Forfaits → Synchroniser les tarifs Stripe**. `STRIPE_CHECKOUT_ENABLED=true` rend ensuite les commandes de souscription visibles aux propriétaires d’espace.
 
 5. Depuis SSH, préparer l’application :
 

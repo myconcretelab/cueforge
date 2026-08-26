@@ -1,0 +1,1 @@
+ALTER TABLE "accounts" ADD COLUMN "grace_period_ends_at" timestamp with time zone;

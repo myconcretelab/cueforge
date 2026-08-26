@@ -50,7 +50,9 @@ export const accounts = pgTable('accounts', {
   accessStatus: text('access_status').notNull().default('trialing'),
   isDemo: boolean('is_demo').notNull().default(false),
   storageQuotaOverrideBytes: bigint('storage_quota_override_bytes', { mode: 'number' }),
+  trialStartedAt: timestamp('trial_started_at', { withTimezone: true }),
   trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
+  gracePeriodEndsAt: timestamp('grace_period_ends_at', { withTimezone: true }),
   suspendedAt: timestamp('suspended_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -62,16 +64,53 @@ export const subscriptions = pgTable('subscriptions', {
   provider: text('provider').notNull().default('manual'),
   providerCustomerId: text('provider_customer_id'),
   providerSubscriptionId: text('provider_subscription_id'),
+  providerPriceId: text('provider_price_id'),
   status: text('status').notNull().default('none'),
   billingInterval: text('billing_interval'),
   currentPeriodStartsAt: timestamp('current_period_starts_at', { withTimezone: true }),
   currentPeriodEndsAt: timestamp('current_period_ends_at', { withTimezone: true }),
   cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
+  lastProviderEventCreatedAt: timestamp('last_provider_event_created_at', { withTimezone: true }),
+  lastProviderEventId: text('last_provider_event_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   uniqueIndex('subscriptions_account_id_idx').on(table.accountId),
   uniqueIndex('subscriptions_provider_subscription_id_idx').on(table.provider, table.providerSubscriptionId),
+]);
+
+export const billingPriceMappings = pgTable('billing_price_mappings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  planCode: text('plan_code').notNull().references(() => plans.code, { onDelete: 'cascade' }),
+  provider: text('provider').notNull().default('stripe'),
+  environment: text('environment').notNull(),
+  billingInterval: text('billing_interval').notNull(),
+  providerProductId: text('provider_product_id').notNull(),
+  providerPriceId: text('provider_price_id').notNull(),
+  currency: text('currency').notNull().default('eur'),
+  unitAmountCents: integer('unit_amount_cents').notNull(),
+  activeForSales: boolean('active_for_sales').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('billing_price_mappings_provider_price_idx').on(table.provider, table.providerPriceId),
+  index('billing_price_mappings_plan_interval_idx').on(table.planCode, table.environment, table.billingInterval, table.activeForSales),
+]);
+
+export const billingEvents = pgTable('billing_events', {
+  providerEventId: text('provider_event_id').primaryKey(),
+  provider: text('provider').notNull().default('stripe'),
+  type: text('type').notNull(),
+  livemode: boolean('livemode').notNull(),
+  status: text('status').notNull().default('received'),
+  attempts: integer('attempts').notNull().default(1),
+  lastError: text('last_error'),
+  providerCreatedAt: timestamp('provider_created_at', { withTimezone: true }).notNull(),
+  receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+  processedAt: timestamp('processed_at', { withTimezone: true }),
+}, (table) => [
+  index('billing_events_status_idx').on(table.status),
+  index('billing_events_received_at_idx').on(table.receivedAt),
 ]);
 
 export const accountMemberships = pgTable('account_memberships', {
@@ -202,6 +241,7 @@ export type User = typeof users.$inferSelect;
 export type Plan = typeof plans.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type Subscription = typeof subscriptions.$inferSelect;
+export type BillingPriceMapping = typeof billingPriceMappings.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type ProjectColor = typeof projectColors.$inferSelect;
 export type Playlist = typeof playlists.$inferSelect;

@@ -11,6 +11,35 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.12.0',
+    date: '2026-08-26',
+    title: 'Abonnement Stripe',
+    summary: 'Les propriétaires d’un espace peuvent souscrire et gérer leur abonnement depuis les paramètres.',
+    important: false,
+    changes: [
+      'Le forfait et la périodicité mensuelle ou annuelle se sélectionnent dans la rubrique Offre et stockage.',
+      'Le paiement et la saisie du moyen de paiement utilisent la page Checkout hébergée par Stripe.',
+      'Le portail de facturation donne accès aux factures, au moyen de paiement et à la résiliation.',
+      'Le forfait, le quota et l’accès sont actualisés après confirmation du changement par Stripe.',
+    ],
+  },
+  {
+    audience: 'admin',
+    version: '0.12.0',
+    date: '2026-08-26',
+    title: 'Intégration Stripe Billing',
+    summary: 'Le catalogue, les abonnements et les droits CueForge sont reliés à Stripe Billing.',
+    important: true,
+    changes: [
+      'Chaque forfait peut créer un produit et ses tarifs mensuel et annuel dans l’environnement Stripe configuré.',
+      'Les montants modifiés créent de nouveaux tarifs sans altérer les abonnements historiques.',
+      'Les webhooks signés synchronisent les abonnements, périodes, quotas et états d’accès de manière idempotente.',
+      'Les suspensions administratives restent prioritaires sur les événements de facturation.',
+      'Un rapprochement périodique et une commande manuelle corrigent les écarts avec Stripe.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.11.0',
     date: '2026-08-26',
     title: 'Mises à jour automatiques',

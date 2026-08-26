@@ -1,4 +1,4 @@
-import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ReleaseInfo, SoundShowAnalysis, Track, User } from '../types';
+import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, PublicPlan, ReleaseInfo, SoundShowAnalysis, Track, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -38,6 +38,10 @@ export const api = {
   releases: () => request<ReleaseInfo>('/api/releases'),
   markReleaseSeen: (version: string) => request<void>(`/api/releases/${encodeURIComponent(version)}/seen`, { method: 'POST' }),
   account: () => request<{ account: AccountSummary }>('/api/account'),
+  publicPlans: () => request<{ currency: string; signupUrl: string; plans: PublicPlan[] }>('/api/public/plans'),
+  createCheckout: (input: { planCode: string; billingInterval: 'month' | 'year'; requestId: string }) =>
+    request<{ url: string }>('/api/billing/checkout', { method: 'POST', body: JSON.stringify(input) }),
+  createBillingPortal: () => request<{ url: string }>('/api/billing/portal', { method: 'POST' }),
   adminOverview: () => request<{ overview: AdminOverview; recentAudit: AuditEntry[] }>('/api/admin/overview'),
   adminReleases: () => request<AdminReleaseInfo>('/api/admin/releases'),
   adminAccounts: (search = '') => request<{ accounts: AdminAccount[] }>(`/api/admin/accounts?search=${encodeURIComponent(search)}`),
@@ -49,6 +53,8 @@ export const api = {
   createAdminPlan: (input: Omit<CommercialPlan, 'accountCount' | 'createdAt' | 'updatedAt'>) => request<{ plan: CommercialPlan }>('/api/admin/plans', { method: 'POST', body: JSON.stringify(input) }),
   updateAdminPlan: (code: string, input: Partial<Omit<CommercialPlan, 'code' | 'accountCount' | 'createdAt' | 'updatedAt'>>) => request<{ plan: CommercialPlan }>(`/api/admin/plans/${encodeURIComponent(code)}`, { method: 'PATCH', body: JSON.stringify(input) }),
   deleteAdminPlan: (code: string) => request<void>(`/api/admin/plans/${encodeURIComponent(code)}`, { method: 'DELETE' }),
+  syncAdminPlanStripe: (code: string) => request<{ billing: { environment: 'test' | 'live'; productId: string; monthlyPriceId: string | null; annualPriceId: string | null } }>(`/api/admin/plans/${encodeURIComponent(code)}/stripe-sync`, { method: 'POST' }),
+  reconcileAdminAccountStripe: (id: string) => request<void>(`/api/admin/accounts/${id}/stripe-reconcile`, { method: 'POST' }),
   projects: () => request<{ projects: Project[] }>('/api/projects'),
   createProject: (name: string) => request<{ project: Project }>('/api/projects', {
     method: 'POST', body: JSON.stringify({ name }),

@@ -54,6 +54,29 @@ export interface AccountSummary {
   storageQuotaBytes: number | null;
   storageUsedBytes: number;
   trialEndsAt: string | null;
+  gracePeriodEndsAt: string | null;
+  billing: {
+    membershipRole: string;
+    provider: string;
+    status: string;
+    billingInterval: string | null;
+    currentPeriodEndsAt: string | null;
+    cancelAtPeriodEnd: boolean;
+    checkoutAvailable: boolean;
+    customerPortalAvailable: boolean;
+  } | null;
+}
+
+export interface PublicPlan {
+  code: string;
+  name: string;
+  description: string;
+  storageQuotaBytes: number;
+  monthlyPriceCents: number | null;
+  annualPriceCents: number | null;
+  trialDays: number;
+  featured: boolean;
+  displayOrder: number;
 }
 
 export interface CommercialPlan {

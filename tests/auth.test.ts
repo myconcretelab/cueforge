@@ -64,28 +64,29 @@ describe('storage allowance', () => {
   const now = new Date('2030-01-01T00:00:00Z');
 
   it('autorise un abonnement actif sans quota', () => {
-    expect(evaluateStorageAllowance({ accessStatus: 'active', trialEndsAt: null, storageQuotaBytes: null, usedBytes: 10_000, incomingBytes: 5_000, now })).toEqual({ allowed: true });
+    expect(evaluateStorageAllowance({ accessStatus: 'active', trialEndsAt: null, gracePeriodEndsAt: null, storageQuotaBytes: null, usedBytes: 10_000, incomingBytes: 5_000, now })).toEqual({ allowed: true });
   });
 
   it('autorise un essai en cours dans la limite de stockage', () => {
-    expect(evaluateStorageAllowance({ accessStatus: 'trialing', trialEndsAt: future, storageQuotaBytes: 20_000, usedBytes: 10_000, incomingBytes: 5_000, now })).toEqual({ allowed: true });
+    expect(evaluateStorageAllowance({ accessStatus: 'trialing', trialEndsAt: future, gracePeriodEndsAt: null, storageQuotaBytes: 20_000, usedBytes: 10_000, incomingBytes: 5_000, now })).toEqual({ allowed: true });
   });
 
   it('refuse un essai expiré', () => {
-    expect(evaluateStorageAllowance({ accessStatus: 'trialing', trialEndsAt: now, storageQuotaBytes: 20_000, usedBytes: 0, incomingBytes: 1, now })).toEqual({ allowed: false, reason: 'read-only' });
+    expect(evaluateStorageAllowance({ accessStatus: 'trialing', trialEndsAt: now, gracePeriodEndsAt: null, storageQuotaBytes: 20_000, usedBytes: 0, incomingBytes: 1, now })).toEqual({ allowed: false, reason: 'read-only' });
   });
 
   it('refuse un fichier qui dépasserait le quota', () => {
-    expect(evaluateStorageAllowance({ accessStatus: 'active', trialEndsAt: null, storageQuotaBytes: 20_000, usedBytes: 18_000, incomingBytes: 2_001, now })).toEqual({ allowed: false, reason: 'quota-exceeded' });
+    expect(evaluateStorageAllowance({ accessStatus: 'active', trialEndsAt: null, gracePeriodEndsAt: null, storageQuotaBytes: 20_000, usedBytes: 18_000, incomingBytes: 2_001, now })).toEqual({ allowed: false, reason: 'quota-exceeded' });
   });
 
   it('autorise les écritures pendant le délai de grâce', () => {
-    expect(evaluateStorageAllowance({ accessStatus: 'grace_period', trialEndsAt: null, storageQuotaBytes: 20_000, usedBytes: 5_000, incomingBytes: 1_000, now })).toEqual({ allowed: true });
+    expect(evaluateStorageAllowance({ accessStatus: 'grace_period', trialEndsAt: null, gracePeriodEndsAt: future, storageQuotaBytes: 20_000, usedBytes: 5_000, incomingBytes: 1_000, now })).toEqual({ allowed: true });
+    expect(evaluateStorageAllowance({ accessStatus: 'grace_period', trialEndsAt: null, gracePeriodEndsAt: now, storageQuotaBytes: 20_000, usedBytes: 5_000, incomingBytes: 1_000, now })).toEqual({ allowed: false, reason: 'read-only' });
   });
 
   it('refuse les écritures pour un compte suspendu ou en lecture seule', () => {
-    expect(evaluateStorageAllowance({ accessStatus: 'read_only', trialEndsAt: null, storageQuotaBytes: 20_000, usedBytes: 0, incomingBytes: 0, now })).toEqual({ allowed: false, reason: 'read-only' });
-    expect(evaluateStorageAllowance({ accessStatus: 'suspended', trialEndsAt: null, storageQuotaBytes: 20_000, usedBytes: 0, incomingBytes: 0, now })).toEqual({ allowed: false, reason: 'read-only' });
+    expect(evaluateStorageAllowance({ accessStatus: 'read_only', trialEndsAt: null, gracePeriodEndsAt: null, storageQuotaBytes: 20_000, usedBytes: 0, incomingBytes: 0, now })).toEqual({ allowed: false, reason: 'read-only' });
+    expect(evaluateStorageAllowance({ accessStatus: 'suspended', trialEndsAt: null, gracePeriodEndsAt: null, storageQuotaBytes: 20_000, usedBytes: 0, incomingBytes: 0, now })).toEqual({ allowed: false, reason: 'read-only' });
   });
 });
 

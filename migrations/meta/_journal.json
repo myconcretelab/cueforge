@@ -134,6 +134,20 @@
       "when": 1787673912904,
       "tag": "0018_slow_dark_phoenix",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1787728430815,
+      "tag": "0019_rich_human_robot",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1787728556315,
+      "tag": "0020_dashing_xavin",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,31 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.12.0] - 2026-08-26
+
+### Ajouté
+
+- intégration de Stripe Billing avec le SDK Node officiel et Checkout hébergé ;
+- souscription mensuelle ou annuelle depuis les paramètres de l’application ;
+- portail Stripe pour les factures, les moyens de paiement et la résiliation ;
+- synchronisation signée et idempotente des événements Checkout, abonnements et factures ;
+- catalogue Stripe distinct pour les environnements de test et de production ;
+- création de nouveaux tarifs Stripe lors d’un changement de montant ;
+- rapprochement périodique et commande manuelle par compte ;
+- délai de grâce configurable après un paiement en échec ;
+- journal technique des événements Stripe et journal d’audit des changements de droits.
+
+### Sécurité
+
+- sélection des tarifs exclusivement côté serveur ;
+- attribution des droits exclusivement après traitement d’un webhook vérifié ;
+- refus d’une clé Stripe dont le mode ne correspond pas à `STRIPE_MODE` ;
+- conservation des clés et secrets de webhook hors du dépôt.
+
+### Modifié
+
+- passage de l’application à la version `0.12.0`.
+
 ## [0.11.0] - 2026-08-26
 
 ### Ajouté

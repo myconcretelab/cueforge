@@ -6,6 +6,7 @@ import { accountMemberships, accounts, auditLogs, plans, projects, subscriptions
 import { requirePlatformAdmin, requireSuperAdmin, writeAuditLog } from '../services/admin.js';
 import { planDeletionError, planPublicationError } from '../services/commercial-plans.js';
 import { ADMIN_RELEASES, CURRENT_VERSION } from '../releases.js';
+import { config } from '../config.js';
 
 const accountStatuses = ['trialing', 'active', 'grace_period', 'read_only', 'suspended'] as const;
 const platformRoles = ['user', 'support', 'admin', 'super_admin'] as const;
@@ -180,6 +181,9 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const [account] = await db.update(accounts).set({
       ...input,
       suspendedAt: input.accessStatus === 'suspended' ? new Date() : input.accessStatus ? null : undefined,
+      gracePeriodEndsAt: input.accessStatus === 'grace_period'
+        ? new Date(Date.now() + config.BILLING_GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000)
+        : input.accessStatus ? null : undefined,
       updatedAt: new Date(),
     }).where(and(eq(accounts.id, id), eq(accounts.isDemo, false))).returning();
     if (!account) return reply.code(404).send({ error: 'Compte introuvable.' });
