@@ -2,6 +2,21 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.13.0] - 2026-08-27
+
+### Ajouté
+
+- sélection du forfait et de la périodicité dans le formulaire de création de compte ;
+- ouverture immédiate de Stripe Checkout après l’inscription ;
+- enregistrement obligatoire du moyen de paiement avant l’ouverture de l’accès d’essai ;
+- reprise de la souscription depuis les paramètres après l’annulation d’un Checkout.
+
+### Modifié
+
+- démarrage de l’essai lors de la création de l’abonnement Stripe ;
+- première échéance à la fin de la durée d’essai configurée pour le forfait ;
+- passage de l’application à la version `0.13.0`.
+
 ## [0.12.0] - 2026-08-26
 
 ### Ajouté

@@ -58,19 +58,19 @@ export function stripeAccessStatus(status: Stripe.Subscription.Status, administr
   return 'read_only';
 }
 
-export function checkoutTrialEnd(input: {
+export function checkoutTrialSettings(input: {
   storedTrialEndsAt: Date | null;
   trialStartedAt: Date | null;
   planTrialDays: number;
   now?: Date;
-}): number | null {
+}): { trial_end?: number; trial_period_days?: number } {
   const nowSeconds = Math.floor((input.now ?? new Date()).getTime() / 1000);
   const storedTrialEnd = input.storedTrialEndsAt ? Math.floor(input.storedTrialEndsAt.getTime() / 1000) : null;
-  if (storedTrialEnd && storedTrialEnd >= nowSeconds + 48 * 60 * 60) return storedTrialEnd;
+  if (storedTrialEnd && storedTrialEnd >= nowSeconds + 48 * 60 * 60) return { trial_end: storedTrialEnd };
   if (input.trialStartedAt === null && input.planTrialDays > 0) {
-    return nowSeconds + input.planTrialDays * 24 * 60 * 60;
+    return { trial_period_days: input.planTrialDays };
   }
-  return null;
+  return {};
 }
 
 function idOf(value: string | { id: string } | null): string | null {
@@ -152,6 +152,24 @@ async function activePriceMapping(planCode: string, billingInterval: BillingInte
   return mapping ?? null;
 }
 
+export async function requireCheckoutPlan(planCode: string, billingInterval: BillingInterval) {
+  if (!billingCheckoutAvailable()) {
+    throw new BillingError('Le paiement en ligne n’est pas encore activé.', 503, 'checkout_disabled');
+  }
+  const [plan] = await db.select().from(plans).where(and(
+    eq(plans.code, planCode),
+    eq(plans.active, true),
+    eq(plans.visibleOnWebsite, true),
+  )).limit(1);
+  if (!plan) throw new BillingError('Ce forfait n’est pas disponible.', 404, 'plan_not_available');
+
+  const priceMapping = await activePriceMapping(plan.code, billingInterval);
+  if (!priceMapping) {
+    throw new BillingError('Ce tarif n’est pas encore synchronisé avec Stripe.', 503, 'stripe_price_missing');
+  }
+  return { plan, priceMapping };
+}
+
 async function ensureStripeCustomer(context: Awaited<ReturnType<typeof requireOwnerBillingContext>>): Promise<string> {
   if (context.subscription?.providerCustomerId) return context.subscription.providerCustomerId;
   const stripe = getStripe();
@@ -181,28 +199,15 @@ export async function createCheckoutSession(input: {
   billingInterval: BillingInterval;
   requestId: string;
 }): Promise<string> {
-  if (!billingCheckoutAvailable()) {
-    throw new BillingError('Le paiement en ligne n’est pas encore activé.', 503, 'checkout_disabled');
-  }
   const context = await requireOwnerBillingContext(input.userId);
-  const [selectedPlan] = await db.select().from(plans).where(and(
-    eq(plans.code, input.planCode),
-    eq(plans.active, true),
-    eq(plans.visibleOnWebsite, true),
-  )).limit(1);
-  if (!selectedPlan) throw new BillingError('Ce forfait n’est pas disponible.', 404, 'plan_not_available');
+  const { plan: selectedPlan, priceMapping } = await requireCheckoutPlan(input.planCode, input.billingInterval);
 
   if (context.subscription?.providerSubscriptionId && ['trialing', 'active', 'past_due', 'unpaid'].includes(context.subscription.status)) {
     throw new BillingError('Cet espace possède déjà un abonnement Stripe. Utilisez le portail de facturation.', 409, 'subscription_exists');
   }
 
-  const mapping = await activePriceMapping(selectedPlan.code, input.billingInterval);
-  if (!mapping) {
-    throw new BillingError('Ce tarif n’est pas encore synchronisé avec Stripe.', 503, 'stripe_price_missing');
-  }
-
   const customerId = await ensureStripeCustomer(context);
-  const trialEnd = checkoutTrialEnd({
+  const trialSettings = checkoutTrialSettings({
     storedTrialEndsAt: context.account.trialEndsAt,
     trialStartedAt: context.account.trialStartedAt,
     planTrialDays: selectedPlan.trialDays,
@@ -213,7 +218,7 @@ export async function createCheckoutSession(input: {
     mode: 'subscription',
     customer: customerId,
     client_reference_id: context.account.id,
-    line_items: [{ price: mapping.providerPriceId, quantity: 1 }],
+    line_items: [{ price: priceMapping.providerPriceId, quantity: 1 }],
     payment_method_collection: 'always',
     allow_promotion_codes: true,
     billing_address_collection: 'auto',
@@ -228,7 +233,7 @@ export async function createCheckoutSession(input: {
       cueforge_environment: config.STRIPE_MODE,
     },
     subscription_data: {
-      ...(trialEnd ? { trial_end: trialEnd } : {}),
+      ...trialSettings,
       metadata: {
         cueforge_account_id: context.account.id,
         cueforge_plan_code: selectedPlan.code,

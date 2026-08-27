@@ -27,6 +27,26 @@ describe('client API', () => {
     }));
   });
 
+  it('transmet le forfait et la périodicité lors de la création du compte', async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ user: {}, checkoutUrl: 'https://checkout.stripe.com/test' }), { status: 201, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetcher);
+    const input = {
+      displayName: 'Camille',
+      email: 'camille@example.com',
+      password: 'mot-de-passe',
+      planCode: 'solo',
+      billingInterval: 'month' as const,
+      requestId: '11111111-1111-4111-8111-111111111111',
+    };
+
+    await api.register(input);
+
+    expect(fetcher).toHaveBeenCalledWith('/api/auth/register', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify(input),
+    }));
+  });
+
   it('récupère et acquitte les notes de version', async () => {
     const fetcher = vi.fn(async (_url: string, init?: RequestInit) => init?.method === 'POST'
       ? new Response(null, { status: 204 })

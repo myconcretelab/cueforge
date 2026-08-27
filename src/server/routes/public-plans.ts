@@ -23,7 +23,7 @@ export async function publicPlanRoutes(app: FastifyInstance): Promise<void> {
     reply.header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600');
     return {
       currency: 'EUR',
-      signupUrl: new URL('/demo', config.PUBLIC_URL).toString(),
+      signupUrl: new URL('/?register=1', config.PUBLIC_URL).toString(),
       plans: rows,
     };
   });

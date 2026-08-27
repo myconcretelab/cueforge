@@ -11,6 +11,20 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.13.0',
+    date: '2026-08-27',
+    title: 'Inscription avec moyen de paiement',
+    summary: 'La création du compte enregistre le forfait et le moyen de paiement sur Stripe avant le début de l’essai.',
+    important: true,
+    changes: [
+      'Le forfait et la périodicité se choisissent directement dans le formulaire d’inscription.',
+      'La validation du compte ouvre immédiatement la page Checkout hébergée par Stripe.',
+      'L’essai commence après la validation de Checkout et ne déclenche aucun paiement immédiat.',
+      'La première échéance Stripe intervient à la fin de la durée d’essai configurée pour le forfait.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.12.0',
     date: '2026-08-26',
     title: 'Abonnement Stripe',

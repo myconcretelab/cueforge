@@ -2,10 +2,11 @@ import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db/index.js';
-import { accountMemberships, accounts, plans, projects, subscriptions, users } from '../db/schema.js';
+import { accountMemberships, accounts, projects, subscriptions, users } from '../db/schema.js';
 import { config } from '../config.js';
 import { CURRENT_VERSION } from '../releases.js';
 import { endSession, hashPassword, publicUser, requireUser, startSession, verifyPassword } from '../services/auth.js';
+import { createCheckoutSession, requireCheckoutPlan } from '../services/billing.js';
 import { createDemoWorkspace, removeDemoUsers } from '../services/demo.js';
 import { sendPasswordResetEmail } from '../services/mail.js';
 import { issuePasswordResetToken, resetPassword, revokePasswordResetToken } from '../services/password-reset.js';
@@ -17,6 +18,9 @@ const credentialsSchema = z.object({
 
 const registerSchema = credentialsSchema.extend({
   displayName: z.string().trim().min(2).max(80),
+  planCode: z.string().trim().toLowerCase().regex(/^[a-z0-9][a-z0-9_-]{1,39}$/),
+  billingInterval: z.enum(['month', 'year']),
+  requestId: z.string().uuid(),
 });
 
 const forgotPasswordSchema = z.object({
@@ -48,6 +52,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
   app.post('/api/auth/register', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const input = registerSchema.parse(request.body);
+    const { plan: selectedPlan } = await requireCheckoutPlan(input.planCode, input.billingInterval);
     const passwordHash = await hashPassword(input.password);
     const user = await db.transaction(async (tx) => {
       const [created] = await tx.insert(users).values({
@@ -57,23 +62,34 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         platformRole: config.SUPER_ADMIN_EMAILS.includes(input.email) ? 'super_admin' : 'user',
         lastSeenRelease: CURRENT_VERSION,
       }).returning();
-      const [defaultPlan] = await tx.select().from(plans).where(eq(plans.isDefault, true)).limit(1);
-      if (!defaultPlan) throw new Error('Aucun forfait par défaut n’est configuré.');
-      const trialEndsAt = new Date(Date.now() + defaultPlan.trialDays * 24 * 60 * 60 * 1000);
       const [account] = await tx.insert(accounts).values({
         name: `Espace de ${created.displayName}`,
-        planCode: defaultPlan.code,
-        accessStatus: 'trialing',
-        trialStartedAt: new Date(),
-        trialEndsAt,
+        planCode: selectedPlan.code,
+        accessStatus: 'read_only',
       }).returning();
       await tx.insert(accountMemberships).values({ accountId: account.id, userId: created.id, role: 'owner' });
       await tx.insert(subscriptions).values({ accountId: account.id });
       await tx.insert(projects).values({ accountId: account.id, name: 'Mon premier spectacle' });
       return created;
     });
+    let checkoutUrl: string;
+    try {
+      checkoutUrl = await createCheckoutSession({
+        userId: user.id,
+        planCode: selectedPlan.code,
+        billingInterval: input.billingInterval,
+        requestId: input.requestId,
+      });
+    } catch (error) {
+      request.log.error({ err: error, userId: user.id }, 'Échec de la création du Checkout après inscription');
+      return reply.code(201).send({
+        user: publicUser(user),
+        checkoutUrl: null,
+        checkoutError: 'Votre compte a été créé, mais la page de paiement Stripe n’a pas pu être ouverte. Connectez-vous pour reprendre la souscription.',
+      });
+    }
     await startSession(user.id, reply);
-    return reply.code(201).send({ user: publicUser(user) });
+    return reply.code(201).send({ user: publicUser(user), checkoutUrl });
   });
 
   app.post('/api/auth/login', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {

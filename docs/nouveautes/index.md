@@ -2,6 +2,22 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.13.0 — 27 août 2026
+
+- sélection du forfait mensuel ou annuel lors de la création du compte ;
+- enregistrement du moyen de paiement sur Stripe avant le début de l’essai ;
+- première échéance à la fin de la durée d’essai du forfait.
+
+[Détails de la version 0.13.0](./0.13.0.md)
+
+## Version 0.12.0 — 26 août 2026
+
+- ajout de la souscription mensuelle ou annuelle avec Stripe Checkout ;
+- ajout du portail Stripe pour l’abonnement, les factures et le moyen de paiement ;
+- synchronisation des droits CueForge à partir des événements Stripe.
+
+[Détails de la version 0.12.0](./0.12.0.md)
+
 ## Version 0.11.0 — 26 août 2026
 
 - ajout du réglage de mises à jour automatiques ;

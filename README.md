@@ -135,6 +135,8 @@ https://app.cueforge.fr/api/billing/webhook
 
 Après définition de la clé et du secret de webhook, chaque forfait est enregistré puis synchronisé depuis **Administration → Forfaits → Synchroniser les tarifs Stripe**. `STRIPE_CHECKOUT_ENABLED=true` rend ensuite les commandes de souscription visibles aux propriétaires d’espace.
 
+La création d’un compte demande un forfait et une périodicité, puis ouvre Stripe Checkout. L’espace reste en lecture seule jusqu’à la confirmation du Checkout par webhook. Stripe démarre alors l’essai défini sur le forfait et conserve le moyen de paiement pour la première échéance à la fin de cet essai. Une annulation du Checkout laisse le compte existant et permet de reprendre la souscription depuis **Paramètres → Offre et stockage**.
+
 5. Depuis SSH, préparer l’application :
 
 ```bash
