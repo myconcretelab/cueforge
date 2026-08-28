@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
-import { BookOpen, CloudDownload, CreditCard, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, LoaderCircle, LogOut, Palette, Plus, RefreshCcw, Settings2, ShieldCheck, Smartphone, Trash2, Waves, X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { BookOpen, CloudDownload, CreditCard, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, LoaderCircle, LogOut, Palette, Plus, RefreshCcw, Settings2, ShieldCheck, Speaker, Smartphone, Trash2, Waves, X } from 'lucide-react';
 import { api } from '../lib/api';
+import { audioEngine, type AudioOutputDevice } from '../lib/audio-engine';
 import type { AccountSummary, KeyAction, Project, ProjectColor, PublicPlan, User } from '../types';
 
 interface Props {
@@ -67,11 +68,36 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingError, setBillingError] = useState('');
+  const audioOutputSupported = audioEngine.supportsAudioOutputSelection();
+  const audioOutputPickerSupported = audioEngine.supportsAudioOutputPicker();
+  const [audioOutputs, setAudioOutputs] = useState<AudioOutputDevice[]>([{ deviceId: '', label: 'Sortie système par défaut' }]);
+  const [selectedAudioOutputId, setSelectedAudioOutputId] = useState(() => audioEngine.getAudioOutputSelection().deviceId);
+  const [audioOutputBusy, setAudioOutputBusy] = useState(false);
+  const [audioOutputError, setAudioOutputError] = useState('');
+
+  const refreshAudioOutputs = useCallback(async () => {
+    if (!audioOutputSupported) return;
+    try {
+      const devices = await audioEngine.listAudioOutputDevices();
+      setAudioOutputs(devices);
+      setSelectedAudioOutputId(audioEngine.getAudioOutputSelection().deviceId);
+    } catch (error) {
+      setAudioOutputError(audioOutputErrorMessage(error));
+    }
+  }, [audioOutputSupported]);
 
   useEffect(() => {
     api.account().then((result) => setAccount(result.account)).catch(() => setAccount(undefined));
     api.publicPlans().then((result) => setPublicPlans(result.plans)).catch(() => setPublicPlans([]));
   }, []);
+
+  useEffect(() => {
+    refreshAudioOutputs().catch(() => undefined);
+    if (!audioOutputSupported || typeof navigator === 'undefined' || !navigator.mediaDevices) return;
+    const onDeviceChange = () => refreshAudioOutputs().catch(() => undefined);
+    navigator.mediaDevices.addEventListener('devicechange', onDeviceChange);
+    return () => navigator.mediaDevices.removeEventListener('devicechange', onDeviceChange);
+  }, [audioOutputSupported, refreshAudioOutputs]);
 
   useEffect(() => {
     if (account && !selectedPlanCode) setSelectedPlanCode(account.planCode);
@@ -160,6 +186,35 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
     }
   }
 
+  async function changeAudioOutput(deviceId: string) {
+    const device = audioOutputs.find((candidate) => candidate.deviceId === deviceId);
+    setAudioOutputBusy(true);
+    setAudioOutputError('');
+    try {
+      await audioEngine.setAudioOutput(deviceId, device?.label);
+      setSelectedAudioOutputId(deviceId);
+      await refreshAudioOutputs();
+    } catch (error) {
+      setAudioOutputError(audioOutputErrorMessage(error));
+    } finally {
+      setAudioOutputBusy(false);
+    }
+  }
+
+  async function chooseAudioOutput() {
+    setAudioOutputBusy(true);
+    setAudioOutputError('');
+    try {
+      const selection = await audioEngine.chooseAudioOutput();
+      setSelectedAudioOutputId(selection.deviceId);
+      await refreshAudioOutputs();
+    } catch (error) {
+      setAudioOutputError(audioOutputErrorMessage(error));
+    } finally {
+      setAudioOutputBusy(false);
+    }
+  }
+
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="dialog settings-dialog">
       <header><div><p className="eyebrow">CueForge</p><h2>Paramètres</h2></div><button className="icon-button" onClick={onClose} aria-label="Fermer les paramètres"><X /></button></header>
@@ -199,6 +254,21 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
       <section className="settings-section">
         <div className="settings-section-title"><FileArchive size={16} /><div><strong>Bibliothèque</strong><span>Importez ou préparez les médias de ce spectacle.</span></div></div>
         <div className="settings-actions"><button className="button ghost" onClick={onImportSoundShow}><FileArchive size={17} />Importer SoundShow</button><button className="button ghost" onClick={onOpenFreesound}><Waves size={17} />Rechercher sur Freesound</button><button className="button ghost" onClick={onCacheOffline}><CloudDownload size={17} />{offlineStatus || 'Rendre disponible hors ligne'}</button></div>
+      </section>
+      <section className="settings-section">
+        <div className="settings-section-title"><Speaker size={16} /><div><strong>Sortie audio</strong><span>Dirigez la régie et les préécoutes vers un périphérique de cet appareil.</span></div></div>
+        {audioOutputSupported ? <>
+          <div className="audio-output-controls">
+            <label><span>Périphérique</span><select value={selectedAudioOutputId} disabled={audioOutputBusy} onChange={(event) => changeAudioOutput(event.target.value)}>
+              {selectedAudioOutputId && !audioOutputs.some((device) => device.deviceId === selectedAudioOutputId) && <option value={selectedAudioOutputId}>{audioEngine.getAudioOutputSelection().label}</option>}
+              {audioOutputs.map((device) => <option value={device.deviceId} key={device.deviceId || 'default'}>{device.label}</option>)}
+            </select></label>
+            {audioOutputPickerSupported && <button type="button" className="button ghost" disabled={audioOutputBusy} onClick={chooseAudioOutput}>{audioOutputBusy ? <LoaderCircle className="spin" size={16} /> : <Speaker size={16} />}Choisir</button>}
+            <button type="button" className="icon-button" disabled={audioOutputBusy} onClick={() => refreshAudioOutputs()} aria-label="Actualiser les sorties audio" title="Actualiser"><RefreshCcw size={16} /></button>
+          </div>
+          <p className="audio-output-note">Le choix est enregistré sur cet appareil. La sortie système est utilisée si le périphérique enregistré n’est plus disponible.</p>
+          {audioOutputError && <p className="audio-output-error">{audioOutputError}</p>}
+        </> : <p className="audio-output-unavailable">Ce navigateur ne permet pas à CueForge de choisir la sortie du moteur Web Audio. La sortie système reste utilisée.</p>}
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><Smartphone size={16} /><div><strong>Télécommande</strong><span>Utilisez cette vue depuis un téléphone connecté au même spectacle.</span></div></div>
@@ -252,4 +322,11 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
       </section>
     </section>
   </div>;
+}
+
+function audioOutputErrorMessage(error: unknown): string {
+  if (error instanceof DOMException && error.name === 'NotAllowedError') return 'L’accès à cette sortie audio n’a pas été autorisé.';
+  if (error instanceof DOMException && error.name === 'NotFoundError') return 'Cette sortie audio n’est plus disponible.';
+  if (error instanceof DOMException && error.name === 'AbortError') return 'Aucune sortie audio n’a été sélectionnée.';
+  return error instanceof Error ? error.message : 'Impossible de sélectionner cette sortie audio.';
 }

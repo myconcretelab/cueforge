@@ -6,7 +6,7 @@ Points de contrôle :
 
 1. volume de la piste dans CueForge ;
 2. volume du système ;
-3. sortie audio sélectionnée par le système ;
+3. sortie sélectionnée dans **Paramètres → Sortie audio** ou sortie audio du système ;
 4. lecture d’une autre piste dans CueForge ;
 5. lecture du fichier d’origine dans un lecteur externe ;
 6. accès exclusif éventuel d’une autre application à l’interface audio.

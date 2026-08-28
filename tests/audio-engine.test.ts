@@ -27,6 +27,7 @@ class FakeSourceNode {
 }
 
 class FakeAudioContext {
+  static lastSinkId = '';
   state = 'running';
   currentTime = 0;
   destination = {};
@@ -34,6 +35,7 @@ class FakeAudioContext {
   createGain() { return new FakeGainNode(); }
   async decodeAudioData() { return { duration: 60 }; }
   async resume() { this.state = 'running'; }
+  async setSinkId(sinkId: string) { FakeAudioContext.lastSinkId = sinkId; }
 }
 
 const track: Track = {
@@ -67,6 +69,12 @@ describe('audio player instance controls', () => {
   let unsubscribeHistory: (() => void) | undefined;
 
   beforeAll(() => {
+    const storage = new Map<string, string>();
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    });
     vi.stubGlobal('AudioContext', FakeAudioContext);
     vi.stubGlobal('fetch', vi.fn(async () => new Response(new ArrayBuffer(8), { status: 200 })));
     audioEngine.resetHistory([track.id]);
@@ -127,6 +135,22 @@ describe('audio player instance controls', () => {
 
     expect(latest).toHaveLength(0);
     expect(latestHistory.has(track.id)).toBe(false);
+  });
+
+  it('applique et mémorise la sortie audio choisie', async () => {
+    await audioEngine.setAudioOutput('studio-output', 'Interface studio');
+
+    expect(FakeAudioContext.lastSinkId).toBe('studio-output');
+    expect(audioEngine.getAudioOutputSelection()).toEqual({ deviceId: 'studio-output', label: 'Interface studio' });
+    expect(JSON.parse(localStorage.getItem('cueforge-audio-output-v1') ?? '{}')).toEqual({ deviceId: 'studio-output', label: 'Interface studio' });
+
+    const setSinkId = vi.fn(async () => undefined);
+    await audioEngine.applyAudioOutput({ setSinkId } as unknown as HTMLMediaElement);
+    expect(setSinkId).toHaveBeenCalledWith('studio-output');
+
+    await audioEngine.setAudioOutput('');
+    expect(FakeAudioContext.lastSinkId).toBe('');
+    expect(localStorage.getItem('cueforge-audio-output-v1')).toBeNull();
   });
 });
 

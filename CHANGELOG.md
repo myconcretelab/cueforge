@@ -2,6 +2,22 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.15.0] - 2026-08-28
+
+### Ajouté
+
+- sélection d’un périphérique de sortie dans **Paramètres → Sortie audio** ;
+- application de la sortie aux lectures de la régie, à la préécoute de l’éditeur et à la préécoute Freesound ;
+- actualisation de la liste lors de la connexion ou de la déconnexion d’un périphérique ;
+- ouverture du sélecteur natif du navigateur lorsqu’il est disponible ;
+- mémorisation locale du périphérique choisi.
+
+### Modifié
+
+- retour automatique à la sortie système lorsqu’une préférence enregistrée ne peut plus être appliquée ;
+- affichage de la limite du navigateur lorsque la sélection de sortie Web Audio n’est pas disponible ;
+- passage de l’application à la version `0.15.0`.
+
 ## [0.14.0] - 2026-08-28
 
 ### Ajouté

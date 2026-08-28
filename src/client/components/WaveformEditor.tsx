@@ -9,6 +9,7 @@ import {
   waveformTime,
   waveformWindow,
 } from '../lib/waveform';
+import { audioEngine } from '../lib/audio-engine';
 
 interface Props {
   trackId: string;
@@ -178,8 +179,11 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
     audio.currentTime = nextMs / 1_000;
     setPlayheadMs(nextMs);
     setStopResetArmed(false);
-    try { await audio.play(); setPreviewing(true); }
-    catch { setError('La préécoute ne peut pas démarrer.'); }
+    try {
+      await audioEngine.applyAudioOutput(audio);
+      await audio.play();
+      setPreviewing(true);
+    } catch { setError('La préécoute ne peut pas démarrer sur la sortie audio sélectionnée.'); }
   }
 
   function stopPreview() {

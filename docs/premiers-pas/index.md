@@ -39,6 +39,6 @@ Les commandes globales d’arrêt sont associées aux touches **Échap**, **Reto
 
 ## Paramètres
 
-Les paramètres regroupent la gestion des spectacles, des couleurs, de la bibliothèque, du mode hors ligne, de la télécommande, des raccourcis, du compte et du stockage.
+Les paramètres regroupent la gestion des spectacles, des couleurs, de la bibliothèque, de la [sortie audio](../reference/sortie-audio.md), du mode hors ligne, de la télécommande, des raccourcis, du compte et du stockage.
 
 Les pages suivantes décrivent la [configuration d’un spectacle](./premier-spectacle.md) et l’[organisation des sons](../guides/organiser-un-spectacle.md).

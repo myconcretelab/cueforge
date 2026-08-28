@@ -400,6 +400,14 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .settings-key-actions label { grid-template-columns: 145px minmax(0, 1fr); align-items: center; gap: 10px; color: #a1a1aa; font-size: .7rem; }
 .settings-key-actions label > span { display: flex; align-items: center; gap: 7px; }
 .settings-key-actions select { height: 38px; padding-block: 0; font-size: .72rem; }
+.audio-output-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto 34px; align-items: end; gap: 8px; }
+.audio-output-controls label { min-width: 0; display: grid; gap: 5px; color: #71717a; font-size: .62rem; }
+.audio-output-controls select { min-width: 0; height: 38px; padding-block: 0; font-size: .7rem; }
+.audio-output-controls .button { height: 38px; padding-inline: 12px; }
+.audio-output-controls .icon-button { width: 34px; height: 38px; }
+.audio-output-note, .audio-output-unavailable, .audio-output-error { margin: 0; font-size: .65rem; line-height: 1.45; }
+.audio-output-note, .audio-output-unavailable { color: #71717a; }
+.audio-output-error { color: #fca5a5; }
 .account-plan { display: grid; gap: 9px; }
 .account-plan > div:first-child, .storage-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .account-plan > div:first-child strong { color: #f4f4f5; font-size: .78rem; }
@@ -666,6 +674,8 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
   .freesound-player { grid-template-columns: 36px minmax(0, 1fr) 32px; }
   .freesound-volume { grid-column: 1 / -1; }
   .settings-key-actions label { grid-template-columns: 1fr; }
+  .audio-output-controls { grid-template-columns: minmax(0, 1fr) 34px; }
+  .audio-output-controls .button { grid-column: 1 / -1; grid-row: 2; }
   .settings-account { align-items: stretch; flex-wrap: wrap; }
   .settings-account > div { flex: 1; }
   .settings-account .button { width: 100%; margin: 4px 0 0; }

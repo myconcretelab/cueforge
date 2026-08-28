@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CircleCheck, Download, ExternalLink, LoaderCircle, Pause, Play, Search, ShieldCheck, Square, Volume2, Waves, X } from 'lucide-react';
 import { api } from '../lib/api';
+import { audioEngine } from '../lib/audio-engine';
 import type { Category, FreesoundLicenseFilter, FreesoundSearchResult, FreesoundSound } from '../types';
 
 interface Props {
@@ -98,9 +99,9 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
     if (currentSound?.id === sound.id && existing) {
       if (existing.paused) {
         setPlayerState('loading');
-        existing.play().catch(() => {
+        audioEngine.applyAudioOutput(existing).then(() => existing.play()).catch(() => {
           setPlayerState('paused');
-          setError("La préécoute n'a pas pu démarrer.");
+          setError("La préécoute n'a pas pu démarrer sur la sortie audio sélectionnée.");
         });
       } else {
         existing.pause();
@@ -137,9 +138,9 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
       setPlayerState('paused');
       setError("La préécoute Freesound n'est pas disponible.");
     });
-    audio.play().catch(() => {
+    audioEngine.applyAudioOutput(audio).then(() => audio.play()).catch(() => {
       if (audioRef.current === audio) setPlayerState('paused');
-      setError("La préécoute n'a pas pu démarrer.");
+      setError("La préécoute n'a pas pu démarrer sur la sortie audio sélectionnée.");
     });
   }
 

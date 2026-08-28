@@ -18,6 +18,16 @@ export interface ActivePlayback {
   fadingOut: boolean;
 }
 
+export interface AudioOutputDevice {
+  deviceId: string;
+  label: string;
+}
+
+export interface AudioOutputSelection {
+  deviceId: string;
+  label: string;
+}
+
 type PlaybackPosition = Pick<ActivePlayback, 'durationMs' | 'elapsedMs' | 'loop' | 'paused' | 'resumedAtMs'>;
 
 export function playbackPositionAt(playback: PlaybackPosition, atMs = performance.now()): number {
@@ -44,6 +54,15 @@ type CacheListener = (loadedTrackIds: Set<string>) => void;
 type HistoryListener = (progressByTrack: Map<string, number>) => void;
 
 const historyStorageKey = 'cueforge-playback-history-v1';
+const audioOutputStorageKey = 'cueforge-audio-output-v1';
+
+type AudioContextWithSink = AudioContext & {
+  setSinkId: (sinkId: string) => Promise<void>;
+};
+
+type MediaDevicesWithOutputPicker = MediaDevices & {
+  selectAudioOutput?: () => Promise<MediaDeviceInfo>;
+};
 
 class AudioEngine {
   private context?: AudioContext;
@@ -55,6 +74,61 @@ class AudioEngine {
   private historyListeners = new Set<HistoryListener>();
   private history = readHistory();
   private playbackSequence = 0;
+  private outputSelection = readAudioOutputSelection();
+
+  supportsAudioOutputSelection(): boolean {
+    return typeof AudioContext !== 'undefined'
+      && typeof (AudioContext.prototype as Partial<AudioContextWithSink>).setSinkId === 'function';
+  }
+
+  supportsAudioOutputPicker(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    return typeof (navigator.mediaDevices as MediaDevicesWithOutputPicker | undefined)?.selectAudioOutput === 'function';
+  }
+
+  getAudioOutputSelection(): AudioOutputSelection {
+    return { ...this.outputSelection };
+  }
+
+  async listAudioOutputDevices(): Promise<AudioOutputDevice[]> {
+    if (!this.supportsAudioOutputSelection()) return [];
+    if (typeof navigator === 'undefined' || typeof navigator.mediaDevices?.enumerateDevices !== 'function') {
+      return [{ deviceId: '', label: 'Sortie système par défaut' }];
+    }
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const outputs = devices.filter((device) => device.kind === 'audiooutput' && device.deviceId !== 'default');
+    return [
+      { deviceId: '', label: 'Sortie système par défaut' },
+      ...outputs.map((device, index) => ({
+        deviceId: device.deviceId,
+        label: device.label.trim() || `Sortie audio ${index + 1}`,
+      })),
+    ];
+  }
+
+  async chooseAudioOutput(): Promise<AudioOutputSelection> {
+    if (!this.supportsAudioOutputPicker()) throw new Error('Le sélecteur de sortie audio n’est pas disponible.');
+    const device = await (navigator.mediaDevices as MediaDevicesWithOutputPicker).selectAudioOutput!();
+    const selection = { deviceId: device.deviceId, label: device.label.trim() || 'Sortie audio sélectionnée' };
+    await this.setAudioOutput(selection.deviceId, selection.label);
+    return selection;
+  }
+
+  async setAudioOutput(deviceId: string, label = ''): Promise<void> {
+    if (!this.supportsAudioOutputSelection()) throw new Error('La sélection de sortie audio n’est pas prise en charge par ce navigateur.');
+    const context = await this.getContext();
+    await (context as AudioContextWithSink).setSinkId(deviceId);
+    this.outputSelection = {
+      deviceId,
+      label: deviceId ? label.trim() || 'Sortie audio sélectionnée' : 'Sortie système par défaut',
+    };
+    persistAudioOutputSelection(this.outputSelection);
+  }
+
+  async applyAudioOutput(element: HTMLMediaElement): Promise<void> {
+    if (typeof element.setSinkId !== 'function') return;
+    await element.setSinkId(this.outputSelection.deviceId);
+  }
 
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
@@ -129,7 +203,17 @@ class AudioEngine {
   }
 
   private async getContext(): Promise<AudioContext> {
-    this.context ??= new AudioContext({ latencyHint: 'interactive' });
+    if (!this.context) {
+      this.context = new AudioContext({ latencyHint: 'interactive' });
+      if (this.outputSelection.deviceId && typeof (this.context as Partial<AudioContextWithSink>).setSinkId === 'function') {
+        try {
+          await (this.context as AudioContextWithSink).setSinkId(this.outputSelection.deviceId);
+        } catch {
+          this.outputSelection = { deviceId: '', label: 'Sortie système par défaut' };
+          persistAudioOutputSelection(this.outputSelection);
+        }
+      }
+    }
     if (this.context.state === 'suspended') await this.context.resume();
     return this.context;
   }
@@ -450,6 +534,32 @@ function readHistory(): Map<string, number> {
       : []));
   } catch {
     return new Map();
+  }
+}
+
+function readAudioOutputSelection(): AudioOutputSelection {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(audioOutputStorageKey) ?? '{}') as Partial<AudioOutputSelection>;
+    if (typeof parsed.deviceId === 'string') {
+      return {
+        deviceId: parsed.deviceId,
+        label: typeof parsed.label === 'string' && parsed.label.trim()
+          ? parsed.label.trim()
+          : parsed.deviceId ? 'Sortie audio sélectionnée' : 'Sortie système par défaut',
+      };
+    }
+  } catch {
+    // La sortie système reste active si la préférence locale est illisible.
+  }
+  return { deviceId: '', label: 'Sortie système par défaut' };
+}
+
+function persistAudioOutputSelection(selection: AudioOutputSelection): void {
+  try {
+    if (selection.deviceId) localStorage.setItem(audioOutputStorageKey, JSON.stringify(selection));
+    else localStorage.removeItem(audioOutputStorageKey);
+  } catch {
+    // La sélection reste active pour la session si le stockage est indisponible.
   }
 }
 

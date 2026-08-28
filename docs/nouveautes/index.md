@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.15.0 — 28 août 2026
+
+- ajout du choix du périphérique dans les paramètres ;
+- application de la sortie à la régie et aux préécoutes ;
+- mémorisation locale avec retour à la sortie système lorsque le périphérique n’est plus disponible.
+
+[Détails de la version 0.15.0](./0.15.0.md)
+
 ## Version 0.14.0 — 28 août 2026
 
 - ajout des forfaits gratuits sans carte bancaire ;

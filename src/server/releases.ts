@@ -11,6 +11,21 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.15.0',
+    date: '2026-08-28',
+    title: 'Sélection de la sortie audio',
+    summary: 'La régie peut maintenant utiliser un périphérique de sortie distinct de la sortie système.',
+    important: true,
+    changes: [
+      'La rubrique Sortie audio des paramètres affiche les périphériques de lecture disponibles.',
+      'Le périphérique choisi reçoit les sons de la régie et les préécoutes de l’éditeur et de Freesound.',
+      'La sélection est enregistrée localement sur l’appareil utilisé.',
+      'La sortie système est rétablie si le périphérique enregistré n’est plus disponible.',
+      'Les navigateurs sans sélection de sortie Web Audio continuent d’utiliser la sortie système.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.14.0',
     date: '2026-08-28',
     title: 'Forfait gratuit sans carte bancaire',
