@@ -83,6 +83,16 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
   const trialDaysLeft = account?.trialEndsAt
     ? Math.max(0, Math.ceil((new Date(account.trialEndsAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
     : null;
+  const selectedBillingPlan = publicPlans.find((plan) => plan.code === selectedPlanCode);
+  const selectedBillingPrice = billingInterval === 'month' ? selectedBillingPlan?.monthlyPriceCents : selectedBillingPlan?.annualPriceCents;
+  const selectedFreePlan = selectedBillingPlan?.free ?? false;
+  const freePlanAvailable = publicPlans.some((plan) => plan.free);
+
+  useEffect(() => {
+    if (!selectedBillingPlan) return;
+    if (billingInterval === 'month' && selectedBillingPlan.monthlyPriceCents === null && selectedBillingPlan.annualPriceCents !== null) setBillingInterval('year');
+    if (billingInterval === 'year' && selectedBillingPlan.annualPriceCents === null && selectedBillingPlan.monthlyPriceCents !== null) setBillingInterval('month');
+  }, [billingInterval, selectedBillingPlan]);
 
   function dropProject(targetId: string, after: boolean) {
     if (!draggedProjectId || draggedProjectId === targetId) return;
@@ -130,6 +140,22 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
       window.location.assign(result.url);
     } catch (error) {
       setBillingError(error instanceof Error ? error.message : 'Impossible d’ouvrir le portail de facturation.');
+      setBillingBusy(false);
+    }
+  }
+
+  async function activateSelectedFreePlan() {
+    if (!selectedBillingPlan || !selectedFreePlan) return;
+    setBillingBusy(true);
+    setBillingError('');
+    try {
+      await api.activateFreePlan(selectedBillingPlan.code);
+      const result = await api.account();
+      setAccount(result.account);
+      setSelectedPlanCode(result.account.planCode);
+    } catch (error) {
+      setBillingError(error instanceof Error ? error.message : 'Impossible d’activer le forfait gratuit.');
+    } finally {
       setBillingBusy(false);
     }
   }
@@ -192,19 +218,17 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
           <div><strong>{user.isDemo ? 'Démonstration temporaire' : account.planName}</strong><span>{user.isDemo ? '15 fichiers importés · 5 Mo maximum par fichier' : account.accessStatus === 'trialing' && trialDaysLeft !== null ? `${trialDaysLeft} jour${trialDaysLeft > 1 ? 's' : ''} restant${trialDaysLeft > 1 ? 's' : ''}` : account.accessStatus === 'active' ? 'Accès actif' : account.accessStatus === 'grace_period' ? 'Délai de grâce' : account.accessStatus === 'suspended' ? 'Accès suspendu' : 'Lecture seule'}</span></div>
           <div className="storage-summary"><span>{formatBytes(account.storageUsedBytes)} utilisés</span><strong>{account.storageQuotaBytes === null ? 'Stockage illimité' : `sur ${formatBytes(account.storageQuotaBytes)}`}</strong></div>
           {account.storageQuotaBytes !== null && <div className="storage-meter" role="progressbar" aria-label="Stockage utilisé" aria-valuemin={0} aria-valuemax={account.storageQuotaBytes} aria-valuenow={account.storageUsedBytes}><i style={{ width: `${storagePercent}%` }} /></div>}
-          {!user.isDemo && account.billing?.checkoutAvailable && account.billing.membershipRole === 'owner' && <div className="billing-controls">
+          {!user.isDemo && account.billing?.membershipRole === 'owner' && (account.billing.checkoutAvailable || freePlanAvailable) && <div className="billing-controls">
             {account.billing.customerPortalAvailable && account.billing.provider === 'stripe' && account.billing.status !== 'none'
               ? <button className="button ghost wide" disabled={billingBusy} onClick={openBillingPortal}>{billingBusy ? <LoaderCircle className="spin" size={16} /> : <CreditCard size={16} />}Gérer l’abonnement et les factures</button>
               : <>
-                <div className="billing-choice">
+                <div className={`billing-choice ${selectedFreePlan ? 'free' : ''}`}>
                   <label><span>Forfait</span><select value={selectedPlanCode} onChange={(event) => setSelectedPlanCode(event.target.value)}>{publicPlans.map((plan) => <option value={plan.code} key={plan.code}>{plan.name}</option>)}</select></label>
-                  <label><span>Périodicité</span><select value={billingInterval} onChange={(event) => setBillingInterval(event.target.value as 'month' | 'year')}><option value="month">Mensuelle</option><option value="year">Annuelle</option></select></label>
+                  {!selectedFreePlan && <label><span>Périodicité</span><select value={billingInterval} onChange={(event) => setBillingInterval(event.target.value as 'month' | 'year')}><option value="month" disabled={selectedBillingPlan?.monthlyPriceCents === null}>Mensuelle</option><option value="year" disabled={selectedBillingPlan?.annualPriceCents === null}>Annuelle</option></select></label>}
                 </div>
-                {(() => {
-                  const plan = publicPlans.find((item) => item.code === selectedPlanCode);
-                  const cents = billingInterval === 'month' ? plan?.monthlyPriceCents : plan?.annualPriceCents;
-                  return <button className="button primary wide" disabled={billingBusy || cents === null || cents === undefined} onClick={startCheckout}>{billingBusy ? <LoaderCircle className="spin" size={16} /> : <CreditCard size={16} />}Continuer avec Stripe{cents !== null && cents !== undefined ? ` · ${formatPrice(cents)}${billingInterval === 'month' ? '/mois' : '/an'}` : ''}</button>;
-                })()}
+                {selectedFreePlan
+                  ? <button className="button primary wide" disabled={billingBusy || (account.planCode === selectedPlanCode && account.accessStatus === 'active')} onClick={activateSelectedFreePlan}>{billingBusy ? <LoaderCircle className="spin" size={16} /> : <Gift size={16} />}{account.planCode === selectedPlanCode && account.accessStatus === 'active' ? 'Forfait gratuit actif' : 'Activer le forfait gratuit'}</button>
+                  : <button className="button primary wide" disabled={billingBusy || !account.billing.checkoutAvailable || selectedBillingPrice === null || selectedBillingPrice === undefined} onClick={startCheckout}>{billingBusy ? <LoaderCircle className="spin" size={16} /> : <CreditCard size={16} />}Continuer avec Stripe{selectedBillingPrice !== null && selectedBillingPrice !== undefined ? ` · ${formatPrice(selectedBillingPrice)}${billingInterval === 'month' ? '/mois' : '/an'}` : ''}</button>}
               </>}
             {billingError && <p className="billing-error">{billingError}</p>}
           </div>}

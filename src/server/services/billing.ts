@@ -15,6 +15,7 @@ import {
   type Plan,
 } from '../db/schema.js';
 import { CURRENT_VERSION } from '../releases.js';
+import { planIsFree } from './commercial-plans.js';
 
 export const stripeApiVersion = '2026-07-29.dahlia' as const;
 export type BillingInterval = 'month' | 'year';
@@ -152,22 +153,64 @@ async function activePriceMapping(planCode: string, billingInterval: BillingInte
   return mapping ?? null;
 }
 
-export async function requireCheckoutPlan(planCode: string, billingInterval: BillingInterval) {
-  if (!billingCheckoutAvailable()) {
-    throw new BillingError('Le paiement en ligne n’est pas encore activé.', 503, 'checkout_disabled');
-  }
+export async function requirePublicPlan(planCode: string) {
   const [plan] = await db.select().from(plans).where(and(
     eq(plans.code, planCode),
     eq(plans.active, true),
     eq(plans.visibleOnWebsite, true),
   )).limit(1);
   if (!plan) throw new BillingError('Ce forfait n’est pas disponible.', 404, 'plan_not_available');
+  return plan;
+}
+
+export async function requireCheckoutPlan(planCode: string, billingInterval: BillingInterval) {
+  const plan = await requirePublicPlan(planCode);
+  if (planIsFree(plan)) {
+    throw new BillingError('Ce forfait gratuit ne nécessite pas de paiement Stripe.', 400, 'free_plan_without_checkout');
+  }
+  if (!billingCheckoutAvailable()) {
+    throw new BillingError('Le paiement en ligne n’est pas encore activé.', 503, 'checkout_disabled');
+  }
 
   const priceMapping = await activePriceMapping(plan.code, billingInterval);
   if (!priceMapping) {
     throw new BillingError('Ce tarif n’est pas encore synchronisé avec Stripe.', 503, 'stripe_price_missing');
   }
   return { plan, priceMapping };
+}
+
+export async function activateFreePlan(input: { userId: string; planCode: string }): Promise<void> {
+  const context = await requireOwnerBillingContext(input.userId);
+  const selectedPlan = await requirePublicPlan(input.planCode);
+  if (!planIsFree(selectedPlan)) {
+    throw new BillingError('Ce forfait nécessite un abonnement Stripe.', 400, 'paid_plan_requires_checkout');
+  }
+  if (context.subscription?.providerSubscriptionId) {
+    throw new BillingError('Cet espace possède déjà un abonnement Stripe. Utilisez le portail de facturation.', 409, 'subscription_exists');
+  }
+
+  await db.transaction(async (transaction) => {
+    await transaction.update(accounts).set({
+      planCode: selectedPlan.code,
+      accessStatus: context.account.suspendedAt ? 'suspended' : 'active',
+      trialStartedAt: null,
+      trialEndsAt: null,
+      gracePeriodEndsAt: null,
+      updatedAt: new Date(),
+    }).where(eq(accounts.id, context.account.id));
+    await transaction.insert(auditLogs).values({
+      actorUserId: context.user.id,
+      action: 'billing.free_plan_activated',
+      entityType: 'account',
+      entityId: context.account.id,
+      details: {
+        previousPlanCode: context.account.planCode,
+        planCode: selectedPlan.code,
+        previousAccessStatus: context.account.accessStatus,
+        accessStatus: context.account.suspendedAt ? 'suspended' : 'active',
+      },
+    });
+  });
 }
 
 async function ensureStripeCustomer(context: Awaited<ReturnType<typeof requireOwnerBillingContext>>): Promise<string> {

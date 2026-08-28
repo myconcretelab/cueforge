@@ -28,7 +28,7 @@ describe('client API', () => {
   });
 
   it('transmet le forfait et la périodicité lors de la création du compte', async () => {
-    const fetcher = vi.fn(async () => new Response(JSON.stringify({ user: {}, checkoutUrl: 'https://checkout.stripe.com/test' }), { status: 201, headers: { 'Content-Type': 'application/json' } }));
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ user: {}, checkoutUrl: 'https://checkout.stripe.com/test', checkoutRequired: true }), { status: 201, headers: { 'Content-Type': 'application/json' } }));
     vi.stubGlobal('fetch', fetcher);
     const input = {
       displayName: 'Camille',
@@ -44,6 +44,18 @@ describe('client API', () => {
     expect(fetcher).toHaveBeenCalledWith('/api/auth/register', expect.objectContaining({
       method: 'POST',
       body: JSON.stringify(input),
+    }));
+  });
+
+  it('active un forfait gratuit sans appeler Checkout', async () => {
+    const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetcher);
+
+    await api.activateFreePlan('gratuit');
+
+    expect(fetcher).toHaveBeenCalledWith('/api/billing/free-plan', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ planCode: 'gratuit' }),
     }));
   });
 

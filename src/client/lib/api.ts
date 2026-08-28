@@ -26,7 +26,7 @@ export const api = {
   startDemo: () => request<{ user: User }>('/api/auth/demo', { method: 'POST' }),
   resetDemo: () => request<{ user: User }>('/api/auth/demo/reset', { method: 'POST' }),
   register: (input: { displayName: string; email: string; password: string; planCode: string; billingInterval: 'month' | 'year'; requestId: string }) =>
-    request<{ user: User; checkoutUrl: string | null; checkoutError?: string }>('/api/auth/register', { method: 'POST', body: JSON.stringify(input) }),
+    request<{ user: User; checkoutUrl: string | null; checkoutRequired: boolean; checkoutError?: string }>('/api/auth/register', { method: 'POST', body: JSON.stringify(input) }),
   login: (input: { email: string; password: string }) =>
     request<{ user: User }>('/api/auth/login', { method: 'POST', body: JSON.stringify(input) }),
   forgotPassword: (email: string) =>
@@ -41,6 +41,8 @@ export const api = {
   publicPlans: () => request<{ currency: string; signupUrl: string; plans: PublicPlan[] }>('/api/public/plans'),
   createCheckout: (input: { planCode: string; billingInterval: 'month' | 'year'; requestId: string }) =>
     request<{ url: string }>('/api/billing/checkout', { method: 'POST', body: JSON.stringify(input) }),
+  activateFreePlan: (planCode: string) =>
+    request<void>('/api/billing/free-plan', { method: 'POST', body: JSON.stringify({ planCode }) }),
   createBillingPortal: () => request<{ url: string }>('/api/billing/portal', { method: 'POST' }),
   adminOverview: () => request<{ overview: AdminOverview; recentAudit: AuditEntry[] }>('/api/admin/overview'),
   adminReleases: () => request<AdminReleaseInfo>('/api/admin/releases'),

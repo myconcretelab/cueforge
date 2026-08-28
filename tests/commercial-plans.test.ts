@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planDeletionError, planPublicationError } from '../src/server/services/commercial-plans.js';
+import { planDeletionError, planIsFree, planPublicationError } from '../src/server/services/commercial-plans.js';
 
 describe('commercial plan deletion', () => {
   it('refuse la suppression du forfait par défaut', () => {
@@ -26,5 +26,23 @@ describe('commercial plan publication', () => {
 
   it('autorise un forfait actif réservé à une attribution interne', () => {
     expect(planPublicationError({ visibleOnWebsite: false, featuredOnWebsite: false })).toBeNull();
+  });
+});
+
+describe('commercial free plan', () => {
+  it('reconnaît un tarif mensuel nul sans tarif annuel', () => {
+    expect(planIsFree({ monthlyPriceCents: 0, annualPriceCents: null })).toBe(true);
+  });
+
+  it('reconnaît deux périodicités gratuites', () => {
+    expect(planIsFree({ monthlyPriceCents: 0, annualPriceCents: 0 })).toBe(true);
+  });
+
+  it('ne traite pas un forfait sans prix comme une offre gratuite publique', () => {
+    expect(planIsFree({ monthlyPriceCents: null, annualPriceCents: null })).toBe(false);
+  });
+
+  it('ne traite pas un forfait comportant un prix payant comme gratuit', () => {
+    expect(planIsFree({ monthlyPriceCents: 0, annualPriceCents: 2_500 })).toBe(false);
   });
 });

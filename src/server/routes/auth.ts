@@ -6,7 +6,8 @@ import { accountMemberships, accounts, projects, subscriptions, users } from '..
 import { config } from '../config.js';
 import { CURRENT_VERSION } from '../releases.js';
 import { endSession, hashPassword, publicUser, requireUser, startSession, verifyPassword } from '../services/auth.js';
-import { createCheckoutSession, requireCheckoutPlan } from '../services/billing.js';
+import { BillingError, createCheckoutSession, requireCheckoutPlan, requirePublicPlan } from '../services/billing.js';
+import { planIsFree } from '../services/commercial-plans.js';
 import { createDemoWorkspace, removeDemoUsers } from '../services/demo.js';
 import { sendPasswordResetEmail } from '../services/mail.js';
 import { issuePasswordResetToken, resetPassword, revokePasswordResetToken } from '../services/password-reset.js';
@@ -52,7 +53,13 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
   app.post('/api/auth/register', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const input = registerSchema.parse(request.body);
-    const { plan: selectedPlan } = await requireCheckoutPlan(input.planCode, input.billingInterval);
+    const selectedPlan = await requirePublicPlan(input.planCode);
+    const selectedPrice = input.billingInterval === 'month' ? selectedPlan.monthlyPriceCents : selectedPlan.annualPriceCents;
+    if (selectedPrice === null) {
+      throw new BillingError('Cette périodicité n’est pas disponible pour ce forfait.', 400, 'billing_interval_unavailable');
+    }
+    const freePlan = planIsFree(selectedPlan);
+    if (!freePlan) await requireCheckoutPlan(input.planCode, input.billingInterval);
     const passwordHash = await hashPassword(input.password);
     const user = await db.transaction(async (tx) => {
       const [created] = await tx.insert(users).values({
@@ -65,13 +72,17 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       const [account] = await tx.insert(accounts).values({
         name: `Espace de ${created.displayName}`,
         planCode: selectedPlan.code,
-        accessStatus: 'read_only',
+        accessStatus: freePlan ? 'active' : 'read_only',
       }).returning();
       await tx.insert(accountMemberships).values({ accountId: account.id, userId: created.id, role: 'owner' });
       await tx.insert(subscriptions).values({ accountId: account.id });
       await tx.insert(projects).values({ accountId: account.id, name: 'Mon premier spectacle' });
       return created;
     });
+    if (freePlan) {
+      await startSession(user.id, reply);
+      return reply.code(201).send({ user: publicUser(user), checkoutUrl: null, checkoutRequired: false });
+    }
     let checkoutUrl: string;
     try {
       checkoutUrl = await createCheckoutSession({
@@ -85,11 +96,12 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(201).send({
         user: publicUser(user),
         checkoutUrl: null,
+        checkoutRequired: true,
         checkoutError: 'Votre compte a été créé, mais la page de paiement Stripe n’a pas pu être ouverte. Connectez-vous pour reprendre la souscription.',
       });
     }
     await startSession(user.id, reply);
-    return reply.code(201).send({ user: publicUser(user), checkoutUrl });
+    return reply.code(201).send({ user: publicUser(user), checkoutUrl, checkoutRequired: true });
   });
 
   app.post('/api/auth/login', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {

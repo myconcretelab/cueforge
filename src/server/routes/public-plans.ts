@@ -3,6 +3,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { plans } from '../db/schema.js';
 import { config } from '../config.js';
+import { planIsFree } from '../services/commercial-plans.js';
 
 export async function publicPlanRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/public/plans', async (_request, reply) => {
@@ -24,7 +25,7 @@ export async function publicPlanRoutes(app: FastifyInstance): Promise<void> {
     return {
       currency: 'EUR',
       signupUrl: new URL('/?register=1', config.PUBLIC_URL).toString(),
-      plans: rows,
+      plans: rows.map((plan) => ({ ...plan, free: planIsFree(plan) })),
     };
   });
 }

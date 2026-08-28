@@ -2,6 +2,21 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.14.0] - 2026-08-28
+
+### Ajouté
+
+- activation immédiate d’un forfait gratuit sans client, abonnement ni moyen de paiement Stripe ;
+- détection explicite des forfaits dont tous les tarifs renseignés valent `0 €` ;
+- activation d’un forfait gratuit depuis les paramètres d’un compte sans abonnement Stripe ;
+- indication publique du caractère gratuit de chaque forfait.
+
+### Modifié
+
+- adaptation du formulaire d’inscription pour distinguer les offres gratuites et payantes ;
+- conservation du parcours Stripe Checkout uniquement pour les forfaits payants ;
+- passage de l’application à la version `0.14.0`.
+
 ## [0.13.0] - 2026-08-27
 
 ### Ajouté

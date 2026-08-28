@@ -11,6 +11,34 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.14.0',
+    date: '2026-08-28',
+    title: 'Forfait gratuit sans carte bancaire',
+    summary: 'Un forfait à 0 € peut maintenant être activé sans créer de client ni d’abonnement Stripe.',
+    important: true,
+    changes: [
+      'L’inscription sur un forfait gratuit ouvre immédiatement l’espace sans redirection vers Stripe.',
+      'Le quota de stockage configuré sur le forfait gratuit s’applique dès la création du compte.',
+      'Le passage ultérieur vers un forfait payant reste disponible depuis la rubrique Offre et stockage.',
+      'Les forfaits payants conservent leur parcours Checkout avec essai et moyen de paiement.',
+    ],
+  },
+  {
+    audience: 'admin',
+    version: '0.14.0',
+    date: '2026-08-28',
+    title: 'Gestion des offres gratuites',
+    summary: 'Les tarifs à 0 € identifient désormais les forfaits activés sans Stripe.',
+    important: false,
+    changes: [
+      'Un forfait est gratuit lorsqu’au moins un prix est renseigné et que tous ses prix renseignés valent 0 €.',
+      'Un prix vide continue de rendre la périodicité correspondante indisponible.',
+      'Les activations gratuites sont inscrites dans le journal d’audit du compte.',
+      'Les forfaits comportant un prix positif restent exclusivement associés au parcours Stripe Checkout.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.13.0',
     date: '2026-08-27',
     title: 'Inscription avec moyen de paiement',

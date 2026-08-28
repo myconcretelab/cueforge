@@ -75,6 +75,7 @@ export interface PublicPlan {
   monthlyPriceCents: number | null;
   annualPriceCents: number | null;
   trialDays: number;
+  free: boolean;
   featured: boolean;
   displayOrder: number;
 }

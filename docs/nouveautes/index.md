@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.14.0 — 28 août 2026
+
+- ajout des forfaits gratuits sans carte bancaire ;
+- activation immédiate avec le quota de stockage configuré ;
+- passage ultérieur vers une offre payante depuis les paramètres.
+
+[Détails de la version 0.14.0](./0.14.0.md)
+
 ## Version 0.13.0 — 27 août 2026
 
 - sélection du forfait mensuel ou annuel lors de la création du compte ;

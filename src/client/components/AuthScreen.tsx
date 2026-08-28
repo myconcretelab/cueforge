@@ -11,6 +11,10 @@ function formatPrice(cents: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 }
 
+function formatStorage(bytes: number): string {
+  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(bytes / 1024 ** 3)} Go`;
+}
+
 export function AuthScreen({ onAuthenticated }: Props) {
   const parameters = new URLSearchParams(window.location.search);
   const [mode, setMode] = useState<AuthMode>(() => parameters.get('register') === '1' ? 'register' : 'login');
@@ -35,6 +39,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
 
   const selectedPlan = plans.find((plan) => plan.code === selectedPlanCode);
   const selectedPrice = billingInterval === 'month' ? selectedPlan?.monthlyPriceCents : selectedPlan?.annualPriceCents;
+  const freePlan = selectedPlan?.free ?? false;
 
   useEffect(() => {
     if (!selectedPlan) return;
@@ -69,6 +74,10 @@ export function AuthScreen({ onAuthenticated }: Props) {
         });
         if (result.checkoutUrl) {
           window.location.assign(result.checkoutUrl);
+          return;
+        }
+        if (!result.checkoutRequired) {
+          onAuthenticated(result.user);
           return;
         }
         setMode('login');
@@ -110,19 +119,22 @@ export function AuthScreen({ onAuthenticated }: Props) {
         <div>
           <p className="eyebrow">CueForge</p>
           <h2>{mode === 'register' ? 'Créer votre régie' : mode === 'forgot' ? 'Réinitialiser le mot de passe' : 'Heureux de vous revoir'}</h2>
-          <p>{mode === 'register' ? 'Choisissez votre offre, puis enregistrez votre moyen de paiement sur Stripe.' : mode === 'forgot' ? 'Saisissez l’adresse e-mail associée à votre compte.' : 'Connectez-vous pour reprendre votre spectacle.'}</p>
+          <p>{mode === 'register' ? 'Choisissez votre offre. Les forfaits payants utilisent Stripe pour enregistrer le moyen de paiement.' : mode === 'forgot' ? 'Saisissez l’adresse e-mail associée à votre compte.' : 'Connectez-vous pour reprendre votre spectacle.'}</p>
         </div>
         {mode === 'register' && <label>Nom affiché<input name="displayName" autoComplete="name" required minLength={2} placeholder="Votre nom" /></label>}
         <label>Adresse e-mail<input name="email" type="email" autoComplete="email" required placeholder="vous@exemple.fr" /></label>
         {mode !== 'forgot' && <label>Mot de passe<input name="password" type="password" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} required minLength={8} placeholder="8 caractères minimum" /></label>}
-        {mode === 'register' && <div className="auth-billing-choice">
+        {mode === 'register' && <div className={`auth-billing-choice ${freePlan ? 'free' : ''}`}>
           <label>Forfait<select name="planCode" value={selectedPlanCode} onChange={(event) => setSelectedPlanCode(event.target.value)} required>{plans.map((plan) => <option value={plan.code} key={plan.code}>{plan.name}</option>)}</select></label>
-          <label>Périodicité<select name="billingInterval" value={billingInterval} onChange={(event) => setBillingInterval(event.target.value as 'month' | 'year')} required><option value="month" disabled={selectedPlan?.monthlyPriceCents === null}>Mensuelle</option><option value="year" disabled={selectedPlan?.annualPriceCents === null}>Annuelle</option></select></label>
-          {selectedPlan && selectedPrice !== null && selectedPrice !== undefined && <p><strong>{selectedPlan.trialDays} jours gratuits</strong><span>Puis {formatPrice(selectedPrice)}{billingInterval === 'month' ? ' par mois' : ' par an'}. Le moyen de paiement est enregistré par Stripe.</span></p>}
+          {!freePlan && <label>Périodicité<select name="billingInterval" value={billingInterval} onChange={(event) => setBillingInterval(event.target.value as 'month' | 'year')} required><option value="month" disabled={selectedPlan?.monthlyPriceCents === null}>Mensuelle</option><option value="year" disabled={selectedPlan?.annualPriceCents === null}>Annuelle</option></select></label>}
+          {freePlan && <input type="hidden" name="billingInterval" value={billingInterval} />}
+          {selectedPlan && selectedPrice !== null && selectedPrice !== undefined && (freePlan
+            ? <p><strong>Gratuit sans carte bancaire</strong><span>{formatStorage(selectedPlan.storageQuotaBytes)} de stockage, sans limite de durée.</span></p>
+            : <p><strong>{selectedPlan.trialDays > 0 ? `${selectedPlan.trialDays} jours gratuits` : 'Abonnement sans période d’essai'}</strong><span>{selectedPlan.trialDays > 0 ? 'Puis ' : ''}{formatPrice(selectedPrice)}{billingInterval === 'month' ? ' par mois' : ' par an'}. Le moyen de paiement est enregistré par Stripe.</span></p>)}
         </div>}
         {error && <p className="form-error">{error}</p>}
         {message && <p className="form-success">{message}</p>}
-        <button className="button primary wide" disabled={loading || (mode === 'register' && (!selectedPlan || selectedPrice === null || selectedPrice === undefined))}>{loading && <LoaderCircle className="spin" size={18} />}{mode === 'register' ? 'Continuer avec Stripe' : mode === 'forgot' ? 'Envoyer le lien' : 'Se connecter'}</button>
+        <button className="button primary wide" disabled={loading || (mode === 'register' && (!selectedPlan || selectedPrice === null || selectedPrice === undefined))}>{loading && <LoaderCircle className="spin" size={18} />}{mode === 'register' ? freePlan ? 'Créer mon compte gratuitement' : 'Continuer avec Stripe' : mode === 'forgot' ? 'Envoyer le lien' : 'Se connecter'}</button>
         {mode !== 'forgot' && <><div className="auth-separator"><span>ou</span></div><button className="button demo wide" type="button" disabled={demoLoading} onClick={startDemo}>{demoLoading && <LoaderCircle className="spin" size={18} />}Essayer sans compte</button><small className="demo-auth-note">Espace temporaire · 15 fichiers · 5 Mo maximum par fichier</small></>}
         {mode === 'login' && <button className="text-button" type="button" onClick={() => { setMode('forgot'); setError(''); setMessage(''); }}>
           Mot de passe oublié ?

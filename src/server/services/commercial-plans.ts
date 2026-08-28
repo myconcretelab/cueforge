@@ -8,3 +8,9 @@ export function planPublicationError(input: { visibleOnWebsite: boolean; feature
   if (input.featuredOnWebsite && !input.visibleOnWebsite) return 'Un forfait mis en avant doit être visible sur le site.';
   return null;
 }
+
+export function planIsFree(input: { monthlyPriceCents: number | null; annualPriceCents: number | null }): boolean {
+  const configuredPrices = [input.monthlyPriceCents, input.annualPriceCents]
+    .filter((price): price is number => price !== null);
+  return configuredPrices.length > 0 && configuredPrices.every((price) => price === 0);
+}

@@ -8,7 +8,7 @@ export class AccountStorageError extends Error {
   constructor(public readonly reason: 'read-only' | 'quota-exceeded') {
     super(reason === 'quota-exceeded'
       ? 'Votre quota de stockage est atteint. Supprimez des sons ou choisissez un forfait supérieur.'
-      : "Votre espace est en lecture seule. Activez un abonnement pour le modifier.");
+      : "Votre espace est en lecture seule. Activez un forfait pour le modifier.");
   }
 }
 

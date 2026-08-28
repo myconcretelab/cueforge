@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import {
   BillingError,
+  activateFreePlan,
   constructStripeEvent,
   createCheckoutSession,
   createCustomerPortalSession,
@@ -17,6 +18,8 @@ const checkoutSchema = z.object({
   billingInterval: z.enum(['month', 'year']),
   requestId: z.string().uuid(),
 });
+
+const freePlanSchema = checkoutSchema.pick({ planCode: true });
 
 function stripeSignature(value: string | string[] | undefined): string {
   if (typeof value === 'string' && value) return value;
@@ -36,6 +39,14 @@ export async function billingRoutes(app: FastifyInstance): Promise<void> {
     const user = await requireUser(request, reply);
     if (!user) return;
     return { url: await createCustomerPortalSession(user.id) };
+  });
+
+  app.post('/api/billing/free-plan', { config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } }, async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    const input = freePlanSchema.parse(request.body);
+    await activateFreePlan({ userId: user.id, planCode: input.planCode });
+    return reply.code(204).send();
   });
 
   app.post('/api/billing/webhook', {
