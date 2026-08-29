@@ -13,6 +13,7 @@ CueForge Bridge est le moteur audio natif facultatif de CueForge. L’applicatio
 - nombre de fichiers et taille totale du cache affichés dans la fenêtre ;
 - jeton d’appareil et clé locale dans le trousseau macOS ou le Gestionnaire d’identification Windows ;
 - association par URL `cueforge-bridge://pair` et ticket CueForge temporaire.
+- mise à jour automatique signée depuis la dernière publication GitHub.
 
 ## Compilation
 
@@ -29,6 +30,8 @@ L’application et son paquet sont produits sous `bridge/src-tauri/target/releas
 
 Le fichier `bridge/package.json` et son lockfile contiennent uniquement l’outillage de compilation du bridge. L’installation npm située à la racine ne contient pas Tauri.
 
+Au démarrage, le Bridge consulte `latest.json` dans la dernière publication GitHub. Une nouvelle version est téléchargée et vérifiée avec la clé publique intégrée. Elle est installée et le Bridge redémarre uniquement si aucune lecture audio n’a commencé pendant le téléchargement. Sinon, l’installation est différée jusqu’à un prochain démarrage.
+
 ## Publication GitHub
 
 Le workflow `.github/workflows/release-bridge.yml` est déclenché par les étiquettes Git `bridge-v*`. Il compile et publie trois paquets dans une GitHub Release publique :
@@ -36,6 +39,8 @@ Le workflow `.github/workflows/release-bridge.yml` est déclenché par les étiq
 - `aarch64` pour les Mac Apple Silicon ;
 - `x64` pour les Mac Intel ;
 - `x64` au format NSIS pour Windows.
+
+Le workflow génère également les paquets de mise à jour signés et `latest.json`. La clé privée et son mot de passe proviennent des secrets GitHub Actions `TAURI_SIGNING_PRIVATE_KEY` et `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. La clé privée n’est pas présente dans le dépôt.
 
 Les téléchargements sont disponibles sur `https://github.com/myconcretelab/cueforge/releases`.
 
