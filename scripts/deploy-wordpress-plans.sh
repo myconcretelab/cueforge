@@ -58,13 +58,27 @@ ssh "$WORDPRESS_ACCOUNT@$WORDPRESS_SSH_HOST" "
   php -r \"require 'wp-load.php'; delete_transient('cueforge_plans_api_response');\"
 "
 
-wordpress_html=$(curl --fail --silent --show-error "$WORDPRESS_SITE_URL")
 expected_card_count=$(curl --fail --silent --show-error "$CUEFORGE_PLANS_API_URL" | php -r '
   $data = json_decode(stream_get_contents(STDIN), true);
   if (!is_array($data) || !isset($data["plans"]) || !is_array($data["plans"])) exit(1);
   echo count($data["plans"]);
 ')
-card_count=$(grep -o 'class="pricing-card[^"]*"' <<< "$wordpress_html" | wc -l | tr -d ' ')
+
+wordpress_html=''
+for attempt in 1 2 3 4 5; do
+  wordpress_html=$(curl --fail --silent --show-error "$WORDPRESS_SITE_URL")
+  card_count=$(grep -o 'class="pricing-card[^"]*"' <<< "$wordpress_html" | wc -l | tr -d ' ' || true)
+  if [[ "$card_count" -eq "$expected_card_count" ]] \
+    && grep --fixed-strings --quiet 'CueForge Bridge pour macOS et Windows' <<< "$wordpress_html" \
+    && grep --fixed-strings --quiet 'Démarrer maintenant' <<< "$wordpress_html" \
+    && grep --fixed-strings --quiet 'Choisir ce forfait' <<< "$wordpress_html" \
+    && grep --fixed-strings --quiet 'Essayer maintenant !' <<< "$wordpress_html"; then
+    break
+  fi
+  [[ "$attempt" -eq 5 ]] || sleep 2
+done
+
+card_count=$(grep -o 'class="pricing-card[^"]*"' <<< "$wordpress_html" | wc -l | tr -d ' ' || true)
 [[ "$card_count" -eq "$expected_card_count" ]] || fail "le site WordPress affiche $card_count forfait(s), alors que l’API en publie $expected_card_count."
 if ! grep --fixed-strings --quiet 'CueForge Bridge pour macOS et Windows' <<< "$wordpress_html"; then
   fail "le site WordPress n’affiche pas l’information CueForge Bridge."
