@@ -63,6 +63,7 @@ export interface AccountSummary {
   storageUsedBytes: number;
   trialEndsAt: string | null;
   gracePeriodEndsAt: string | null;
+  bridgeAvailable: boolean;
   billing: {
     membershipRole: string;
     provider: string;
@@ -84,6 +85,7 @@ export interface PublicPlan {
   annualPriceCents: number | null;
   trialDays: number;
   free: boolean;
+  bridgeIncluded: boolean;
   featured: boolean;
   displayOrder: number;
 }

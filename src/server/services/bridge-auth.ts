@@ -2,7 +2,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { db } from '../db/index.js';
-import { bridgeDevices, type BridgeDevice } from '../db/schema.js';
+import { accounts, bridgeDevices, plans, type BridgeDevice } from '../db/schema.js';
+import { accountCanUseBridge } from './commercial-plans.js';
 
 export const bridgePairingLifetimeMs = 5 * 60 * 1000;
 
@@ -29,17 +30,31 @@ export async function requireBridgeDevice(request: FastifyRequest, reply: Fastif
     await reply.code(401).send({ error: 'Jeton CueForge Bridge requis.' });
     return null;
   }
-  const now = new Date();
-  const [device] = await db.update(bridgeDevices)
-    .set({ lastSeenAt: now, updatedAt: now })
+  const [context] = await db.select({
+    device: bridgeDevices,
+    accessStatus: accounts.accessStatus,
+    isDemo: accounts.isDemo,
+    monthlyPriceCents: plans.monthlyPriceCents,
+    annualPriceCents: plans.annualPriceCents,
+  }).from(bridgeDevices)
+    .innerJoin(accounts, eq(bridgeDevices.accountId, accounts.id))
+    .innerJoin(plans, eq(accounts.planCode, plans.code))
     .where(and(
       eq(bridgeDevices.tokenHash, hashBridgeToken(token)),
       isNull(bridgeDevices.revokedAt),
     ))
-    .returning();
-  if (!device) {
+    .limit(1);
+  if (!context) {
     await reply.code(401).send({ error: 'Ce bridge n’est pas associé ou a été révoqué.' });
     return null;
   }
-  return device;
+  if (!accountCanUseBridge(context)) {
+    await reply.code(403).send({ error: 'CueForge Bridge est réservé aux forfaits payants actifs.' });
+    return null;
+  }
+  const now = new Date();
+  await db.update(bridgeDevices)
+    .set({ lastSeenAt: now, updatedAt: now })
+    .where(eq(bridgeDevices.id, context.device.id));
+  return { ...context.device, lastSeenAt: now, updatedAt: now };
 }

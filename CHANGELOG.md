@@ -2,6 +2,23 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.18.0] - 2026-08-29
+
+### Ajouté
+
+- droit CueForge Bridge calculé automatiquement à partir du prix et de l’état d’accès du forfait ;
+- contrôle du droit Bridge lors de l’association, des requêtes natives et de l’ouverture de la page de téléchargement ;
+- indication `bridgeIncluded` dans l’API publique des forfaits ;
+- mention de CueForge Bridge sur les cartes tarifaires du site WordPress ;
+- source et script de déploiement du bloc WordPress des forfaits.
+
+### Modifié
+
+- masquage des commandes d’association et de téléchargement pour les forfaits gratuits ;
+- retour au moteur Navigateur et oubli de l’association locale lorsqu’un compte perd le droit Bridge ;
+- suppression de l’association locale lors de la déconnexion ;
+- passage de l’application à la version `0.18.0`.
+
 ## [0.17.0] - 2026-08-29
 
 ### Ajouté

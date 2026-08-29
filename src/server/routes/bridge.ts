@@ -8,11 +8,13 @@ import { config } from '../config.js';
 import { db } from '../db/index.js';
 import {
   accountMemberships,
+  accounts,
   bridgeDevices,
   bridgePairingTickets,
   categories,
   playlistItems,
   playlists,
+  plans,
   projects,
   tracks,
 } from '../db/schema.js';
@@ -25,10 +27,20 @@ import {
   requireBridgeDevice,
 } from '../services/bridge-auth.js';
 import { parseByteRange } from '../services/range.js';
+import { accountCanUseBridge } from '../services/commercial-plans.js';
 
 const ticketSchema = z.object({ ticket: z.string().min(32).max(200) });
 const deviceIdSchema = z.object({ id: z.string().uuid() });
 const pairingAlreadyClaimed = Symbol('pairing-already-claimed');
+const bridgeDownloadUrl = 'https://github.com/myconcretelab/cueforge/releases/tag/bridge-v0.2.0';
+
+function accountHasBridgeAccess(context: Awaited<ReturnType<typeof accountForUser>>): boolean {
+  return Boolean(context && accountCanUseBridge({
+    ...context.plan,
+    accessStatus: context.account.accessStatus,
+    isDemo: context.account.isDemo,
+  }));
+}
 
 export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
   app.post('/api/bridge/pairings', async (request, reply) => {
@@ -37,6 +49,9 @@ export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
     if (user.isDemo) return reply.code(403).send({ error: 'Le bridge n’est pas disponible dans la démonstration temporaire.' });
     const account = await accountForUser(user.id);
     if (!account) return reply.code(404).send({ error: 'Espace de travail introuvable.' });
+    if (!accountHasBridgeAccess(account)) {
+      return reply.code(403).send({ error: 'CueForge Bridge est réservé aux forfaits payants actifs.' });
+    }
 
     await db.delete(bridgePairingTickets).where(lt(bridgePairingTickets.expiresAt, new Date()));
     const ticket = createBridgeToken();
@@ -53,6 +68,11 @@ export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
   app.post('/api/bridge/pairings/status', async (request, reply) => {
     const user = await requireUser(request, reply);
     if (!user) return;
+    const account = await accountForUser(user.id);
+    if (!account) return reply.code(404).send({ error: 'Espace de travail introuvable.' });
+    if (!accountHasBridgeAccess(account)) {
+      return reply.code(403).send({ error: 'CueForge Bridge est réservé aux forfaits payants actifs.' });
+    }
     const { ticket } = ticketSchema.parse(request.body);
     const tokenHash = hashBridgeToken(ticket);
     const [pairing] = await db.select({
@@ -94,12 +114,22 @@ export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
     const localToken = createBridgeToken();
     const deviceToken = createBridgeToken();
     const result = await db.transaction(async (transaction) => {
-      const [pairing] = await transaction.select().from(bridgePairingTickets).where(and(
-        eq(bridgePairingTickets.tokenHash, hashBridgeToken(input.ticket)),
-        gt(bridgePairingTickets.expiresAt, now),
-        isNull(bridgePairingTickets.claimedAt),
-      )).limit(1);
-      if (!pairing) return null;
+      const [context] = await transaction.select({
+        pairing: bridgePairingTickets,
+        accessStatus: accounts.accessStatus,
+        isDemo: accounts.isDemo,
+        monthlyPriceCents: plans.monthlyPriceCents,
+        annualPriceCents: plans.annualPriceCents,
+      }).from(bridgePairingTickets)
+        .innerJoin(accounts, eq(bridgePairingTickets.accountId, accounts.id))
+        .innerJoin(plans, eq(accounts.planCode, plans.code))
+        .where(and(
+          eq(bridgePairingTickets.tokenHash, hashBridgeToken(input.ticket)),
+          gt(bridgePairingTickets.expiresAt, now),
+          isNull(bridgePairingTickets.claimedAt),
+        )).limit(1);
+      if (!context || !accountCanUseBridge(context)) return null;
+      const pairing = context.pairing;
       const [device] = await transaction.insert(bridgeDevices).values({
         accountId: pairing.accountId,
         name: input.name,
@@ -128,6 +158,17 @@ export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
       localToken,
       serverUrl: config.PUBLIC_URL,
     };
+  });
+
+  app.get('/api/bridge/download', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    const account = await accountForUser(user.id);
+    if (!account) return reply.code(404).send({ error: 'Espace de travail introuvable.' });
+    if (!accountHasBridgeAccess(account)) {
+      return reply.code(403).send({ error: 'Le téléchargement de CueForge Bridge est réservé aux forfaits payants actifs.' });
+    }
+    return reply.redirect(bridgeDownloadUrl);
   });
 
   app.get('/api/bridge/devices', async (request, reply) => {

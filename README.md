@@ -137,6 +137,8 @@ Après définition de la clé et du secret de webhook, chaque forfait est enregi
 
 La création d’un compte demande un forfait. Lorsque tous les tarifs renseignés du forfait valent `0`, l’espace est activé immédiatement avec son quota, sans client ni abonnement Stripe. Pour un forfait payant, la périodicité est demandée puis Stripe Checkout est ouvert. L’espace reste en lecture seule jusqu’à la confirmation du Checkout par webhook. Stripe démarre alors l’essai défini sur le forfait et conserve le moyen de paiement pour la première échéance à la fin de cet essai. Une annulation du Checkout laisse le compte existant et permet de reprendre la souscription depuis **Paramètres → Offre et stockage**.
 
+CueForge Bridge est inclus lorsqu’un forfait comporte au moins un tarif positif. L’association, les requêtes natives et l’accès au téléchargement exigent un compte en essai payant, actif ou en délai de grâce. L’API publique des forfaits expose ce droit dans `bridgeIncluded` pour le bloc tarifaire WordPress.
+
 5. Depuis SSH, préparer l’application :
 
 ```bash

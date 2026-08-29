@@ -11,6 +11,21 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.18.0',
+    date: '2026-08-29',
+    title: 'CueForge Bridge dans les forfaits payants',
+    summary: 'L’association, l’utilisation et le téléchargement depuis CueForge sont maintenant réservés aux comptes disposant d’un forfait payant actif.',
+    important: true,
+    changes: [
+      'Les forfaits gratuits conservent le moteur Navigateur complet mais n’affichent plus les commandes du Bridge.',
+      'Les comptes en essai sur un forfait payant disposent du Bridge pendant leur période d’essai.',
+      'L’API contrôle le forfait avant une association, une synchronisation ou un téléchargement audio par le Bridge.',
+      'Une association locale est oubliée lorsque le compte ne dispose plus du droit Bridge.',
+      'Le site CueForge indique dans chaque offre si CueForge Bridge est inclus.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.17.0',
     date: '2026-08-29',
     title: 'CueForge Bridge pour Windows',

@@ -14,3 +14,18 @@ export function planIsFree(input: { monthlyPriceCents: number | null; annualPric
     .filter((price): price is number => price !== null);
   return configuredPrices.length > 0 && configuredPrices.every((price) => price === 0);
 }
+
+export function planIncludesBridge(input: { monthlyPriceCents: number | null; annualPriceCents: number | null }): boolean {
+  return [input.monthlyPriceCents, input.annualPriceCents].some((price) => price !== null && price > 0);
+}
+
+export function accountCanUseBridge(input: {
+  monthlyPriceCents: number | null;
+  annualPriceCents: number | null;
+  accessStatus: string;
+  isDemo: boolean;
+}): boolean {
+  return !input.isDemo
+    && planIncludesBridge(input)
+    && ['trialing', 'active', 'grace_period'].includes(input.accessStatus);
+}

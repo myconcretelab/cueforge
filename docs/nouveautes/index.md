@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.18.0 — 29 août 2026
+
+- intégration de CueForge Bridge aux forfaits payants ;
+- contrôle du forfait lors de l’association et de l’accès aux médias du bridge ;
+- indication de cette fonction dans les offres du site CueForge.
+
+[Détails de la version 0.18.0](./0.18.0.md)
+
 ## Version 0.17.0 — 29 août 2026
 
 - ajout d’un installateur CueForge Bridge pour Windows x64 ;

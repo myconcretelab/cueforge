@@ -19,6 +19,7 @@ import { api, ApiError } from './lib/api';
 import { applyAppUpdate, subscribeToAppUpdate } from './lib/app-update';
 import { appNoticesEnabled, shouldApplyAppUpdate, shouldOpenReleaseNotes } from './lib/app-mode';
 import { audioEngine, playbackPositionAt, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
+import { bridgeClient } from './lib/bridge-client';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
@@ -204,6 +205,19 @@ export default function App() {
   }, []);
 
   useEffect(() => { if (user) loadProjects().catch((cause) => setError(cause.message)); }, [user, loadProjects]);
+  useEffect(() => {
+    if (!user) return;
+    if (user.isDemo) {
+      if (bridgeClient.isAssociated()) bridgeClient.stopAll(0);
+      bridgeClient.forgetAssociation();
+      return;
+    }
+    api.account().then(({ account }) => {
+      if (account.bridgeAvailable) return;
+      if (bridgeClient.isAssociated()) bridgeClient.stopAll(0);
+      bridgeClient.forgetAssociation();
+    }).catch(() => undefined);
+  }, [user]);
 
   const refreshProject = useCallback(async () => {
     if (!selectedProjectId) return;
@@ -1084,6 +1098,7 @@ export default function App() {
 
   async function logout() {
     audioEngine.stopAll(detail?.tracks ?? []);
+    bridgeClient.forgetAssociation();
     audioEngine.resetHistory();
     resetPlaylistEditor();
     await api.logout();

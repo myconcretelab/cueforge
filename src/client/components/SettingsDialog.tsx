@@ -5,8 +5,6 @@ import { audioEngine, type AudioOutputDevice } from '../lib/audio-engine';
 import { bridgeClient, type BridgeOutput } from '../lib/bridge-client';
 import type { AccountSummary, BridgeDevice, KeyAction, Project, ProjectColor, PublicPlan, User } from '../types';
 
-const bridgeDownloadUrl = 'https://github.com/myconcretelab/cueforge/releases/tag/bridge-v0.2.0';
-
 interface Props {
   user: User;
   projects: Project[];
@@ -100,8 +98,20 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
   useEffect(() => {
     api.account().then((result) => setAccount(result.account)).catch(() => setAccount(undefined));
     api.publicPlans().then((result) => setPublicPlans(result.plans)).catch(() => setPublicPlans([]));
-    api.bridgeDevices().then((result) => setBridgeDevices(result.devices)).catch(() => setBridgeDevices([]));
   }, []);
+
+  useEffect(() => {
+    if (!account) return;
+    if (!account.bridgeAvailable) {
+      if (bridgeClient.isAssociated()) bridgeClient.stopAll(0);
+      bridgeClient.forgetAssociation();
+      setAudioMode('browser');
+      setBridgeDevices([]);
+      setBridgeOutputs([]);
+      return;
+    }
+    api.bridgeDevices().then((result) => setBridgeDevices(result.devices)).catch(() => setBridgeDevices([]));
+  }, [account]);
 
   useEffect(() => {
     refreshAudioOutputs().catch(() => undefined);
@@ -125,6 +135,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
   const selectedBillingPrice = billingInterval === 'month' ? selectedBillingPlan?.monthlyPriceCents : selectedBillingPlan?.annualPriceCents;
   const selectedFreePlan = selectedBillingPlan?.free ?? false;
   const freePlanAvailable = publicPlans.some((plan) => plan.free);
+  const bridgeAvailable = account?.bridgeAvailable ?? false;
 
   useEffect(() => {
     if (!selectedBillingPlan) return;
@@ -245,6 +256,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
   }, [refreshBridge]);
 
   async function connectBridge() {
+    if (!bridgeAvailable) return;
     setBridgeBusy(true);
     setBridgeError('');
     setBridgeMessage('Ouverture de CueForge Bridge…');
@@ -280,6 +292,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
   }
 
   async function changeAudioMode(mode: 'browser' | 'bridge') {
+    if (mode === 'bridge' && !bridgeAvailable) return;
     setBridgeError('');
     try {
       audioEngine.setPlaybackMode(mode);
@@ -384,12 +397,14 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         <div className="audio-output-controls">
           <label><span>Moteur</span><select value={audioMode} disabled={bridgeBusy} onChange={(event) => changeAudioMode(event.target.value as 'browser' | 'bridge')}>
             <option value="browser">Navigateur · Web Audio</option>
-            <option value="bridge" disabled={!bridgeClient.isAssociated()}>CueForge Bridge</option>
+            <option value="bridge" disabled={!bridgeAvailable || !bridgeClient.isAssociated()}>{bridgeAvailable ? 'CueForge Bridge' : 'CueForge Bridge · forfait payant'}</option>
           </select></label>
-          {!bridgeClient.isAssociated() && <button type="button" className="button ghost" disabled={bridgeBusy || user.isDemo} onClick={connectBridge}>{bridgeBusy ? <LoaderCircle className="spin" size={16} /> : <Cable size={16} />}Connecter le bridge</button>}
+          {bridgeAvailable && !bridgeClient.isAssociated() && <button type="button" className="button ghost" disabled={bridgeBusy || user.isDemo} onClick={connectBridge}>{bridgeBusy ? <LoaderCircle className="spin" size={16} /> : <Cable size={16} />}Connecter le bridge</button>}
         </div>
-        <div className="settings-actions"><a className="button ghost" href={bridgeDownloadUrl} target="_blank" rel="noreferrer"><CloudDownload size={16} />Télécharger CueForge Bridge</a></div>
-        <p className="audio-output-note">La page de téléchargement propose des paquets pour macOS Apple Silicon, macOS Intel et Windows x64. Les paquets actuels ne sont pas signés pour une distribution publique.</p>
+        {bridgeAvailable ? <>
+          <div className="settings-actions"><a className="button ghost" href="/api/bridge/download" target="_blank" rel="noreferrer"><CloudDownload size={16} />Télécharger CueForge Bridge</a></div>
+          <p className="audio-output-note">La page de téléchargement propose des paquets pour macOS Apple Silicon, macOS Intel et Windows x64. Les paquets actuels ne sont pas signés pour une distribution publique.</p>
+        </> : account && <p className="audio-output-unavailable">CueForge Bridge est inclus dans les forfaits payants actifs. Le moteur Navigateur reste disponible avec ce forfait.</p>}
         {audioMode === 'browser' && (audioOutputSupported ? <>
           <div className="audio-output-controls">
             <label><span>Périphérique</span><select value={selectedAudioOutputId} disabled={audioOutputBusy} onChange={(event) => changeAudioOutput(event.target.value)}>
@@ -402,7 +417,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
           <p className="audio-output-note">Le choix est enregistré sur cet appareil. La sortie système est utilisée si le périphérique enregistré n’est plus disponible.</p>
           {audioOutputError && <p className="audio-output-error">{audioOutputError}</p>}
         </> : <p className="audio-output-unavailable">Ce navigateur ne permet pas à CueForge de choisir la sortie du moteur Web Audio. La sortie système reste utilisée.</p>)}
-        {audioMode === 'bridge' && <>
+        {bridgeAvailable && audioMode === 'bridge' && <>
           <div className="bridge-output-grid">
             <label><span>Régie principale</span><select value={bridgeMainOutputId} disabled={bridgeBusy} onChange={(event) => changeBridgeOutput('main', event.target.value)}>{bridgeOutputs.map((device) => <option key={device.id} value={device.id}>{device.name}</option>)}</select></label>
             <label><span>Préécoute</span><select value={bridgePreviewOutputId} disabled={bridgeBusy} onChange={(event) => changeBridgeOutput('preview', event.target.value)}>{bridgeOutputs.map((device) => <option key={device.id} value={device.id}>{device.name}</option>)}</select></label>
@@ -411,7 +426,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         </>}
         {bridgeMessage && <p className="audio-output-note">{bridgeMessage}</p>}
         {bridgeError && <p className="audio-output-error">{bridgeError}</p>}
-        {bridgeDevices.length > 0 && <div className="bridge-device-list">{bridgeDevices.map((device) => <div key={device.id}><span><strong>{device.name}</strong><small>{bridgePlatformLabel(device.platform)} · {device.lastSeenAt ? `vu ${new Date(device.lastSeenAt).toLocaleString('fr-FR')}` : 'jamais connecté'}</small></span><button type="button" className="icon-button" disabled={bridgeBusy} onClick={() => revokeBridge(device)} aria-label={`Dissocier ${device.name}`} title="Dissocier"><Trash2 size={15} /></button></div>)}</div>}
+        {bridgeAvailable && bridgeDevices.length > 0 && <div className="bridge-device-list">{bridgeDevices.map((device) => <div key={device.id}><span><strong>{device.name}</strong><small>{bridgePlatformLabel(device.platform)} · {device.lastSeenAt ? `vu ${new Date(device.lastSeenAt).toLocaleString('fr-FR')}` : 'jamais connecté'}</small></span><button type="button" className="icon-button" disabled={bridgeBusy} onClick={() => revokeBridge(device)} aria-label={`Dissocier ${device.name}`} title="Dissocier"><Trash2 size={15} /></button></div>)}</div>}
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><Smartphone size={16} /><div><strong>Télécommande</strong><span>Utilisez cette vue depuis un téléphone connecté au même spectacle.</span></div></div>

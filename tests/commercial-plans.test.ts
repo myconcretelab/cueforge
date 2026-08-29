@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planDeletionError, planIsFree, planPublicationError } from '../src/server/services/commercial-plans.js';
+import { accountCanUseBridge, planDeletionError, planIncludesBridge, planIsFree, planPublicationError } from '../src/server/services/commercial-plans.js';
 
 describe('commercial plan deletion', () => {
   it('refuse la suppression du forfait par défaut', () => {
@@ -44,5 +44,32 @@ describe('commercial free plan', () => {
 
   it('ne traite pas un forfait comportant un prix payant comme gratuit', () => {
     expect(planIsFree({ monthlyPriceCents: 0, annualPriceCents: 2_500 })).toBe(false);
+  });
+});
+
+describe('CueForge Bridge entitlement', () => {
+  it('inclut le bridge dans un forfait comportant un prix payant', () => {
+    expect(planIncludesBridge({ monthlyPriceCents: 300, annualPriceCents: 2_500 })).toBe(true);
+  });
+
+  it('exclut le bridge d’un forfait gratuit', () => {
+    expect(planIncludesBridge({ monthlyPriceCents: 0, annualPriceCents: 0 })).toBe(false);
+  });
+
+  it('exclut le bridge d’un forfait sans prix commercial', () => {
+    expect(planIncludesBridge({ monthlyPriceCents: null, annualPriceCents: null })).toBe(false);
+  });
+
+  it.each(['trialing', 'active', 'grace_period'])('autorise un forfait payant dans l’état %s', (accessStatus) => {
+    expect(accountCanUseBridge({ monthlyPriceCents: 300, annualPriceCents: null, accessStatus, isDemo: false })).toBe(true);
+  });
+
+  it.each([
+    { monthlyPriceCents: 0, annualPriceCents: 0, accessStatus: 'active', isDemo: false },
+    { monthlyPriceCents: 300, annualPriceCents: null, accessStatus: 'read_only', isDemo: false },
+    { monthlyPriceCents: 300, annualPriceCents: null, accessStatus: 'suspended', isDemo: false },
+    { monthlyPriceCents: 300, annualPriceCents: null, accessStatus: 'active', isDemo: true },
+  ])('refuse un compte sans droit Bridge', (input) => {
+    expect(accountCanUseBridge(input)).toBe(false);
   });
 });
