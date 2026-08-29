@@ -2,6 +2,14 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.19.1] - 2026-08-29
+
+### Corrigé
+
+- récupération de la clé locale par le navigateur à la fin de l’association avec CueForge Bridge ;
+- consommation atomique du ticket avant l’effacement de sa clé à usage unique ;
+- maintien du refus des tentatives de récupération ultérieures.
+
 ## [0.19.0] - 2026-08-29
 
 ### Ajouté

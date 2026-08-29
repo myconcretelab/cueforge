@@ -11,6 +11,19 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.19.1',
+    date: '2026-08-29',
+    title: 'Correction de l’association du Bridge',
+    summary: 'Le navigateur récupère maintenant correctement sa clé locale lorsque CueForge Bridge accepte une association.',
+    important: true,
+    changes: [
+      'La clé locale est renvoyée au navigateur avant d’être effacée du ticket à usage unique.',
+      'La consommation du ticket et l’effacement de la clé sont exécutés dans une transaction atomique.',
+      'Une seconde récupération du même ticket reste refusée.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.19.0',
     date: '2026-08-29',
     title: 'La sortie audio dans la barre de régie',

@@ -2,6 +2,13 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.19.1 — 29 août 2026
+
+- correction de la transmission de la clé locale au navigateur après l’ouverture du Bridge ;
+- conservation du caractère à usage unique du ticket d’association.
+
+[Détails de la version 0.19.1](./0.19.1.md)
+
 ## Version 0.19.0 — 29 août 2026
 
 - ajout du sélecteur de sortie audio dans la barre de régie ;

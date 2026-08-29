@@ -28,6 +28,7 @@ import {
 } from '../services/bridge-auth.js';
 import { parseByteRange } from '../services/range.js';
 import { accountCanUseBridge } from '../services/commercial-plans.js';
+import { consumeBridgePairingStatus } from '../services/bridge-pairing.js';
 
 const ticketSchema = z.object({ ticket: z.string().min(32).max(200) });
 const deviceIdSchema = z.object({ id: z.string().uuid() });
@@ -75,32 +76,41 @@ export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
     }
     const { ticket } = ticketSchema.parse(request.body);
     const tokenHash = hashBridgeToken(ticket);
-    const [pairing] = await db.select({
-      expiresAt: bridgePairingTickets.expiresAt,
-      claimedAt: bridgePairingTickets.claimedAt,
-      consumedAt: bridgePairingTickets.consumedAt,
-      claimedDeviceId: bridgePairingTickets.claimedDeviceId,
-    }).from(bridgePairingTickets).innerJoin(
-      accountMemberships,
-      eq(accountMemberships.accountId, bridgePairingTickets.accountId),
-    ).where(and(
-      eq(bridgePairingTickets.tokenHash, tokenHash),
-      eq(accountMemberships.userId, user.id),
-    )).limit(1);
+    const status = await db.transaction((transaction) => consumeBridgePairingStatus({
+      load: async () => {
+        const [pairing] = await transaction.select({
+          expiresAt: bridgePairingTickets.expiresAt,
+          claimedAt: bridgePairingTickets.claimedAt,
+          consumedAt: bridgePairingTickets.consumedAt,
+          claimedDeviceId: bridgePairingTickets.claimedDeviceId,
+        }).from(bridgePairingTickets).innerJoin(
+          accountMemberships,
+          eq(accountMemberships.accountId, bridgePairingTickets.accountId),
+        ).where(and(
+          eq(bridgePairingTickets.tokenHash, tokenHash),
+          eq(accountMemberships.userId, user.id),
+        )).limit(1);
+        return pairing;
+      },
+      consume: async () => {
+        const [consumed] = await transaction.update(bridgePairingTickets)
+          .set({ consumedAt: new Date() })
+          .where(and(
+            eq(bridgePairingTickets.tokenHash, tokenHash),
+            isNull(bridgePairingTickets.consumedAt),
+          ))
+          .returning({ localToken: bridgePairingTickets.localToken, deviceId: bridgePairingTickets.claimedDeviceId });
+        return consumed;
+      },
+      clearLocalToken: async () => {
+        await transaction.update(bridgePairingTickets)
+          .set({ localToken: null })
+          .where(eq(bridgePairingTickets.tokenHash, tokenHash));
+      },
+    }));
 
-    if (!pairing || pairing.expiresAt <= new Date()) return reply.code(410).send({ error: 'Ce lien d’association a expiré.' });
-    if (!pairing.claimedAt || !pairing.claimedDeviceId) return { status: 'pending' as const };
-    if (pairing.consumedAt) return { status: 'consumed' as const, deviceId: pairing.claimedDeviceId };
-
-    const [consumed] = await db.update(bridgePairingTickets)
-      .set({ consumedAt: new Date(), localToken: null })
-      .where(and(
-        eq(bridgePairingTickets.tokenHash, tokenHash),
-        isNull(bridgePairingTickets.consumedAt),
-      ))
-      .returning({ localToken: bridgePairingTickets.localToken, deviceId: bridgePairingTickets.claimedDeviceId });
-    if (!consumed?.localToken || !consumed.deviceId) return { status: 'consumed' as const, deviceId: pairing.claimedDeviceId };
-    return { status: 'paired' as const, deviceId: consumed.deviceId, localToken: consumed.localToken };
+    if (status.status === 'expired') return reply.code(410).send({ error: 'Ce lien d’association a expiré.' });
+    return status;
   });
 
   app.post('/api/bridge/pairings/claim', {
