@@ -4,17 +4,17 @@ CueForge Bridge est le moteur audio natif facultatif de CueForge. L’applicatio
 
 ## Composants
 
-- application de bureau Tauri 2 pour macOS ;
+- application de bureau Tauri 2 pour macOS et Windows x64 ;
 - moteur audio CPAL/Rodio avec une sortie ouverte par périphérique utilisé ;
 - serveur HTTP local sur `127.0.0.1:43821` ;
 - canal WebSocket local pour l’état des lectures ;
 - cache de fichiers compressés dans le dossier de cache de l’utilisateur ;
-- jeton d’appareil et clé locale dans le trousseau macOS ;
+- jeton d’appareil et clé locale dans le trousseau macOS ou le Gestionnaire d’identification Windows ;
 - association par URL `cueforge-bridge://pair` et ticket CueForge temporaire.
 
 ## Compilation
 
-Rust et les outils de développement macOS sont requis.
+Rust et les outils de développement de la plateforme cible sont requis. La compilation macOS utilise Xcode Command Line Tools. La compilation Windows utilise Microsoft C++ Build Tools et WebView2.
 
 ```sh
 npm --prefix bridge ci
@@ -23,16 +23,17 @@ npm run bridge:test
 npm run bridge:build
 ```
 
-L’application et l’image disque sont produites sous `bridge/src-tauri/target/release/bundle/`. La configuration macOS applique une signature ad hoc, sans certificat Apple Developer et sans notarisation.
+L’application et son paquet sont produits sous `bridge/src-tauri/target/release/bundle/`. macOS produit une image disque avec une signature ad hoc, sans certificat Apple Developer ni notarisation. Windows produit un installateur NSIS x64 non signé.
 
 Le fichier `bridge/package.json` et son lockfile contiennent uniquement l’outillage de compilation du bridge. L’installation npm située à la racine ne contient pas Tauri.
 
 ## Publication GitHub
 
-Le workflow `.github/workflows/release-bridge.yml` est déclenché par les étiquettes Git `bridge-v*`. Il compile et publie deux images disque dans une GitHub Release publique :
+Le workflow `.github/workflows/release-bridge.yml` est déclenché par les étiquettes Git `bridge-v*`. Il compile et publie trois paquets dans une GitHub Release publique :
 
 - `aarch64` pour les Mac Apple Silicon ;
-- `x64` pour les Mac Intel.
+- `x64` pour les Mac Intel ;
+- `x64` au format NSIS pour Windows.
 
 Les téléchargements sont disponibles sur `https://github.com/myconcretelab/cueforge/releases`.
 

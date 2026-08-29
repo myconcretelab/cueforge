@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.17.0 — 29 août 2026
+
+- ajout d’un installateur CueForge Bridge pour Windows x64 ;
+- stockage des clés dans le Gestionnaire d’identification Windows ;
+- conservation du moteur Web Audio complet lorsque le bridge n’est pas installé ou sélectionné.
+
+[Détails de la version 0.17.0](./0.17.0.md)
+
 ## Version 0.16.1 — 29 août 2026
 
 - téléchargement de CueForge Bridge depuis une publication GitHub publique ;

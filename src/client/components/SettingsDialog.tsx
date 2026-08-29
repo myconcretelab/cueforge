@@ -5,7 +5,7 @@ import { audioEngine, type AudioOutputDevice } from '../lib/audio-engine';
 import { bridgeClient, type BridgeOutput } from '../lib/bridge-client';
 import type { AccountSummary, BridgeDevice, KeyAction, Project, ProjectColor, PublicPlan, User } from '../types';
 
-const bridgeDownloadUrl = 'https://github.com/myconcretelab/cueforge/releases/tag/bridge-v0.1.0';
+const bridgeDownloadUrl = 'https://github.com/myconcretelab/cueforge/releases/tag/bridge-v0.2.0';
 
 interface Props {
   user: User;
@@ -388,8 +388,8 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
           </select></label>
           {!bridgeClient.isAssociated() && <button type="button" className="button ghost" disabled={bridgeBusy || user.isDemo} onClick={connectBridge}>{bridgeBusy ? <LoaderCircle className="spin" size={16} /> : <Cable size={16} />}Connecter le bridge</button>}
         </div>
-        <div className="settings-actions"><a className="button ghost" href={bridgeDownloadUrl} target="_blank" rel="noreferrer"><CloudDownload size={16} />Télécharger le bridge macOS</a></div>
-        <p className="audio-output-note">La page de téléchargement propose un paquet Apple Silicon et un paquet Intel. Les paquets actuels ne sont pas notariés par Apple.</p>
+        <div className="settings-actions"><a className="button ghost" href={bridgeDownloadUrl} target="_blank" rel="noreferrer"><CloudDownload size={16} />Télécharger CueForge Bridge</a></div>
+        <p className="audio-output-note">La page de téléchargement propose des paquets pour macOS Apple Silicon, macOS Intel et Windows x64. Les paquets actuels ne sont pas signés pour une distribution publique.</p>
         {audioMode === 'browser' && (audioOutputSupported ? <>
           <div className="audio-output-controls">
             <label><span>Périphérique</span><select value={selectedAudioOutputId} disabled={audioOutputBusy} onChange={(event) => changeAudioOutput(event.target.value)}>
@@ -411,7 +411,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         </>}
         {bridgeMessage && <p className="audio-output-note">{bridgeMessage}</p>}
         {bridgeError && <p className="audio-output-error">{bridgeError}</p>}
-        {bridgeDevices.length > 0 && <div className="bridge-device-list">{bridgeDevices.map((device) => <div key={device.id}><span><strong>{device.name}</strong><small>{device.platform === 'macos' ? 'macOS' : device.platform} · {device.lastSeenAt ? `vu ${new Date(device.lastSeenAt).toLocaleString('fr-FR')}` : 'jamais connecté'}</small></span><button type="button" className="icon-button" disabled={bridgeBusy} onClick={() => revokeBridge(device)} aria-label={`Dissocier ${device.name}`} title="Dissocier"><Trash2 size={15} /></button></div>)}</div>}
+        {bridgeDevices.length > 0 && <div className="bridge-device-list">{bridgeDevices.map((device) => <div key={device.id}><span><strong>{device.name}</strong><small>{bridgePlatformLabel(device.platform)} · {device.lastSeenAt ? `vu ${new Date(device.lastSeenAt).toLocaleString('fr-FR')}` : 'jamais connecté'}</small></span><button type="button" className="icon-button" disabled={bridgeBusy} onClick={() => revokeBridge(device)} aria-label={`Dissocier ${device.name}`} title="Dissocier"><Trash2 size={15} /></button></div>)}</div>}
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><Smartphone size={16} /><div><strong>Télécommande</strong><span>Utilisez cette vue depuis un téléphone connecté au même spectacle.</span></div></div>
@@ -477,4 +477,10 @@ function audioOutputErrorMessage(error: unknown): string {
 function bridgeErrorMessage(error: unknown): string {
   if (error instanceof TypeError) return 'CueForge Bridge ne répond pas sur cette machine. Vérifiez qu’il est ouvert.';
   return error instanceof Error ? error.message : 'CueForge Bridge est indisponible.';
+}
+
+function bridgePlatformLabel(platform: string): string {
+  if (platform === 'macos') return 'macOS';
+  if (platform === 'windows') return 'Windows';
+  return platform;
 }

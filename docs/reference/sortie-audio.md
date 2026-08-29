@@ -26,9 +26,9 @@ La sélection nécessite la méthode `AudioContext.setSinkId()` du navigateur. L
 
 ## CueForge Bridge
 
-CueForge Bridge est une application macOS distincte. Le bouton **Connecter le bridge** crée un ticket valable cinq minutes, puis ouvre l’application au moyen du protocole `cueforge-bridge://`. Après validation du ticket, le navigateur et le bridge reçoivent une clé locale commune. Le jeton qui donne accès au compte CueForge reste uniquement dans le bridge.
+CueForge Bridge est une application de bureau distincte pour macOS et Windows x64. Le bouton **Connecter le bridge** crée un ticket valable cinq minutes, puis ouvre l’application au moyen du protocole `cueforge-bridge://`. Après validation du ticket, le navigateur et le bridge reçoivent une clé locale commune. Le jeton qui donne accès au compte CueForge reste uniquement dans le bridge. Il est conservé dans le trousseau macOS ou dans le Gestionnaire d’identification Windows.
 
-Le bouton **Télécharger le bridge macOS** ouvre la [publication GitHub de CueForge Bridge](https://github.com/myconcretelab/cueforge/releases/tag/bridge-v0.1.0). Deux images disque sont proposées : `aarch64` pour les Mac Apple Silicon et `x64` pour les Mac Intel. Les paquets utilisent une signature ad hoc et ne sont pas notariés par Apple. macOS peut donc demander une autorisation dans **Réglages Système → Confidentialité et sécurité** lors de la première ouverture.
+Le bouton **Télécharger CueForge Bridge** ouvre la [publication GitHub de CueForge Bridge](https://github.com/myconcretelab/cueforge/releases/tag/bridge-v0.2.0). Elle propose une image disque `aarch64` pour les Mac Apple Silicon, une image disque `x64` pour les Mac Intel et un installateur NSIS `x64` pour Windows. Les paquets macOS utilisent une signature ad hoc et ne sont pas notariés par Apple. L’installateur Windows n’est pas signé et Windows peut afficher un avertissement SmartScreen à son ouverture.
 
 Le bridge écoute sur `127.0.0.1:43821`. Les commandes de lecture sont envoyées à cette adresse avec la clé locale. Un WebSocket transmet l’état des lectures ; l’application utilise des requêtes HTTP périodiques si le navigateur bloque ce WebSocket. L’application web demande l’autorisation d’accès au réseau local lorsque le navigateur impose cette autorisation.
 
@@ -38,7 +38,7 @@ Le champ **Régie principale** détermine la sortie des pads et des playlists. L
 
 ### Cache du bridge
 
-Le bridge conserve les fichiers audio compressés dans son dossier de cache macOS. **Synchroniser le spectacle** télécharge tous les sons du spectacle courant. Sans synchronisation préalable, le premier lancement d’un son absent du cache attend la fin de son téléchargement.
+Le bridge conserve les fichiers audio compressés dans le dossier de cache de l’utilisateur fourni par le système d’exploitation. **Synchroniser le spectacle** télécharge tous les sons du spectacle courant. Sans synchronisation préalable, le premier lancement d’un son absent du cache attend la fin de son téléchargement.
 
 Ce cache est distinct du stockage hors ligne du navigateur. Le passage au moteur Bridge n’efface pas les fichiers enregistrés par le navigateur et le retour au moteur Navigateur ne supprime pas le cache du bridge.
 

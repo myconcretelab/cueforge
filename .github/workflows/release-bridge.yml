@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  macos:
-    name: macOS ${{ matrix.name }}
+  desktop:
+    name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     strategy:
@@ -25,11 +25,23 @@ jobs:
           - name: Apple Silicon
             runner: macos-15
             target: aarch64-apple-darwin
+            bundles: dmg
+            tauriExecutable: tauri
+            appleSigningIdentity: '-'
           - name: Intel
             runner: macos-15-intel
             target: x86_64-apple-darwin
+            bundles: dmg
+            tauriExecutable: tauri
+            appleSigningIdentity: '-'
+          - name: Windows x64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+            tauriExecutable: tauri.cmd
+            appleSigningIdentity: ''
     env:
-      APPLE_SIGNING_IDENTITY: '-'
+      APPLE_SIGNING_IDENTITY: ${{ matrix.appleSigningIdentity }}
     steps:
       - name: Récupérer le dépôt
         uses: actions/checkout@v6
@@ -57,14 +69,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: bridge/src-tauri
-          tauriScript: ${{ github.workspace }}/bridge/node_modules/.bin/tauri
+          tauriScript: ${{ github.workspace }}/bridge/node_modules/.bin/${{ matrix.tauriExecutable }}
           tagName: bridge-v__VERSION__
           releaseName: CueForge Bridge v__VERSION__
           releaseBody: |
-            Deux paquets macOS sont disponibles : Apple Silicon (aarch64) et Intel (x64).
+            Trois paquets sont disponibles : macOS Apple Silicon (aarch64), macOS Intel (x64) et Windows x64.
 
-            Ces paquets utilisent une signature ad hoc. Ils ne possèdent pas de certificat Apple Developer et ne sont pas notariés.
+            Les paquets macOS utilisent une signature ad hoc sans certificat Apple Developer ni notarisation. L’installateur Windows n’est pas signé.
           releaseDraft: false
           prerelease: false
           releaseAssetNamePattern: CueForge-Bridge_[version]_[arch].[ext]
-          args: --target ${{ matrix.target }}
+          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}

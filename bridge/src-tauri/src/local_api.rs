@@ -136,7 +136,7 @@ async fn private_network_headers(request: axum::http::Request<Body>, next: Next)
 async fn status(State(state): State<Arc<Runtime>>) -> Json<serde_json::Value> {
     let config = state.config.read().await;
     Json(json!({
-        "version": "0.1.0",
+        "version": env!("CARGO_PKG_VERSION"),
         "paired": state.paired().await,
         "serverUrl": config.server_url,
         "deviceId": config.device_id,

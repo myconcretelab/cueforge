@@ -13,7 +13,15 @@ use url::Url;
 
 pub fn run() {
     let runtime = Runtime::load().expect("initialisation de CueForge Bridge impossible");
-    tauri::Builder::default()
+    let builder = tauri::Builder::default().plugin(tauri_plugin_single_instance::init(
+        |app, _arguments, _working_directory| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        },
+    ));
+    builder
         .plugin(tauri_plugin_deep_link::init())
         .manage(runtime.clone())
         .setup(move |app| {

@@ -4,6 +4,7 @@ const message = document.querySelector('#status-message');
 const dot = document.querySelector('#status-dot');
 const output = document.querySelector('#main-output');
 const cacheCount = document.querySelector('#cache-count');
+const bridgeVersion = document.querySelector('#bridge-version');
 
 async function request(path, init) {
   const response = await fetch(`${baseUrl}${path}`, init);
@@ -14,6 +15,7 @@ async function request(path, init) {
 async function refresh() {
   try {
     const status = await request('/v1/status');
+    bridgeVersion.textContent = status.version;
     cacheCount.textContent = String(status.cachedTracks);
     dot.className = status.paired ? 'ready' : '';
     title.textContent = status.paired ? 'Bridge associé' : 'Association requise';

@@ -41,7 +41,7 @@ impl Runtime {
             audio: std::sync::Mutex::new(AudioEngine::new()),
             store,
             client: reqwest::Client::builder()
-                .user_agent("CueForge-Bridge/0.1.0")
+                .user_agent(format!("CueForge-Bridge/{}", env!("CARGO_PKG_VERSION")))
                 .build()
                 .map_err(|error| error.to_string())?,
         }))
@@ -69,11 +69,13 @@ impl Runtime {
         let name = hostname::get()
             .ok()
             .and_then(|value| value.into_string().ok())
-            .unwrap_or_else(|| "Mac CueForge".to_string());
+            .unwrap_or_else(|| default_device_name().to_string());
         let response = self
             .client
             .post(format!("{server_url}/api/bridge/pairings/claim"))
-            .json(&serde_json::json!({ "ticket": ticket, "name": name, "platform": "macos" }))
+            .json(
+                &serde_json::json!({ "ticket": ticket, "name": name, "platform": platform_name() }),
+            )
             .send()
             .await
             .map_err(|error| error.to_string())?;
@@ -152,9 +154,18 @@ impl Runtime {
                 .map_err(|error| error.to_string())?;
         }
         file.flush().await.map_err(|error| error.to_string())?;
+        drop(file);
         if received != track.size_bytes {
             let _ = fs::remove_file(&temporary).await;
             return Err("Le fichier audio reçu est incomplet.".to_string());
+        }
+        if fs::try_exists(&path)
+            .await
+            .map_err(|error| error.to_string())?
+        {
+            fs::remove_file(&path)
+                .await
+                .map_err(|error| error.to_string())?;
         }
         fs::rename(&temporary, &path)
             .await
@@ -239,6 +250,26 @@ impl Runtime {
             _ => return Err("Canal de sortie inconnu.".to_string()),
         }
         self.store.save(&config)
+    }
+}
+
+fn platform_name() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "windows"
+    } else if cfg!(target_os = "macos") {
+        "macos"
+    } else {
+        "linux"
+    }
+}
+
+fn default_device_name() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "PC CueForge"
+    } else if cfg!(target_os = "macos") {
+        "Mac CueForge"
+    } else {
+        "CueForge Bridge"
     }
 }
 

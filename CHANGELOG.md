@@ -2,6 +2,23 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.17.0] - 2026-08-29
+
+### Ajouté
+
+- application CueForge Bridge pour Windows x64 avec installateur NSIS ;
+- stockage sécurisé du jeton d’appareil et de la clé locale dans le Gestionnaire d’identification Windows ;
+- transmission des liens d’association à l’instance du bridge déjà ouverte ;
+- compilation et tests du bridge sur un runner Windows dédié ;
+- icône d’application aux formats macOS et Windows.
+
+### Modifié
+
+- publication simultanée des paquets macOS Apple Silicon, macOS Intel et Windows x64 ;
+- adaptation du cache audio au remplacement de fichiers sous Windows ;
+- affichage de la plateforme Windows dans la liste des bridges associés ;
+- passage de l’application à la version `0.17.0` et du bridge à la version `0.2.0`.
+
 ## [0.16.1] - 2026-08-29
 
 ### Ajouté

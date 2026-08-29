@@ -11,6 +11,21 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.17.0',
+    date: '2026-08-29',
+    title: 'CueForge Bridge pour Windows',
+    summary: 'Le moteur audio natif facultatif est maintenant distribué pour Windows x64 en plus des deux architectures macOS.',
+    important: true,
+    changes: [
+      'Un installateur Windows x64 est disponible dans la publication GitHub de CueForge Bridge.',
+      'L’association avec le navigateur utilise le même lien natif et le même serveur local que sur macOS.',
+      'Les clés du bridge sont conservées dans le Gestionnaire d’identification Windows.',
+      'Le cache audio, la sortie principale et la préécoute fonctionnent indépendamment du cache du navigateur.',
+      'L’application web reste entièrement utilisable sans installer ni sélectionner le bridge.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.16.1',
     date: '2026-08-29',
     title: 'Téléchargement du bridge pour Mac Intel et Apple Silicon',
