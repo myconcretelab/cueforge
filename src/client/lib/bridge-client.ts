@@ -8,6 +8,7 @@ export interface BridgeStatus {
   serverUrl: string | null;
   deviceId: string | null;
   cachedTracks: number;
+  capabilities?: string[];
 }
 
 export interface BridgeOutput {
@@ -27,6 +28,7 @@ export interface BridgePlayback {
   volume: number;
   fadingOut: boolean;
   channel: 'main' | 'preview';
+  outputId?: string;
 }
 
 interface BridgeAssociation {
@@ -114,10 +116,10 @@ class BridgeClient {
     this.notifyCache();
   }
 
-  async play(track: Track, fadeInMs: number, volumeMultiplier: number, channel: 'main' | 'preview' = 'main'): Promise<string> {
+  async play(track: Track, fadeInMs: number, volumeMultiplier: number, channel: 'main' | 'preview' = 'main', outputId?: string): Promise<string> {
     const result = await this.request<{ playbackId: string }>('/v1/play', {
       method: 'POST',
-      body: JSON.stringify({ track, fadeInMs, volumeMultiplier, channel }),
+      body: JSON.stringify({ track, fadeInMs, volumeMultiplier, channel, outputId }),
     });
     await this.refreshPlaybacks();
     return result.playbackId;
@@ -127,6 +129,10 @@ class BridgeClient {
   setVolume(id: string, volume: number): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/volume`, 'PUT', { volume }); }
   setLoop(id: string, loop: boolean): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/loop`, 'PUT', { loop }); }
   seek(id: string, progress: number): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/seek`, 'PUT', { progress }); }
+  async setPlaybackOutput(id: string, deviceId: string): Promise<void> {
+    await this.request(`/v1/playbacks/${encodeURIComponent(id)}/output`, { method: 'PUT', body: JSON.stringify({ deviceId }) });
+    await this.refreshPlaybacks();
+  }
   stop(id: string, fadeOutMs: number): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/stop`, 'POST', { fadeOutMs }); }
   stopTrack(trackId: string, fadeOutMs: number): void { this.send('/v1/stop-track', 'POST', { trackId, fadeOutMs }); }
   stopAll(fadeOutMs: number): void { this.send('/v1/stop-all', 'POST', { fadeOutMs }); }

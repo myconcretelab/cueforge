@@ -10,6 +10,7 @@ import { AppUpdateBanner } from './components/AppUpdateBanner';
 import { FreesoundDialog } from './components/FreesoundDialog';
 import { PlaylistPad } from './components/PlaylistPad';
 import { PlaylistPanel, type PlaylistOptions, type PlaylistQueueItem } from './components/PlaylistPanel';
+import { PlaybackOutputSelector } from './components/PlaybackOutputSelector';
 import { SoundShowImportDialog } from './components/SoundShowImportDialog';
 import { SettingsDialog } from './components/SettingsDialog';
 import { TrackDialog } from './components/TrackDialog';
@@ -21,6 +22,7 @@ import { applyAppUpdate, subscribeToAppUpdate } from './lib/app-update';
 import { appNoticesEnabled, shouldApplyAppUpdate, shouldOpenReleaseNotes } from './lib/app-mode';
 import { audioEngine, playbackPositionAt, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
 import { bridgeClient } from './lib/bridge-client';
+import { routableBridgeOutputs, supportsPerPlaybackOutput, type RoutedBridgeOutput } from './lib/bridge-output-routing';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
@@ -83,6 +85,7 @@ export default function App() {
   const [freesoundOpen, setFreesoundOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [bridgeAvailable, setBridgeAvailable] = useState<boolean>();
+  const [routedBridgeOutputs, setRoutedBridgeOutputs] = useState<RoutedBridgeOutput[]>([]);
   const [releaseInfo, setReleaseInfo] = useState<ReleaseInfo>();
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -115,6 +118,7 @@ export default function App() {
   const ignoredPlaylistPlaybackRef = useRef<string | undefined>(undefined);
   const playlistPlayedItemIdsRef = useRef(new Set<string>());
   const releaseAutoShownRef = useRef(false);
+  const bridgeOutputRefreshRef = useRef(0);
   const remote = new URLSearchParams(window.location.search).get('remote') === '1';
   const unseenReleases = useMemo(() => releaseInfo?.releases.filter((release) => releaseInfo.unseenVersions.includes(release.version)) ?? [], [releaseInfo]);
   const releasesForDialog = unseenReleases.length > 0 ? unseenReleases : releaseInfo?.releases ?? [];
@@ -222,6 +226,28 @@ export default function App() {
       bridgeClient.forgetAssociation();
     }).catch(() => undefined);
   }, [user]);
+
+  const refreshRoutedBridgeOutputs = useCallback(async () => {
+    const sequence = ++bridgeOutputRefreshRef.current;
+    if (bridgeAvailable !== true || !bridgeClient.isEnabled()) {
+      setRoutedBridgeOutputs([]);
+      return;
+    }
+    try {
+      const [status, result] = await Promise.all([bridgeClient.discover(), bridgeClient.outputs()]);
+      if (sequence !== bridgeOutputRefreshRef.current) return;
+      setRoutedBridgeOutputs(routableBridgeOutputs(result.outputs, supportsPerPlaybackOutput(status)));
+    } catch {
+      if (sequence === bridgeOutputRefreshRef.current) setRoutedBridgeOutputs([]);
+    }
+  }, [bridgeAvailable]);
+
+  useEffect(() => audioEngine.subscribeRouting(() => { refreshRoutedBridgeOutputs().catch(() => undefined); }), [refreshRoutedBridgeOutputs]);
+  useEffect(() => {
+    if (bridgeAvailable !== true) return;
+    const timer = window.setInterval(() => refreshRoutedBridgeOutputs().catch(() => undefined), 5_000);
+    return () => window.clearInterval(timer);
+  }, [bridgeAvailable, refreshRoutedBridgeOutputs]);
 
   const refreshProject = useCallback(async () => {
     if (!selectedProjectId) return;
@@ -467,6 +493,12 @@ export default function App() {
     }
     audioEngine.runAction(action, track, detail?.tracks ?? [], volumeMultiplier).catch((cause) => setError(cause.message));
   }, [consumeNextTrackVolume, detail, remote, socket]);
+
+  const playTrackOnOutput = useCallback((track: Track, outputId: string) => {
+    if (remote || !routedBridgeOutputs.some((output) => output.id === outputId)) return;
+    const volumeMultiplier = consumeNextTrackVolume();
+    audioEngine.play(track, track.fadeInMs, volumeMultiplier, outputId).catch((cause) => setError(cause.message));
+  }, [consumeNextTrackVolume, remote, routedBridgeOutputs]);
 
   const startPlaylistTrack = useCallback(async (track: Track, index: number, itemId: string, fadeInMs = track.fadeInMs): Promise<string | undefined> => {
     playlistRunRef.current = true;
@@ -1156,7 +1188,7 @@ export default function App() {
           const category = detail?.categories.find((item) => item.id === track.categoryId);
           const color = track.color ?? category?.color ?? '#71717a';
           return <article className={`player-card ${playback.paused ? 'is-paused' : ''}`} key={playback.id} style={{ '--track-color': color } as React.CSSProperties}>
-            <div className="player-card-copy"><strong>{track.title}</strong></div>
+            <div className="player-card-copy"><strong>{track.title}</strong><PlaybackOutputSelector title={track.title} outputId={playback.outputId} outputs={routedBridgeOutputs} disabled={playback.fadingOut} onChange={(outputId) => audioEngine.setInstanceOutput(playback.id, outputId).catch((cause) => setError(cause instanceof Error ? cause.message : 'Impossible de changer la sortie audio.'))} /></div>
             <PlaybackPositionControl playback={playback} title={track.title} />
             <PlaybackVolumeControl playback={playback} title={track.title} />
             <div className="player-card-controls">
@@ -1271,8 +1303,9 @@ export default function App() {
             const track = boardItem.track;
             const category = detail.categories.find((item) => item.id === track.categoryId);
             const shortcutIndex = visibleTracks.findIndex((candidate) => candidate.id === track.id);
-            return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={sidebarTool === 'playlist' && !remote} dropTarget={dropTrackId === track.id} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={shortcutIndex < 9 ? shortcutIndex + 1 : undefined}
+            return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={sidebarTool === 'playlist' && !remote} dropTarget={dropTrackId === track.id} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={shortcutIndex < 9 ? shortcutIndex + 1 : undefined} bridgeOutputs={remote || reorderMode ? [] : routedBridgeOutputs}
               onPrimary={() => runTrackAction(detail.project.leftClickAction ?? 'start', track)}
+              onOutputPlay={(outputId) => playTrackOnOutput(track, outputId)}
               onSecondary={() => runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
               onEdit={() => { if (!reorderMode) setEditingTrack(track); }}
               onDragStart={(event) => { if (reorderMode) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', track.id); setDraggedTrackId(track.id); } else if (sidebarTool === 'playlist') { event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('application/x-cueforge-track', track.id); } }}

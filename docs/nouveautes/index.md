@@ -2,6 +2,15 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.21.0 — 29 août 2026
+
+- lancement direct d’un morceau sur une sortie physique précise ;
+- couleur propre à chaque sortie disponible ;
+- changement de sortie depuis une lecture active ;
+- publication de CueForge Bridge 0.3.0.
+
+[Détails de la version 0.21.0](./0.21.0.md)
+
 ## Version 0.20.0 — 29 août 2026
 
 - détection et état du Bridge directement dans la barre de régie ;

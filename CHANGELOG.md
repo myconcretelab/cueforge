@@ -2,6 +2,20 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.21.0] - 2026-08-29
+
+### Ajouté
+
+- boutons Play colorés par sortie physique sur chaque morceau lorsque plusieurs sorties sont disponibles ;
+- indication colorée de la sortie utilisée par chaque lecture active ;
+- changement de sortie pendant la lecture avec conservation de la position et des réglages ;
+- API locale de routage par lecture dans CueForge Bridge 0.3.0.
+
+### Modifié
+
+- exclusion de l’alias « sortie système par défaut » du comptage des sorties physiques ;
+- passage de l’application à la version `0.21.0` et du bridge à la version `0.3.0`.
+
 ## [0.20.0] - 2026-08-29
 
 ### Ajouté

@@ -17,6 +17,7 @@ export interface ActivePlayback {
   volumeTransitionStartedAtMs: number;
   volumeTransitionDurationMs: number;
   fadingOut: boolean;
+  outputId?: string;
 }
 
 export interface AudioOutputDevice {
@@ -220,6 +221,7 @@ class AudioEngine {
         volumeTransitionStartedAtMs: now,
         volumeTransitionDurationMs: 0,
         fadingOut: playback.fadingOut,
+        outputId: playback.outputId,
       }));
     }
     return [...this.active.values()]
@@ -310,8 +312,8 @@ class AudioEngine {
     await this.load(track);
   }
 
-  async play(track: Track, fadeInMs = track.fadeInMs, volumeMultiplier = 1): Promise<string> {
-    if (bridgeClient.isEnabled()) return bridgeClient.play(track, fadeInMs, volumeMultiplier);
+  async play(track: Track, fadeInMs = track.fadeInMs, volumeMultiplier = 1, outputId?: string): Promise<string> {
+    if (bridgeClient.isEnabled()) return bridgeClient.play(track, fadeInMs, volumeMultiplier, 'main', outputId);
     const [context, buffer] = await Promise.all([this.getContext(), this.load(track)]);
     const gain = context.createGain();
     const startAt = Math.min(track.startTimeMs / 1000, Math.max(0, buffer.duration - 0.01));
@@ -428,6 +430,11 @@ class AudioEngine {
       this.startPlaybackSource(playback);
     }
     this.notify();
+  }
+
+  async setInstanceOutput(playbackId: string, outputId: string): Promise<void> {
+    if (!bridgeClient.isEnabled()) throw new Error('Le changement de sortie en cours de lecture nécessite CueForge Bridge.');
+    await bridgeClient.setPlaybackOutput(playbackId, outputId);
   }
 
   stop(trackId: string, fadeOutMs = 250): void {

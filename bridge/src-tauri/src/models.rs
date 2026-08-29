@@ -52,6 +52,7 @@ pub struct PlaybackSnapshot {
     pub volume: f32,
     pub fading_out: bool,
     pub channel: String,
+    pub output_id: String,
 }
 
 #[cfg(test)]

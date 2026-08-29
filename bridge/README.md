@@ -6,6 +6,7 @@ CueForge Bridge est le moteur audio natif facultatif de CueForge. L’applicatio
 
 - application de bureau Tauri 2 pour macOS et Windows x64 ;
 - moteur audio CPAL/Rodio avec une sortie ouverte par périphérique utilisé ;
+- routage individuel des lectures avec changement de périphérique à la même position ;
 - serveur HTTP local sur `127.0.0.1:43821` ;
 - canal WebSocket local pour l’état des lectures ;
 - cache de fichiers compressés dans le dossier de cache de l’utilisateur ;
@@ -48,4 +49,4 @@ Le lien d’association accepte `https://app.cueforge.fr`. En développement, le
 
 ## API locale
 
-`GET /v1/status` expose uniquement l’état général du processus. Les routes de lecture, de cache et de synchronisation exigent `Authorization: Bearer <clé-locale>`. Les origines CORS admises sont l’application CueForge en production, Vite en développement et la fenêtre Tauri.
+`GET /v1/status` expose l’état général du processus et ses capacités. `POST /v1/play` accepte une propriété facultative `outputId`. `PUT /v1/playbacks/:id/output` déplace une lecture active vers le périphérique fourni. Les routes de lecture, de cache et de synchronisation exigent `Authorization: Bearer <clé-locale>`. Les origines CORS admises sont l’application CueForge en production, Vite en développement et la fenêtre Tauri.

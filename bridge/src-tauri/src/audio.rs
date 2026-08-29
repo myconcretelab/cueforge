@@ -19,6 +19,7 @@ struct Playback {
     path: PathBuf,
     position_offset_ms: u64,
     channel: String,
+    output_id: String,
 }
 
 pub struct AudioEngine {
@@ -126,6 +127,7 @@ impl AudioEngine {
                 path: path.to_path_buf(),
                 position_offset_ms: 0,
                 channel: channel.to_string(),
+                output_id: output_id.to_string(),
             },
         );
         if fade_in_ms > 0 {
@@ -164,6 +166,7 @@ impl AudioEngine {
                     volume: playback.volume,
                     fading_out: playback.fading_out,
                     channel: playback.channel.clone(),
+                    output_id: playback.output_id.clone(),
                 }
             })
             .collect::<Vec<_>>();
@@ -233,6 +236,45 @@ impl AudioEngine {
             playback.player.pause();
         }
         playback.position_offset_ms = position_ms;
+        Ok(())
+    }
+
+    pub fn set_output(&mut self, id: &str, output_id: &str) -> Result<(), String> {
+        let (position_ms, paused, loop_playback, volume, track, path, previous_player) = {
+            let playback = self
+                .active
+                .get(id)
+                .ok_or_else(|| "Lecture introuvable.".to_string())?;
+            if playback.fading_out {
+                return Err(
+                    "Une lecture en fondu sortant ne peut pas changer de sortie.".to_string(),
+                );
+            }
+            (
+                current_position(playback),
+                playback.player.is_paused(),
+                playback.loop_playback,
+                playback.volume,
+                playback.track.clone(),
+                playback.path.clone(),
+                playback.player.clone(),
+            )
+        };
+        let mixer = self.output(output_id)?.mixer().clone();
+        let player = Arc::new(Player::connect_new(&mixer));
+        player.set_volume(volume);
+        append_source(&player, &track, &path, position_ms, loop_playback)?;
+        if paused {
+            player.pause();
+        }
+        let playback = self
+            .active
+            .get_mut(id)
+            .ok_or_else(|| "Lecture introuvable.".to_string())?;
+        previous_player.stop();
+        playback.player = player;
+        playback.position_offset_ms = position_ms;
+        playback.output_id = output_id.to_string();
         Ok(())
     }
 

@@ -55,6 +55,7 @@ struct PlayInput {
     fade_in_ms: Option<u64>,
     volume_multiplier: Option<f32>,
     channel: Option<String>,
+    output_id: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -110,6 +111,7 @@ pub async fn serve(state: Arc<Runtime>) -> Result<(), String> {
         .route("/v1/playbacks/{id}/volume", put(set_volume))
         .route("/v1/playbacks/{id}/loop", put(set_loop))
         .route("/v1/playbacks/{id}/seek", put(seek))
+        .route("/v1/playbacks/{id}/output", put(set_playback_output))
         .route("/v1/playbacks/{id}/stop", post(stop))
         .route("/v1/stop-track", post(stop_track))
         .route("/v1/stop-all", post(stop_all))
@@ -141,6 +143,7 @@ async fn status(State(state): State<Arc<Runtime>>) -> Json<serde_json::Value> {
         "serverUrl": config.server_url,
         "deviceId": config.device_id,
         "cachedTracks": state.cached_tracks().await,
+        "capabilities": ["perPlaybackOutput"],
     }))
 }
 
@@ -215,13 +218,15 @@ async fn play(
     let path = state.ensure_track(&input.track).await?;
     let channel = input.channel.as_deref().unwrap_or("main");
     let config = state.config.read().await;
-    let output_id = if channel == "preview" {
-        config.preview_output_id.as_deref()
-    } else {
-        config.main_output_id.as_deref()
-    }
-    .unwrap_or("default")
-    .to_string();
+    let output_id = input.output_id.clone().unwrap_or_else(|| {
+        if channel == "preview" {
+            config.preview_output_id.as_deref()
+        } else {
+            config.main_output_id.as_deref()
+        }
+        .unwrap_or("default")
+        .to_string()
+    });
     drop(config);
     let mut engine = state.audio.lock().map_err(|_| {
         ApiError(
@@ -371,6 +376,30 @@ async fn seek(
         .lock()
         .map_err(lock_error)?
         .seek(&id, input.progress)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn set_playback_output(
+    headers: HeaderMap,
+    State(state): State<Arc<Runtime>>,
+    Path(id): Path<String>,
+    Json(input): Json<OutputInput>,
+) -> ApiResult<StatusCode> {
+    authorize(&headers, &state, false).await?;
+    if !AudioEngine::list_outputs()?
+        .iter()
+        .any(|output| output.id == input.device_id)
+    {
+        return Err(ApiError(
+            StatusCode::BAD_REQUEST,
+            "Cette sortie audio n’est pas disponible.".to_string(),
+        ));
+    }
+    state
+        .audio
+        .lock()
+        .map_err(lock_error)?
+        .set_output(&id, &input.device_id)?;
     Ok(StatusCode::NO_CONTENT)
 }
 

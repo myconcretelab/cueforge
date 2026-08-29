@@ -1,5 +1,6 @@
 import { AudioWaveform, CircleCheck, Infinity as InfinityIcon, MoreHorizontal, Play } from 'lucide-react';
 import type { ActivePlayback } from '../lib/audio-engine';
+import type { RoutedBridgeOutput } from '../lib/bridge-output-routing';
 import type { Track } from '../types';
 
 interface Props {
@@ -14,7 +15,9 @@ interface Props {
   dropTarget: boolean;
   playlistPositionTarget?: 'before' | 'after';
   shortcut?: number;
+  bridgeOutputs: RoutedBridgeOutput[];
   onPrimary: () => void;
+  onOutputPlay: (outputId: string) => void;
   onSecondary: () => void;
   onEdit: () => void;
   onDragStart: (event: React.DragEvent<HTMLElement>) => void;
@@ -23,7 +26,7 @@ interface Props {
   onDragEnd: () => void;
 }
 
-export function TrackPad({ track, color, active, playbacks, historyProgress, loaded, reorderEnabled, playlistDropEnabled, dropTarget, playlistPositionTarget, shortcut, onPrimary, onSecondary, onEdit, onDragStart, onDragOver, onDrop, onDragEnd }: Props) {
+export function TrackPad({ track, color, active, playbacks, historyProgress, loaded, reorderEnabled, playlistDropEnabled, dropTarget, playlistPositionTarget, shortcut, bridgeOutputs, onPrimary, onOutputPlay, onSecondary, onEdit, onDragStart, onDragOver, onDrop, onDragEnd }: Props) {
   return <article className={`track-pad ${active ? 'is-active' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${playlistDropEnabled ? 'playlist-drag-enabled' : ''} ${dropTarget ? 'is-drop-target' : ''} ${playlistPositionTarget ? `playlist-position-target drop-${playlistPositionTarget}` : ''}`}
     style={{ '--track-color': color } as React.CSSProperties} draggable={reorderEnabled || playlistDropEnabled}
     onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}>
@@ -33,6 +36,9 @@ export function TrackPad({ track, color, active, playbacks, historyProgress, loa
       <span className="play-disc">{active ? <AudioWaveform size={18} /> : <Play size={18} fill="currentColor" />}</span>
       <span className="track-title">{track.title}</span>
     </button>
+    {bridgeOutputs.length > 1 && <div className="track-output-plays" aria-label="Jouer sur une sortie précise">
+      {bridgeOutputs.map((output) => <button type="button" key={output.id} style={{ '--output-color': output.color } as React.CSSProperties} onClick={() => onOutputPlay(output.id)} aria-label={`Jouer ${track.title} sur ${output.name}`} title={output.name}><Play size={11} fill="currentColor" /></button>)}
+    </div>}
     {(historyProgress > 0 || playbacks.length > 0) && <span className={`track-progress ${playbacks.length > 0 ? 'is-playing' : ''}`} aria-hidden="true">
       {playbacks.length === 0 && historyProgress > 0 && <i className="history" style={{ transform: `scaleX(${historyProgress})` }} />}
       {playbacks.map((playback) => <i className="active" key={`${playback.id}:${playback.resumedAtMs}:${playback.elapsedMs}:${playback.paused}`} style={{

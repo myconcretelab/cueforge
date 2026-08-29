@@ -11,6 +11,21 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.21.0',
+    date: '2026-08-29',
+    title: 'Une sortie par lecture',
+    summary: 'CueForge Bridge peut lancer chaque morceau sur une sortie précise et déplacer une lecture active vers un autre périphérique.',
+    important: true,
+    changes: [
+      'Lorsque plusieurs sorties physiques sont disponibles, chaque morceau affiche un petit bouton Play coloré par sortie.',
+      'Le grand bouton Play conserve le comportement de la sortie principale.',
+      'Une LED colorée dans chaque lecteur actif indique sa sortie et ouvre le choix des autres sorties.',
+      'Le passage sur une autre sortie conserve la position, la pause, la boucle et le volume de la lecture.',
+      'Cette fonction nécessite CueForge Bridge 0.3.0 ou une version ultérieure.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.20.0',
     date: '2026-08-29',
     title: 'Connexion rapide au Bridge',
