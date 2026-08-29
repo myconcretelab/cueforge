@@ -2,6 +2,20 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.24.0] - 2026-08-29
+
+### Ajouté
+
+- module d’accès aux forfaits dans le header lorsque la gestion avancée des sorties audio n’est pas disponible ;
+- libellés adaptés à la démonstration, au forfait gratuit, à la période d’essai et aux accès restreints.
+
+### Modifié
+
+- placement du module de sortie audio à gauche du volume du son suivant sur toutes les largeurs d’écran ;
+- disponibilité de la gestion avancée des sorties audio à partir de l’activation payante, après la période d’essai ;
+- masquage des contrôles de sortie dans les paramètres pour les accès sans forfait payant actif ;
+- passage de l’application à la version `0.24.0`.
+
 ## [0.23.0] - 2026-08-29
 
 ### Ajouté

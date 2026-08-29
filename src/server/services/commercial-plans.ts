@@ -27,5 +27,5 @@ export function accountCanUseBridge(input: {
 }): boolean {
   return !input.isDemo
     && planIncludesBridge(input)
-    && ['trialing', 'active', 'grace_period'].includes(input.accessStatus);
+    && ['active', 'grace_period'].includes(input.accessStatus);
 }

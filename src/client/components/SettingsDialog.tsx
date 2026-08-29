@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BookOpen, Cable, CloudDownload, CreditCard, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, LoaderCircle, LogOut, Palette, Plus, RefreshCcw, Settings2, ShieldCheck, Speaker, Smartphone, Trash2, Waves, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { audioEngine, type AudioOutputDevice } from '../lib/audio-engine';
@@ -11,13 +11,14 @@ interface Props {
   projects: Project[];
   projectColors: ProjectColor[];
   selectedProjectId: string | null;
+  initialSection?: 'billing';
   offlineStatus: string;
   remote: boolean;
   appVersion?: string;
   hasUnseenReleases: boolean;
   automaticUpdates: boolean;
   onAutomaticUpdatesChange: (enabled: boolean) => void;
-  onBridgeAvailabilityChange: (available: boolean) => void;
+  onAccountChange: (account: AccountSummary) => void;
   onChooseProject: (id: string) => void;
   onCreateProject: () => void;
   onReorderProjects: (projectIds: string[]) => Promise<void>;
@@ -57,7 +58,7 @@ function formatPrice(cents: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 }
 
-export function SettingsDialog({ user, projects, projectColors, selectedProjectId, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, onAutomaticUpdatesChange, onBridgeAvailabilityChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
+export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, onAutomaticUpdatesChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
   const [newColor, setNewColor] = useState('#f97316');
   const [draggedProjectId, setDraggedProjectId] = useState<string>();
@@ -85,6 +86,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
   const [bridgeMainOutputId, setBridgeMainOutputId] = useState('default');
   const [bridgePreviewOutputId, setBridgePreviewOutputId] = useState('default');
   const [bridgeDevices, setBridgeDevices] = useState<BridgeDevice[]>([]);
+  const billingSectionRef = useRef<HTMLElement>(null);
 
   const refreshAudioOutputs = useCallback(async () => {
     if (!audioOutputSupported) return;
@@ -104,7 +106,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
 
   useEffect(() => {
     if (!account) return;
-    onBridgeAvailabilityChange(account.bridgeAvailable);
+    onAccountChange(account);
     if (!account.bridgeAvailable) {
       if (bridgeClient.isAssociated()) bridgeClient.stopAll(0);
       bridgeClient.forgetAssociation();
@@ -114,15 +116,22 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
       return;
     }
     api.bridgeDevices().then((result) => setBridgeDevices(result.devices)).catch(() => setBridgeDevices([]));
-  }, [account, onBridgeAvailabilityChange]);
+  }, [account, onAccountChange]);
 
   useEffect(() => {
+    if (initialSection !== 'billing' || !account) return;
+    const frame = window.requestAnimationFrame(() => billingSectionRef.current?.scrollIntoView({ block: 'start' }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [account, initialSection]);
+
+  useEffect(() => {
+    if (!account?.bridgeAvailable) return;
     refreshAudioOutputs().catch(() => undefined);
     if (!audioOutputSupported || typeof navigator === 'undefined' || !navigator.mediaDevices) return;
     const onDeviceChange = () => refreshAudioOutputs().catch(() => undefined);
     navigator.mediaDevices.addEventListener('devicechange', onDeviceChange);
     return () => navigator.mediaDevices.removeEventListener('devicechange', onDeviceChange);
-  }, [audioOutputSupported, refreshAudioOutputs]);
+  }, [account?.bridgeAvailable, audioOutputSupported, refreshAudioOutputs]);
 
   useEffect(() => {
     if (account && !selectedPlanCode) setSelectedPlanCode(account.planCode);
@@ -379,40 +388,40 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         <div className="settings-actions"><button className="button ghost" onClick={onImportSoundShow}><FileArchive size={17} />Importer SoundShow</button><button className="button ghost" onClick={onOpenFreesound}><Waves size={17} />Rechercher sur Freesound</button><button className="button ghost" onClick={onCacheOffline}><CloudDownload size={17} />{offlineStatus || 'Rendre disponible hors ligne'}</button></div>
       </section>
       <section className="settings-section">
-        <div className="settings-section-title"><Speaker size={16} /><div><strong>Moteur et sorties audio</strong><span>Le navigateur reste utilisable seul. Le bridge ajoute un cache natif et plusieurs sorties indépendantes.</span></div></div>
-        <div className="audio-output-controls">
-          <label><span>Moteur</span><select value={audioMode} disabled={bridgeBusy} onChange={(event) => changeAudioMode(event.target.value as 'browser' | 'bridge')}>
-            <option value="browser">Navigateur · Web Audio</option>
-            <option value="bridge" disabled={!bridgeAvailable || !bridgeClient.isAssociated()}>{bridgeAvailable ? 'CueForge Bridge' : 'CueForge Bridge · forfait payant'}</option>
-          </select></label>
-          {bridgeAvailable && !bridgeClient.isAssociated() && <button type="button" className="button ghost" disabled={bridgeBusy || user.isDemo} onClick={connectBridge}>{bridgeBusy ? <LoaderCircle className="spin" size={16} /> : <Cable size={16} />}Connecter le bridge</button>}
-        </div>
+        <div className="settings-section-title"><Speaker size={16} /><div><strong>Moteur et sorties audio</strong><span>{bridgeAvailable ? 'Le navigateur reste utilisable seul. Le bridge ajoute un cache natif et plusieurs sorties indépendantes.' : 'Le son utilise la sortie système par défaut.'}</span></div></div>
         {bridgeAvailable ? <>
+          <div className="audio-output-controls">
+            <label><span>Moteur</span><select value={audioMode} disabled={bridgeBusy} onChange={(event) => changeAudioMode(event.target.value as 'browser' | 'bridge')}>
+              <option value="browser">Navigateur · Web Audio</option>
+              <option value="bridge" disabled={!bridgeClient.isAssociated()}>CueForge Bridge</option>
+            </select></label>
+            {!bridgeClient.isAssociated() && <button type="button" className="button ghost" disabled={bridgeBusy} onClick={connectBridge}>{bridgeBusy ? <LoaderCircle className="spin" size={16} /> : <Cable size={16} />}Connecter le bridge</button>}
+          </div>
           <div className="settings-actions"><a className="button ghost" href="/api/bridge/download" target="_blank" rel="noreferrer"><CloudDownload size={16} />Télécharger CueForge Bridge</a></div>
           <p className="audio-output-note">La page de téléchargement propose des paquets pour macOS Apple Silicon, macOS Intel et Windows x64. Les paquets actuels ne sont pas signés pour une distribution publique.</p>
-        </> : account && <p className="audio-output-unavailable">CueForge Bridge est inclus dans les forfaits payants actifs. Le moteur Navigateur reste disponible avec ce forfait.</p>}
-        {audioMode === 'browser' && (audioOutputSupported ? <>
-          <div className="audio-output-controls">
-            <label><span>Périphérique</span><select value={selectedAudioOutputId} disabled={audioOutputBusy} onChange={(event) => changeAudioOutput(event.target.value)}>
-              {selectedAudioOutputId && !audioOutputs.some((device) => device.deviceId === selectedAudioOutputId) && <option value={selectedAudioOutputId}>{audioEngine.getAudioOutputSelection().label}</option>}
-              {audioOutputs.map((device) => <option value={device.deviceId} key={device.deviceId || 'default'}>{device.label}</option>)}
-            </select></label>
-            {audioOutputPickerSupported && <button type="button" className="button ghost" disabled={audioOutputBusy} onClick={chooseAudioOutput}>{audioOutputBusy ? <LoaderCircle className="spin" size={16} /> : <Speaker size={16} />}Choisir</button>}
-            <button type="button" className="icon-button" disabled={audioOutputBusy} onClick={() => refreshAudioOutputs()} aria-label="Actualiser les sorties audio" title="Actualiser"><RefreshCcw size={16} /></button>
-          </div>
-          <p className="audio-output-note">Le choix est enregistré sur cet appareil. La sortie système est utilisée si le périphérique enregistré n’est plus disponible.</p>
-          {audioOutputError && <p className="audio-output-error">{audioOutputError}</p>}
-        </> : <p className="audio-output-unavailable">Ce navigateur ne permet pas à CueForge de choisir la sortie du moteur Web Audio. La sortie système reste utilisée.</p>)}
-        {bridgeAvailable && audioMode === 'bridge' && <>
-          <div className="bridge-output-grid">
-            <label><span>Régie principale</span><select value={bridgeMainOutputId} disabled={bridgeBusy} onChange={(event) => changeBridgeOutput('main', event.target.value)}>{bridgeOutputs.map((device) => <option key={device.id} value={device.id}>{device.name}</option>)}</select></label>
-            <label><span>Préécoute</span><select value={bridgePreviewOutputId} disabled={bridgeBusy} onChange={(event) => changeBridgeOutput('preview', event.target.value)}>{bridgeOutputs.map((device) => <option key={device.id} value={device.id}>{device.name}</option>)}</select></label>
-          </div>
-          <div className="settings-actions"><button type="button" className="button ghost" disabled={bridgeBusy} onClick={refreshBridge}><RefreshCcw size={16} />Actualiser</button><button type="button" className="button ghost" disabled={bridgeBusy || !selectedProjectId} onClick={syncBridge}><CloudDownload size={16} />Synchroniser le spectacle</button></div>
-        </>}
-        {bridgeMessage && <p className="audio-output-note">{bridgeMessage}</p>}
-        {bridgeError && <p className="audio-output-error">{bridgeError}</p>}
-        {bridgeAvailable && bridgeDevices.length > 0 && <div className="bridge-device-list">{bridgeDevices.map((device) => <div key={device.id}><span><strong>{device.name}</strong><small>{bridgePlatformLabel(device.platform)} · {device.lastSeenAt ? `vu ${new Date(device.lastSeenAt).toLocaleString('fr-FR')}` : 'jamais connecté'}</small></span><button type="button" className="icon-button" disabled={bridgeBusy} onClick={() => revokeBridge(device)} aria-label={`Dissocier ${device.name}`} title="Dissocier"><Trash2 size={15} /></button></div>)}</div>}
+          {audioMode === 'browser' && (audioOutputSupported ? <>
+            <div className="audio-output-controls">
+              <label><span>Périphérique</span><select value={selectedAudioOutputId} disabled={audioOutputBusy} onChange={(event) => changeAudioOutput(event.target.value)}>
+                {selectedAudioOutputId && !audioOutputs.some((device) => device.deviceId === selectedAudioOutputId) && <option value={selectedAudioOutputId}>{audioEngine.getAudioOutputSelection().label}</option>}
+                {audioOutputs.map((device) => <option value={device.deviceId} key={device.deviceId || 'default'}>{device.label}</option>)}
+              </select></label>
+              {audioOutputPickerSupported && <button type="button" className="button ghost" disabled={audioOutputBusy} onClick={chooseAudioOutput}>{audioOutputBusy ? <LoaderCircle className="spin" size={16} /> : <Speaker size={16} />}Choisir</button>}
+              <button type="button" className="icon-button" disabled={audioOutputBusy} onClick={() => refreshAudioOutputs()} aria-label="Actualiser les sorties audio" title="Actualiser"><RefreshCcw size={16} /></button>
+            </div>
+            <p className="audio-output-note">Le choix est enregistré sur cet appareil. La sortie système est utilisée si le périphérique enregistré n’est plus disponible.</p>
+            {audioOutputError && <p className="audio-output-error">{audioOutputError}</p>}
+          </> : <p className="audio-output-unavailable">Ce navigateur ne permet pas à CueForge de choisir la sortie du moteur Web Audio. La sortie système reste utilisée.</p>)}
+          {audioMode === 'bridge' && <>
+            <div className="bridge-output-grid">
+              <label><span>Régie principale</span><select value={bridgeMainOutputId} disabled={bridgeBusy} onChange={(event) => changeBridgeOutput('main', event.target.value)}>{bridgeOutputs.map((device) => <option key={device.id} value={device.id}>{device.name}</option>)}</select></label>
+              <label><span>Préécoute</span><select value={bridgePreviewOutputId} disabled={bridgeBusy} onChange={(event) => changeBridgeOutput('preview', event.target.value)}>{bridgeOutputs.map((device) => <option key={device.id} value={device.id}>{device.name}</option>)}</select></label>
+            </div>
+            <div className="settings-actions"><button type="button" className="button ghost" disabled={bridgeBusy} onClick={refreshBridge}><RefreshCcw size={16} />Actualiser</button><button type="button" className="button ghost" disabled={bridgeBusy || !selectedProjectId} onClick={syncBridge}><CloudDownload size={16} />Synchroniser le spectacle</button></div>
+          </>}
+          {bridgeMessage && <p className="audio-output-note">{bridgeMessage}</p>}
+          {bridgeError && <p className="audio-output-error">{bridgeError}</p>}
+          {bridgeDevices.length > 0 && <div className="bridge-device-list">{bridgeDevices.map((device) => <div key={device.id}><span><strong>{device.name}</strong><small>{bridgePlatformLabel(device.platform)} · {device.lastSeenAt ? `vu ${new Date(device.lastSeenAt).toLocaleString('fr-FR')}` : 'jamais connecté'}</small></span><button type="button" className="icon-button" disabled={bridgeBusy} onClick={() => revokeBridge(device)} aria-label={`Dissocier ${device.name}`} title="Dissocier"><Trash2 size={15} /></button></div>)}</div>}
+        </> : <p className="audio-output-unavailable">{account?.accessStatus === 'trialing' ? 'La gestion des sorties audio sera disponible après la période d’essai.' : 'La gestion des sorties audio est réservée aux forfaits payants actifs.'}</p>}
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><Smartphone size={16} /><div><strong>Télécommande</strong><span>Utilisez cette vue depuis un téléphone connecté au même spectacle.</span></div></div>
@@ -426,7 +435,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
           <label><span><kbd>Espace</kbd> Barre d’espace</span><select value={selectedProject?.spaceKeyAction ?? 'stop-all-immediate'} onChange={(event) => onUpdateKeyAction('space', event.target.value as KeyAction)}>{keyActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
         </div>
       </section>
-      <section className="settings-section">
+      <section className="settings-section" ref={billingSectionRef}>
         <div className="settings-section-title"><HardDrive size={16} /><div><strong>Offre et stockage</strong><span>{account?.name ?? 'Chargement de votre espace…'}</span></div></div>
         {account && <div className="account-plan">
           <div><strong>{user.isDemo ? 'Démonstration temporaire' : account.planName}</strong><span>{user.isDemo ? '15 fichiers importés · 5 Mo maximum par fichier' : account.accessStatus === 'trialing' && trialDaysLeft !== null ? `${trialDaysLeft} jour${trialDaysLeft > 1 ? 's' : ''} restant${trialDaysLeft > 1 ? 's' : ''}` : account.accessStatus === 'active' ? 'Accès actif' : account.accessStatus === 'grace_period' ? 'Délai de grâce' : account.accessStatus === 'suspended' ? 'Accès suspendu' : 'Lecture seule'}</span></div>

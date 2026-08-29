@@ -11,6 +11,21 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.24.0',
+    date: '2026-08-29',
+    title: 'Sorties audio selon le forfait',
+    summary: 'La gestion des sorties audio est réservée aux forfaits payants actifs et son accès est présenté directement dans le header.',
+    important: false,
+    changes: [
+      'Le module des sorties audio est placé à gauche du volume du son suivant sur toutes les largeurs d’écran.',
+      'Le forfait gratuit et la démonstration affichent un bouton d’accès aux forfaits à la place du sélecteur.',
+      'Pendant la période d’essai, le module renvoie vers la gestion de l’abonnement et indique que la fonction sera disponible après l’essai.',
+      'Les paramètres masquent également les contrôles avancés lorsque le forfait ne les inclut pas.',
+      'La sortie système par défaut reste utilisée lorsque la gestion avancée n’est pas disponible.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.23.0',
     date: '2026-08-29',
     title: 'Tableau des sorties et Bridge autonome',

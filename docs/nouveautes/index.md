@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.24.0 — 29 août 2026
+
+- gestion des sorties audio réservée aux forfaits payants actifs ;
+- bouton adapté dans le header pour la démonstration, le forfait gratuit et l’essai ;
+- module audio placé à gauche du volume du son suivant.
+
+[Détails de la version 0.24.0](./0.24.0.md)
+
 ## Version 0.23.0 — 29 août 2026
 
 - réglette lisible des sorties audio au-dessus du header ;

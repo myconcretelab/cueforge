@@ -6,6 +6,7 @@ import {
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
 import { AudioOutputConsole } from './components/AudioOutputConsole';
+import { AudioOutputUpgradeConsole, type AudioOutputUpgradeMode } from './components/AudioOutputUpgradeConsole';
 import { BridgeOutputLegend } from './components/BridgeOutputLegend';
 import { AppUpdateBanner } from './components/AppUpdateBanner';
 import { FreesoundDialog } from './components/FreesoundDialog';
@@ -27,7 +28,7 @@ import { playbackBridgeOutput, routableBridgeOutputs, supportsPerPlaybackOutput,
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
-import type { Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ReleaseInfo, RemoteCommand, Track, User } from './types';
+import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ReleaseInfo, RemoteCommand, Track, User } from './types';
 
 const colors = ['#f97316', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
 const mouseActions: Array<{ value: MouseAction; label: string }> = [
@@ -85,6 +86,8 @@ export default function App() {
   const [soundShowImportOpen, setSoundShowImportOpen] = useState(false);
   const [freesoundOpen, setFreesoundOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsInitialSection, setSettingsInitialSection] = useState<'billing'>();
+  const [accountSummary, setAccountSummary] = useState<AccountSummary>();
   const [bridgeAvailable, setBridgeAvailable] = useState<boolean>();
   const [routedBridgeOutputs, setRoutedBridgeOutputs] = useState<RoutedBridgeOutput[]>([]);
   const [mainBridgeOutputId, setMainBridgeOutputId] = useState<string>();
@@ -125,6 +128,10 @@ export default function App() {
   const unseenReleases = useMemo(() => releaseInfo?.releases.filter((release) => releaseInfo.unseenVersions.includes(release.version)) ?? [], [releaseInfo]);
   const releasesForDialog = unseenReleases.length > 0 ? unseenReleases : releaseInfo?.releases ?? [];
   const noticesEnabled = appNoticesEnabled(user);
+  const handleAccountChange = useCallback((account: AccountSummary) => {
+    setAccountSummary(account);
+    setBridgeAvailable(account.bridgeAvailable);
+  }, []);
 
   useEffect(() => audioEngine.subscribe(setActivePlaybacks), []);
   useEffect(() => audioEngine.subscribeHistory(setPlaybackHistory), []);
@@ -216,12 +223,14 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     if (user.isDemo) {
+      setAccountSummary(undefined);
       setBridgeAvailable(false);
       if (bridgeClient.isAssociated()) bridgeClient.stopAll(0);
       bridgeClient.forgetAssociation();
       return;
     }
     api.account().then(({ account }) => {
+      setAccountSummary(account);
       setBridgeAvailable(account.bridgeAvailable);
       if (account.bridgeAvailable) return;
       if (bridgeClient.isAssociated()) bridgeClient.stopAll(0);
@@ -1166,6 +1175,15 @@ export default function App() {
     window.location.href = '/?register=1';
   }
 
+  function openAudioOutputUpgrade() {
+    if (user?.isDemo) {
+      createAccountFromDemo().catch((cause) => setError(cause instanceof Error ? cause.message : 'Impossible d’afficher les forfaits.'));
+      return;
+    }
+    setSettingsInitialSection('billing');
+    setSettingsOpen(true);
+  }
+
   function closeWhatsNew() {
     setWhatsNewOpen(false);
     if (!releaseInfo || releaseInfo.unseenVersions.length === 0) return;
@@ -1181,6 +1199,16 @@ export default function App() {
 
   if (user === undefined) return <div className="app-loader"><span className="brand-mark loader pulse" aria-hidden="true">CF</span><span>CueForge</span></div>;
   if (!user) return <><AuthScreen onAuthenticated={(authenticated) => { localStorage.setItem('cueforge-user', JSON.stringify(authenticated)); setUser(authenticated); }} />{error && <Toast message={error} onClose={() => setError('')} />}</>;
+
+  const audioOutputUpgradeMode: AudioOutputUpgradeMode | undefined = user.isDemo
+    ? 'demo'
+    : bridgeAvailable !== false
+      ? undefined
+      : accountSummary?.accessStatus === 'trialing'
+        ? 'trial'
+        : accountSummary?.accessStatus === 'read_only' || accountSummary?.accessStatus === 'suspended'
+          ? 'restricted'
+          : 'free';
 
   return <div className={`app-shell ${remote ? 'remote-mode' : ''}`}>
     <aside className={sidebarOpen ? 'sidebar open' : 'sidebar'}>
@@ -1221,11 +1249,13 @@ export default function App() {
         <button className="icon-button menu-button" onClick={() => setSidebarOpen(true)}><Menu /></button>
         <div className="topbar-title"><p className="eyebrow">{remote ? 'Télécommande' : 'Régie principale'}<span className={`connection-status ${connected ? 'online' : ''}`} role="img" aria-label={connected ? 'Connexion temps réel active' : 'Connexion temps réel interrompue'} title={connected ? 'Connexion temps réel active' : 'Connexion temps réel interrompue'}>{connected ? <Wifi size={14} /> : <WifiOff size={14} />}</span></p><h1>{detail?.project.name ?? 'Chargement…'}</h1></div>
         <div className="topbar-console">
+          {!remote && (audioOutputUpgradeMode
+            ? <AudioOutputUpgradeConsole mode={audioOutputUpgradeMode} onAction={openAudioOutputUpgrade} />
+            : <AudioOutputConsole bridgeAvailable={bridgeAvailable} onError={setError} />)}
           <section className="console-module next-volume" title="Ce multiplicateur s'applique au prochain son, puis revient à 100 %.">
             <span><Volume2 size={14} />Son suivant</span>
             <div className="next-volume-control"><input type="range" min="0" max="100" value={nextTrackVolume} aria-label="Volume du son suivant" onChange={(event) => { const value = Number(event.target.value); setNextTrackVolume(value); localStorage.setItem('cueforge-next-volume', String(value)); }} /><strong>{nextTrackVolume} %</strong><button type="button" className={`console-volume-lock ${keepNextTrackVolume ? 'active' : ''}`} role="switch" aria-checked={keepNextTrackVolume} aria-label="Conserver le volume pour les sons suivants" title={keepNextTrackVolume ? 'Volume conservé après chaque lancement' : 'Réinitialiser à 100 % après le prochain lancement'} onClick={() => { const next = !keepNextTrackVolume; setKeepNextTrackVolume(next); localStorage.setItem('cueforge-keep-next-volume', String(next)); localStorage.setItem('cueforge-next-volume', String(nextTrackVolume)); }}><i /></button></div>
           </section>
-          {!remote && <AudioOutputConsole bridgeAvailable={bridgeAvailable} onError={setError} />}
           <section className="console-module stopwatch">
             <span><Timer size={14} />Chrono</span>
             <div><strong>{formatStopwatch(displayedChronoMs)}</strong><button onClick={toggleChrono} aria-label={chronoStartedAt === undefined ? 'Démarrer le chronomètre' : 'Mettre le chronomètre en pause'}>{chronoStartedAt === undefined ? <Play size={13} fill="currentColor" /> : <Pause size={13} fill="currentColor" />}</button><button onClick={resetChrono} aria-label="Réinitialiser le chronomètre"><RotateCcw size={13} /></button></div>
@@ -1233,7 +1263,7 @@ export default function App() {
           <section className="console-module wall-clock"><span><Clock3 size={14} />Horloge</span><strong>{formatClock(now)}</strong></section>
         </div>
         <div className="top-actions">
-          <button className={`icon-button settings-button ${unseenReleases.length > 0 ? 'has-update' : ''}`} onClick={() => setSettingsOpen(true)} aria-label="Ouvrir les paramètres" title="Paramètres"><Settings size={19} />{unseenReleases.length > 0 && <i aria-hidden="true" />}</button>
+          <button className={`icon-button settings-button ${unseenReleases.length > 0 ? 'has-update' : ''}`} onClick={() => { setSettingsInitialSection(undefined); setSettingsOpen(true); }} aria-label="Ouvrir les paramètres" title="Paramètres"><Settings size={19} />{unseenReleases.length > 0 && <i aria-hidden="true" />}</button>
           {!remote && <button className="icon-button reset-show-button" onClick={resetCurrentProject} disabled={!detail} aria-label="Réinitialiser le spectacle en cours" title="Réinitialiser le spectacle"><RefreshCcw size={18} /></button>}
           {!remote && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Ajouter un son</button>}
         </div>
@@ -1329,7 +1359,7 @@ export default function App() {
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
-    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onBridgeAvailabilityChange={setBridgeAvailable} onClose={() => setSettingsOpen(false)} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} initialSection={settingsInitialSection} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onAccountChange={handleAccountChange} onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined); }} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
     {whatsNewOpen && releaseInfo && <WhatsNewDialog releases={releasesForDialog} currentVersion={releaseInfo.currentVersion} onClose={closeWhatsNew} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {freesoundOpen && detail && <FreesoundDialog initialQuery={search} projectId={detail.project.id} categories={detail.categories} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} onImported={refreshProject} onClose={() => setFreesoundOpen(false)} />}

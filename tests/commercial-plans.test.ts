@@ -60,12 +60,13 @@ describe('CueForge Bridge entitlement', () => {
     expect(planIncludesBridge({ monthlyPriceCents: null, annualPriceCents: null })).toBe(false);
   });
 
-  it.each(['trialing', 'active', 'grace_period'])('autorise un forfait payant dans l’état %s', (accessStatus) => {
+  it.each(['active', 'grace_period'])('autorise un forfait payant dans l’état %s', (accessStatus) => {
     expect(accountCanUseBridge({ monthlyPriceCents: 300, annualPriceCents: null, accessStatus, isDemo: false })).toBe(true);
   });
 
   it.each([
     { monthlyPriceCents: 0, annualPriceCents: 0, accessStatus: 'active', isDemo: false },
+    { monthlyPriceCents: 300, annualPriceCents: null, accessStatus: 'trialing', isDemo: false },
     { monthlyPriceCents: 300, annualPriceCents: null, accessStatus: 'read_only', isDemo: false },
     { monthlyPriceCents: 300, annualPriceCents: null, accessStatus: 'suspended', isDemo: false },
     { monthlyPriceCents: 300, annualPriceCents: null, accessStatus: 'active', isDemo: true },
