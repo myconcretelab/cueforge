@@ -11,6 +11,20 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.16.1',
+    date: '2026-08-29',
+    title: 'Téléchargement du bridge pour Mac Intel et Apple Silicon',
+    summary: 'CueForge Bridge est distribué depuis GitHub dans deux paquets adaptés aux architectures macOS.',
+    important: true,
+    changes: [
+      'Le lien de téléchargement se trouve dans la rubrique Moteur et sorties audio des paramètres.',
+      'Un paquet aarch64 est proposé pour les Mac Apple Silicon.',
+      'Un paquet x64 est proposé pour les Mac Intel.',
+      'Les paquets utilisent une signature ad hoc et ne sont pas notariés par Apple.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.16.0',
     date: '2026-08-29',
     title: 'CueForge Bridge pour macOS',

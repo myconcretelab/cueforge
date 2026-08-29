@@ -5,6 +5,8 @@ import { audioEngine, type AudioOutputDevice } from '../lib/audio-engine';
 import { bridgeClient, type BridgeOutput } from '../lib/bridge-client';
 import type { AccountSummary, BridgeDevice, KeyAction, Project, ProjectColor, PublicPlan, User } from '../types';
 
+const bridgeDownloadUrl = 'https://github.com/myconcretelab/cueforge/releases/tag/bridge-v0.1.0';
+
 interface Props {
   user: User;
   projects: Project[];
@@ -386,6 +388,8 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
           </select></label>
           {!bridgeClient.isAssociated() && <button type="button" className="button ghost" disabled={bridgeBusy || user.isDemo} onClick={connectBridge}>{bridgeBusy ? <LoaderCircle className="spin" size={16} /> : <Cable size={16} />}Connecter le bridge</button>}
         </div>
+        <div className="settings-actions"><a className="button ghost" href={bridgeDownloadUrl} target="_blank" rel="noreferrer"><CloudDownload size={16} />Télécharger le bridge macOS</a></div>
+        <p className="audio-output-note">La page de téléchargement propose un paquet Apple Silicon et un paquet Intel. Les paquets actuels ne sont pas notariés par Apple.</p>
         {audioMode === 'browser' && (audioOutputSupported ? <>
           <div className="audio-output-controls">
             <label><span>Périphérique</span><select value={selectedAudioOutputId} disabled={audioOutputBusy} onChange={(event) => changeAudioOutput(event.target.value)}>

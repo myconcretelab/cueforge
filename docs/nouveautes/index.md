@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.16.1 — 29 août 2026
+
+- téléchargement de CueForge Bridge depuis une publication GitHub publique ;
+- paquet Apple Silicon et paquet Intel ;
+- signature ad hoc sans certificat Apple Developer ni notarisation.
+
+[Détails de la version 0.16.1](./0.16.1.md)
+
 ## Version 0.16.0 — 29 août 2026
 
 - ajout du moteur natif facultatif CueForge Bridge pour macOS ;

@@ -28,6 +28,8 @@ La sélection nécessite la méthode `AudioContext.setSinkId()` du navigateur. L
 
 CueForge Bridge est une application macOS distincte. Le bouton **Connecter le bridge** crée un ticket valable cinq minutes, puis ouvre l’application au moyen du protocole `cueforge-bridge://`. Après validation du ticket, le navigateur et le bridge reçoivent une clé locale commune. Le jeton qui donne accès au compte CueForge reste uniquement dans le bridge.
 
+Le bouton **Télécharger le bridge macOS** ouvre la [publication GitHub de CueForge Bridge](https://github.com/myconcretelab/cueforge/releases/tag/bridge-v0.1.0). Deux images disque sont proposées : `aarch64` pour les Mac Apple Silicon et `x64` pour les Mac Intel. Les paquets utilisent une signature ad hoc et ne sont pas notariés par Apple. macOS peut donc demander une autorisation dans **Réglages Système → Confidentialité et sécurité** lors de la première ouverture.
+
 Le bridge écoute sur `127.0.0.1:43821`. Les commandes de lecture sont envoyées à cette adresse avec la clé locale. Un WebSocket transmet l’état des lectures ; l’application utilise des requêtes HTTP périodiques si le navigateur bloque ce WebSocket. L’application web demande l’autorisation d’accès au réseau local lorsque le navigateur impose cette autorisation.
 
 ### Sorties du bridge

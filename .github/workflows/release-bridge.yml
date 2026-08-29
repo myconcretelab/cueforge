@@ -1,0 +1,68 @@
+name: Publication de CueForge Bridge
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'bridge-v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridge-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  macos:
+    name: macOS ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Apple Silicon
+            runner: macos-15
+            target: aarch64-apple-darwin
+          - name: Intel
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+    env:
+      APPLE_SIGNING_IDENTITY: '-'
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v6
+      - name: Préparer Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Préparer Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Restaurer le cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: bridge/src-tauri -> target
+      - name: Installer les dépendances
+        run: npm ci --include=dev --include=optional
+      - name: Tester le bridge
+        run: cargo test --manifest-path bridge/src-tauri/Cargo.toml --target ${{ matrix.target }}
+      - name: Compiler et publier le bridge
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: bridge/src-tauri
+          tagName: bridge-v__VERSION__
+          releaseName: CueForge Bridge v__VERSION__
+          releaseBody: |
+            Deux paquets macOS sont disponibles : Apple Silicon (aarch64) et Intel (x64).
+
+            Ces paquets utilisent une signature ad hoc. Ils ne possèdent pas de certificat Apple Developer et ne sont pas notariés.
+          releaseDraft: false
+          prerelease: false
+          releaseAssetNamePattern: CueForge-Bridge_[version]_[arch].[ext]
+          args: --target ${{ matrix.target }}

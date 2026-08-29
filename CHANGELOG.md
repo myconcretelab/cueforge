@@ -2,6 +2,19 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.16.1] - 2026-08-29
+
+### Ajouté
+
+- publication de CueForge Bridge dans les Releases GitHub ;
+- images disque distinctes pour les Mac Apple Silicon et Intel ;
+- lien de téléchargement dans les paramètres audio de CueForge.
+
+### Modifié
+
+- application d’une signature macOS ad hoc sans certificat Apple Developer ni notarisation ;
+- passage de l’application à la version `0.16.1`.
+
 ## [0.16.0] - 2026-08-29
 
 ### Ajouté

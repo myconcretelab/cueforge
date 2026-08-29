@@ -22,7 +22,16 @@ npm run bridge:check
 npm run bridge:build
 ```
 
-L’application et l’image disque sont produites sous `bridge/src-tauri/target/release/bundle/`.
+L’application et l’image disque sont produites sous `bridge/src-tauri/target/release/bundle/`. La configuration macOS applique une signature ad hoc, sans certificat Apple Developer et sans notarisation.
+
+## Publication GitHub
+
+Le workflow `.github/workflows/release-bridge.yml` est déclenché par les étiquettes Git `bridge-v*`. Il compile et publie deux images disque dans une GitHub Release publique :
+
+- `aarch64` pour les Mac Apple Silicon ;
+- `x64` pour les Mac Intel.
+
+Les téléchargements sont disponibles sur `https://github.com/myconcretelab/cueforge/releases`.
 
 ## Exécution en développement
 
