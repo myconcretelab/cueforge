@@ -1,7 +1,7 @@
 .cueforge-plans-block .pricing-grid {
     width: min(100%, 1120px);
     max-width: 1120px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--pricing-columns, 1), minmax(0, 1fr));
     align-items: stretch;
 }
 

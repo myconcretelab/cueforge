@@ -2,7 +2,7 @@
 /**
  * Plugin Name: CueForge Plans
  * Description: Bloc dynamique affichant les forfaits publics de CueForge.
- * Version: 1.3.0
+ * Version: 1.3.1
  * Author: CueForge
  */
 
@@ -69,10 +69,12 @@ function cueforge_plans_render_block(): string
         return '<div ' . get_block_wrapper_attributes(['class' => 'cueforge-plans-block']) . '><p class="pricing-note">Les offres seront affichées prochainement.</p></div>';
     }
 
+    $column_count = min(4, max(1, count($plans)));
+
     ob_start();
     ?>
     <div <?php echo get_block_wrapper_attributes(['class' => 'cueforge-plans-block']); ?>>
-        <div class="pricing-grid <?php echo count($plans) === 1 ? 'is-single' : ''; ?>">
+        <div class="pricing-grid <?php echo count($plans) === 1 ? 'is-single' : ''; ?>" style="--pricing-columns: <?php echo esc_attr((string) $column_count); ?>;">
             <?php foreach ($plans as $plan) :
                 $monthly = cueforge_plans_price(array_key_exists('monthlyPriceCents', $plan) && $plan['monthlyPriceCents'] !== null ? (int) $plan['monthlyPriceCents'] : null);
                 $annual = cueforge_plans_price(array_key_exists('annualPriceCents', $plan) && $plan['annualPriceCents'] !== null ? (int) $plan['annualPriceCents'] : null);
@@ -138,7 +140,7 @@ function cueforge_plans_register_block(): void
         'cueforge-plans',
         plugins_url('style.css', __FILE__),
         [],
-        '1.3.0'
+        '1.3.1'
     );
     register_block_type('cueforge/plans', [
         'api_version' => 2,
