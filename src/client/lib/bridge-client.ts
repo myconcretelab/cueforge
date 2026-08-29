@@ -8,6 +8,7 @@ export interface BridgeStatus {
   serverUrl: string | null;
   deviceId: string | null;
   cachedTracks: number;
+  cachedBytes?: number;
   capabilities?: string[];
 }
 

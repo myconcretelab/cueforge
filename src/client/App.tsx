@@ -6,6 +6,7 @@ import {
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
 import { AudioOutputConsole } from './components/AudioOutputConsole';
+import { BridgeOutputLegend } from './components/BridgeOutputLegend';
 import { AppUpdateBanner } from './components/AppUpdateBanner';
 import { FreesoundDialog } from './components/FreesoundDialog';
 import { PlaylistPad } from './components/PlaylistPad';
@@ -22,7 +23,7 @@ import { applyAppUpdate, subscribeToAppUpdate } from './lib/app-update';
 import { appNoticesEnabled, shouldApplyAppUpdate, shouldOpenReleaseNotes } from './lib/app-mode';
 import { audioEngine, playbackPositionAt, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
 import { bridgeClient } from './lib/bridge-client';
-import { routableBridgeOutputs, supportsPerPlaybackOutput, type RoutedBridgeOutput } from './lib/bridge-output-routing';
+import { playbackBridgeOutput, routableBridgeOutputs, supportsPerPlaybackOutput, type RoutedBridgeOutput } from './lib/bridge-output-routing';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
@@ -86,6 +87,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [bridgeAvailable, setBridgeAvailable] = useState<boolean>();
   const [routedBridgeOutputs, setRoutedBridgeOutputs] = useState<RoutedBridgeOutput[]>([]);
+  const [mainBridgeOutputId, setMainBridgeOutputId] = useState<string>();
   const [releaseInfo, setReleaseInfo] = useState<ReleaseInfo>();
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -231,14 +233,20 @@ export default function App() {
     const sequence = ++bridgeOutputRefreshRef.current;
     if (bridgeAvailable !== true || !bridgeClient.isEnabled()) {
       setRoutedBridgeOutputs([]);
+      setMainBridgeOutputId(undefined);
       return;
     }
     try {
       const [status, result] = await Promise.all([bridgeClient.discover(), bridgeClient.outputs()]);
       if (sequence !== bridgeOutputRefreshRef.current) return;
-      setRoutedBridgeOutputs(routableBridgeOutputs(result.outputs, supportsPerPlaybackOutput(status)));
+      const outputs = routableBridgeOutputs(result.outputs, supportsPerPlaybackOutput(status));
+      setRoutedBridgeOutputs(outputs);
+      setMainBridgeOutputId(playbackBridgeOutput(outputs, result.mainOutputId)?.id);
     } catch {
-      if (sequence === bridgeOutputRefreshRef.current) setRoutedBridgeOutputs([]);
+      if (sequence === bridgeOutputRefreshRef.current) {
+        setRoutedBridgeOutputs([]);
+        setMainBridgeOutputId(undefined);
+      }
     }
   }, [bridgeAvailable]);
 
@@ -1217,6 +1225,7 @@ export default function App() {
             <div className="next-volume-control"><input type="range" min="0" max="100" value={nextTrackVolume} aria-label="Volume du son suivant" onChange={(event) => { const value = Number(event.target.value); setNextTrackVolume(value); localStorage.setItem('cueforge-next-volume', String(value)); }} /><strong>{nextTrackVolume} %</strong><button type="button" className={`console-volume-lock ${keepNextTrackVolume ? 'active' : ''}`} role="switch" aria-checked={keepNextTrackVolume} aria-label="Conserver le volume pour les sons suivants" title={keepNextTrackVolume ? 'Volume conservé après chaque lancement' : 'Réinitialiser à 100 % après le prochain lancement'} onClick={() => { const next = !keepNextTrackVolume; setKeepNextTrackVolume(next); localStorage.setItem('cueforge-keep-next-volume', String(next)); localStorage.setItem('cueforge-next-volume', String(nextTrackVolume)); }}><i /></button></div>
           </section>
           {!remote && <AudioOutputConsole bridgeAvailable={bridgeAvailable} onError={setError} />}
+          {!remote && <BridgeOutputLegend outputs={routedBridgeOutputs} mainOutputId={mainBridgeOutputId} />}
           <section className="console-module stopwatch">
             <span><Timer size={14} />Chrono</span>
             <div><strong>{formatStopwatch(displayedChronoMs)}</strong><button onClick={toggleChrono} aria-label={chronoStartedAt === undefined ? 'Démarrer le chronomètre' : 'Mettre le chronomètre en pause'}>{chronoStartedAt === undefined ? <Play size={13} fill="currentColor" /> : <Pause size={13} fill="currentColor" />}</button><button onClick={resetChrono} aria-label="Réinitialiser le chronomètre"><RotateCcw size={13} /></button></div>
@@ -1303,7 +1312,7 @@ export default function App() {
             const track = boardItem.track;
             const category = detail.categories.find((item) => item.id === track.categoryId);
             const shortcutIndex = visibleTracks.findIndex((candidate) => candidate.id === track.id);
-            return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={sidebarTool === 'playlist' && !remote} dropTarget={dropTrackId === track.id} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={shortcutIndex < 9 ? shortcutIndex + 1 : undefined} bridgeOutputs={remote || reorderMode ? [] : routedBridgeOutputs}
+            return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={sidebarTool === 'playlist' && !remote} dropTarget={dropTrackId === track.id} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={shortcutIndex < 9 ? shortcutIndex + 1 : undefined} bridgeOutputs={remote || reorderMode ? [] : routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId}
               onPrimary={() => runTrackAction(detail.project.leftClickAction ?? 'start', track)}
               onOutputPlay={(outputId) => playTrackOnOutput(track, outputId)}
               onSecondary={() => runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}

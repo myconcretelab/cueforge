@@ -14,9 +14,9 @@ Le premier petit bouton associe, ouvre, active ou désactive le Bridge selon son
 
 ## Routage par morceau
 
-Avec CueForge Bridge 0.3.0 ou une version ultérieure, les commandes de routage par morceau apparaissent lorsque le Bridge est actif et qu’au moins deux sorties physiques sont détectées. L’entrée virtuelle **Sortie système par défaut** n’est pas comptée comme une sortie physique supplémentaire.
+Avec CueForge Bridge 0.3.0 ou une version ultérieure, les commandes de routage par morceau apparaissent lorsque le Bridge est actif et qu’au moins deux sorties physiques sont détectées. L’entrée virtuelle **Sortie système par défaut** n’est pas comptée comme une sortie physique supplémentaire. Le header affiche alors une légende qui associe le nom de chaque sortie physique à sa couleur.
 
-À côté du grand Play de chaque morceau, un petit bouton Play coloré est affiché pour chaque sortie. Il lance une nouvelle lecture directement sur cette sortie. Le grand Play reste lié à la sortie principale et aux actions souris du spectacle.
+Le grand Play reste lié à la sortie principale et aux actions souris du spectacle. Son anneau reprend la couleur de cette sortie. Un petit Play coloré est affiché uniquement pour chacune des autres sorties ; il lance une nouvelle lecture directement sur la sortie correspondante.
 
 Chaque carte de la colonne **En lecture** affiche une LED de la couleur de sa sortie. La LED contient un sélecteur qui déplace la lecture active vers une autre sortie. La position, la pause, la boucle et le volume sont conservés. Le changement est refusé pendant un fondu sortant.
 
@@ -48,7 +48,7 @@ CueForge Bridge est inclus dans les forfaits payants. Il est accessible pendant 
 
 CueForge Bridge est une application de bureau distincte pour macOS et Windows x64. Le bouton **Connecter le bridge** crée un ticket valable cinq minutes, puis ouvre l’application au moyen du protocole `cueforge-bridge://`. Après validation du ticket, le navigateur et le bridge reçoivent une clé locale commune. Le jeton qui donne accès au compte CueForge reste uniquement dans le bridge. Il est conservé dans le trousseau macOS ou dans le Gestionnaire d’identification Windows.
 
-Le bouton **Télécharger CueForge Bridge** est affiché dans les paramètres d’un compte disposant du droit Bridge. Il ouvre, après contrôle du compte, la publication 0.3.0 qui contient une image disque `aarch64` pour les Mac Apple Silicon, une image disque `x64` pour les Mac Intel et un installateur NSIS `x64` pour Windows. Les paquets macOS utilisent une signature ad hoc et ne sont pas notariés par Apple. L’installateur Windows n’est pas signé et Windows peut afficher un avertissement SmartScreen à son ouverture.
+Le bouton **Télécharger CueForge Bridge** est affiché dans les paramètres d’un compte disposant du droit Bridge. Il ouvre, après contrôle du compte, la publication 0.4.0 qui contient une image disque `aarch64` pour les Mac Apple Silicon, une image disque `x64` pour les Mac Intel et un installateur NSIS `x64` pour Windows. Les paquets macOS utilisent une signature ad hoc et ne sont pas notariés par Apple. Le fond de l’image disque illustre le glisser-déposer vers Applications et indique en français et en anglais le chemin **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. L’installateur Windows n’est pas signé et Windows peut afficher un avertissement SmartScreen à son ouverture.
 
 Le bridge écoute sur `127.0.0.1:43821`. Les commandes de lecture sont envoyées à cette adresse avec la clé locale. Un WebSocket transmet l’état des lectures ; l’application utilise des requêtes HTTP périodiques si le navigateur bloque ce WebSocket. L’application web demande l’autorisation d’accès au réseau local lorsque le navigateur impose cette autorisation.
 
@@ -62,7 +62,7 @@ Le bridge conserve les fichiers audio compressés dans le dossier de cache de l�
 
 Ce cache est distinct du stockage hors ligne du navigateur. Le passage au moteur Bridge n’efface pas les fichiers enregistrés par le navigateur et le retour au moteur Navigateur ne supprime pas le cache du bridge.
 
-La fenêtre de CueForge Bridge affiche le nombre de fichiers présents. Le bouton **Vider le cache audio** supprime les fichiers compressés et les téléchargements temporaires du bridge.
+La fenêtre de CueForge Bridge affiche le nombre de fichiers présents et leur taille totale sur le disque. Le bouton **Vider le cache audio** supprime les fichiers compressés et les téléchargements temporaires du bridge.
 
 ### Association et révocation
 

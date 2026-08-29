@@ -228,6 +228,12 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .bridge-console-actions button:hover, .bridge-console-actions button.active { color: #fff; border-color: rgba(147,197,253,.55); background: rgba(37,99,235,.42); }
 .bridge-console-actions button:disabled { opacity: .38; cursor: default; }
 .console-module.console-audio-output.is-unavailable { border-color: rgba(239,68,68,.55); background: linear-gradient(145deg, rgba(127,29,29,.3), rgba(69,10,10,.18)); }
+.console-module.bridge-output-legend { min-width: 142px; max-width: 240px; }
+.bridge-output-legend > div { min-width: 0; display: flex; align-items: center; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.bridge-output-legend > div::-webkit-scrollbar { display: none; }
+.bridge-output-legend > div > span { min-width: 0; max-width: 112px; padding: 3px 6px; display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto; overflow: hidden; border: 1px solid #27272a; border-radius: 999px; color: #a1a1aa; font-size: .58rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.bridge-output-legend > div > span.is-main { border-color: color-mix(in srgb, var(--output-color, #71717a) 55%, #27272a); color: #f4f4f5; }
+.bridge-output-legend i { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: var(--output-color, #71717a); box-shadow: 0 0 7px color-mix(in srgb, var(--output-color, #71717a) 75%, transparent); }
 .console-volume-lock { position: relative; width: 28px; height: 16px; padding: 0; border: 1px solid rgba(255,255,255,.16); border-radius: 999px; background: #27272a; cursor: pointer; transition: border-color .15s, background .15s; }
 .console-volume-lock i { position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: #71717a; transition: transform .15s, background .15s; }
 .console-volume-lock.active { border-color: color-mix(in srgb, var(--orange) 60%, transparent); background: var(--orange-soft); }
@@ -324,7 +330,8 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .track-trigger { flex: 1; min-width: 0; padding: 14px 12px 10px; display: flex; flex-direction: column; align-items: flex-start; border: 0; background: transparent; cursor: pointer; text-align: left; }
 .track-trigger:focus-visible { outline-offset: -4px; border-radius: 9px; }
 .play-disc { width: 36px; height: 36px; margin-bottom: 14px; display: grid; place-items: center; border-radius: 50%; color: #09090b; background: var(--track-color); box-shadow: 0 7px 24px color-mix(in srgb, var(--track-color) 20%, transparent); }
-.track-output-plays { position: absolute; z-index: 3; top: 17px; right: 43px; left: 57px; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.play-disc.has-output-route { box-shadow: 0 0 0 2px #09090b, 0 0 0 4px var(--main-output-color), 0 7px 24px color-mix(in srgb, var(--track-color) 20%, transparent); }
+.track-output-plays { position: absolute; z-index: 3; top: 24px; right: 66px; left: 61px; display: flex; align-items: flex-end; gap: 4px; overflow-x: auto; scrollbar-width: none; }
 .track-output-plays::-webkit-scrollbar { display: none; }
 .track-output-plays button { --output-color: #71717a; width: 26px; height: 26px; padding: 0; display: grid; place-items: center; flex: 0 0 26px; border: 1px solid color-mix(in srgb, var(--output-color) 58%, #27272a); border-radius: 50%; color: color-mix(in srgb, var(--output-color) 58%, #fff); background: color-mix(in srgb, var(--output-color) 18%, #101012); box-shadow: 0 0 8px color-mix(in srgb, var(--output-color) 18%, transparent); cursor: pointer; }
 .track-output-plays button:hover { color: #fff; border-color: var(--output-color); background: color-mix(in srgb, var(--output-color) 32%, #101012); }
@@ -673,6 +680,7 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
   .console-module > span { display: none; }
   .console-module.next-volume { min-width: 105px; width: auto; }
   .console-module.console-audio-output { min-width: 150px; width: auto; }
+  .console-module.bridge-output-legend { min-width: 142px; width: auto; }
   .console-audio-output-control select { font-size: .68rem; }
   .console-module.stopwatch { width: 132px; }
   .console-module.wall-clock { width: 82px; }
@@ -681,6 +689,7 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
   .track-pad { min-height: 142px; }
   .track-trigger { padding-left: 12px; padding-right: 12px; }
   .play-disc { width: 34px; height: 34px; margin-bottom: 11px; }
+  .track-output-plays { top: 22px; }
   .track-meta { padding: 0 11px; }
   .dialog { padding: 19px; }
   .track-dialog-header-actions .button { width: 40px; min-height: 40px; padding: 0; }

@@ -2,6 +2,15 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.22.0 — 29 août 2026
+
+- sortie principale identifiée autour du grand Play ;
+- sorties alternatives et légende colorées sans doublon ;
+- espace disque du cache affiché dans le Bridge ;
+- fond d’installation macOS bilingue pour CueForge Bridge 0.4.0.
+
+[Détails de la version 0.22.0](./0.22.0.md)
+
 ## Version 0.21.0 — 29 août 2026
 
 - lancement direct d’un morceau sur une sortie physique précise ;

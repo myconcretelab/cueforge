@@ -207,16 +207,20 @@ impl Runtime {
         Ok(cached)
     }
 
-    pub async fn cached_tracks(&self) -> usize {
+    pub async fn cache_stats(&self) -> (usize, u64) {
         std::fs::read_dir(&self.store.cache_dir)
             .ok()
             .into_iter()
             .flatten()
             .filter_map(Result::ok)
-            .filter(|entry| {
-                entry.path().extension().and_then(|value| value.to_str()) == Some("audio")
+            .fold((0, 0), |(files, bytes), entry| {
+                let is_audio =
+                    entry.path().extension().and_then(|value| value.to_str()) == Some("audio");
+                (
+                    files + usize::from(is_audio),
+                    bytes + entry.metadata().map(|metadata| metadata.len()).unwrap_or(0),
+                )
             })
-            .count()
     }
 
     pub async fn clear_cache(&self) -> Result<usize, String> {

@@ -2,6 +2,24 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.22.0] - 2026-08-29
+
+### Ajouté
+
+- légende des couleurs et des noms des sorties physiques dans la barre de régie ;
+- taille totale des fichiers audio du cache dans la fenêtre de CueForge Bridge ;
+- fond d’installation macOS bilingue avec représentation du glisser-déposer et chemin d’ouverture d’une application non notariée.
+
+### Corrigé
+
+- suppression du petit Play qui répétait la sortie déjà affectée au grand Play ;
+- anneau du grand Play coloré selon la sortie principale ;
+- alignement inférieur des petits Plays pour éviter le témoin de préchargement.
+
+### Modifié
+
+- passage de l’application à la version `0.22.0` et du bridge à la version `0.4.0`.
+
 ## [0.21.0] - 2026-08-29
 
 ### Ajouté

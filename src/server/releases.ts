@@ -11,6 +11,21 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.22.0',
+    date: '2026-08-29',
+    title: 'Des sorties audio plus lisibles',
+    summary: 'La régie distingue clairement la sortie principale, les sorties alternatives et l’espace disque utilisé par le Bridge.',
+    important: false,
+    changes: [
+      'Le grand Play est entouré par la couleur de la sortie principale.',
+      'Les petits Plays affichent uniquement les autres sorties et sont alignés sur le bas du grand bouton.',
+      'Le header affiche le code couleur et le nom de chaque sortie physique disponible.',
+      'La fenêtre du Bridge affiche le nombre de fichiers et leur espace disque total.',
+      'CueForge Bridge 0.4.0 utilise un fond DMG bilingue qui illustre l’installation et l’ouverture d’une application non notariée.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.21.0',
     date: '2026-08-29',
     title: 'Une sortie par lecture',

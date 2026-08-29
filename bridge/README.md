@@ -10,6 +10,7 @@ CueForge Bridge est le moteur audio natif facultatif de CueForge. L’applicatio
 - serveur HTTP local sur `127.0.0.1:43821` ;
 - canal WebSocket local pour l’état des lectures ;
 - cache de fichiers compressés dans le dossier de cache de l’utilisateur ;
+- nombre de fichiers et taille totale du cache affichés dans la fenêtre ;
 - jeton d’appareil et clé locale dans le trousseau macOS ou le Gestionnaire d’identification Windows ;
 - association par URL `cueforge-bridge://pair` et ticket CueForge temporaire.
 
@@ -24,7 +25,7 @@ npm run bridge:test
 npm run bridge:build
 ```
 
-L’application et son paquet sont produits sous `bridge/src-tauri/target/release/bundle/`. macOS produit une image disque avec une signature ad hoc, sans certificat Apple Developer ni notarisation. Windows produit un installateur NSIS x64 non signé.
+L’application et son paquet sont produits sous `bridge/src-tauri/target/release/bundle/`. macOS produit une image disque avec une signature ad hoc, sans certificat Apple Developer ni notarisation. Son fond bilingue illustre le glisser-déposer dans Applications et le chemin **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. Windows produit un installateur NSIS x64 non signé.
 
 Le fichier `bridge/package.json` et son lockfile contiennent uniquement l’outillage de compilation du bridge. L’installation npm située à la racine ne contient pas Tauri.
 
@@ -49,4 +50,4 @@ Le lien d’association accepte `https://app.cueforge.fr`. En développement, le
 
 ## API locale
 
-`GET /v1/status` expose l’état général du processus et ses capacités. `POST /v1/play` accepte une propriété facultative `outputId`. `PUT /v1/playbacks/:id/output` déplace une lecture active vers le périphérique fourni. Les routes de lecture, de cache et de synchronisation exigent `Authorization: Bearer <clé-locale>`. Les origines CORS admises sont l’application CueForge en production, Vite en développement et la fenêtre Tauri.
+`GET /v1/status` expose l’état général du processus, ses capacités, `cachedTracks` et `cachedBytes`. `POST /v1/play` accepte une propriété facultative `outputId`. `PUT /v1/playbacks/:id/output` déplace une lecture active vers le périphérique fourni. Les routes de lecture, de cache et de synchronisation exigent `Authorization: Bearer <clé-locale>`. Les origines CORS admises sont l’application CueForge en production, Vite en développement et la fenêtre Tauri.

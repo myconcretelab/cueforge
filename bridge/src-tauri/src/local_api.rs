@@ -137,12 +137,14 @@ async fn private_network_headers(request: axum::http::Request<Body>, next: Next)
 
 async fn status(State(state): State<Arc<Runtime>>) -> Json<serde_json::Value> {
     let config = state.config.read().await;
+    let (cached_tracks, cached_bytes) = state.cache_stats().await;
     Json(json!({
         "version": env!("CARGO_PKG_VERSION"),
         "paired": state.paired().await,
         "serverUrl": config.server_url,
         "deviceId": config.device_id,
-        "cachedTracks": state.cached_tracks().await,
+        "cachedTracks": cached_tracks,
+        "cachedBytes": cached_bytes,
         "capabilities": ["perPlaybackOutput"],
     }))
 }

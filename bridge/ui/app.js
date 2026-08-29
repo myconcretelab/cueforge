@@ -4,6 +4,8 @@ const message = document.querySelector('#status-message');
 const dot = document.querySelector('#status-dot');
 const output = document.querySelector('#main-output');
 const cacheCount = document.querySelector('#cache-count');
+const cacheFilesLabel = document.querySelector('#cache-files-label');
+const cacheSize = document.querySelector('#cache-size');
 const bridgeVersion = document.querySelector('#bridge-version');
 
 async function request(path, init) {
@@ -17,6 +19,8 @@ async function refresh() {
     const status = await request('/v1/status');
     bridgeVersion.textContent = status.version;
     cacheCount.textContent = String(status.cachedTracks);
+    cacheFilesLabel.textContent = status.cachedTracks > 1 ? 'fichiers audio enregistrés' : 'fichier audio enregistré';
+    cacheSize.textContent = formatBytes(status.cachedBytes ?? 0);
     dot.className = status.paired ? 'ready' : '';
     title.textContent = status.paired ? 'Bridge associé' : 'Association requise';
     message.textContent = status.paired
@@ -62,3 +66,11 @@ document.querySelector('#clear-cache').addEventListener('click', async () => {
 });
 refresh();
 setInterval(refresh, 2000);
+
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 o';
+  const units = ['o', 'Ko', 'Mo', 'Go', 'To'];
+  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / (1024 ** unitIndex);
+  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: value >= 10 ? 1 : 2 }).format(value)} ${units[unitIndex]}`;
+}
