@@ -14,7 +14,7 @@ Le premier petit bouton associe, ouvre, active ou désactive le Bridge selon son
 
 ## Routage par morceau
 
-Avec CueForge Bridge 0.3.0 ou une version ultérieure, les commandes de routage par morceau apparaissent lorsque le Bridge est actif et qu’au moins deux sorties physiques sont détectées. L’entrée virtuelle **Sortie système par défaut** n’est pas comptée comme une sortie physique supplémentaire. Le header affiche alors une légende qui associe le nom de chaque sortie physique à sa couleur.
+Avec CueForge Bridge 0.3.0 ou une version ultérieure, les commandes de routage par morceau apparaissent lorsque le Bridge est actif et qu’au moins deux sorties physiques sont détectées. L’entrée virtuelle **Sortie système par défaut** n’est pas comptée comme une sortie physique supplémentaire. Une réglette fine apparaît alors au-dessus du header. Elle affiche côte à côte le nom complet et la couleur de chaque sortie physique, avec la mention **Principale** sur la sortie sélectionnée.
 
 Le grand Play reste lié à la sortie principale et aux actions souris du spectacle. Son anneau reprend la couleur de cette sortie. Un petit Play coloré est affiché uniquement pour chacune des autres sorties ; il lance une nouvelle lecture directement sur la sortie correspondante.
 
@@ -48,7 +48,13 @@ CueForge Bridge est inclus dans les forfaits payants. Il est accessible pendant 
 
 CueForge Bridge est une application de bureau distincte pour macOS et Windows x64. Le bouton **Connecter le bridge** crée un ticket valable cinq minutes, puis ouvre l’application au moyen du protocole `cueforge-bridge://`. Après validation du ticket, le navigateur et le bridge reçoivent une clé locale commune. Le jeton qui donne accès au compte CueForge reste uniquement dans le bridge. Il est conservé dans le trousseau macOS ou dans le Gestionnaire d’identification Windows.
 
-Le bouton **Télécharger CueForge Bridge** est affiché dans les paramètres d’un compte disposant du droit Bridge. Il ouvre, après contrôle du compte, la publication 0.4.0 qui contient une image disque `aarch64` pour les Mac Apple Silicon, une image disque `x64` pour les Mac Intel et un installateur NSIS `x64` pour Windows. Les paquets macOS utilisent une signature ad hoc et ne sont pas notariés par Apple. Le fond de l’image disque illustre le glisser-déposer vers Applications et indique en français et en anglais le chemin **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. L’installateur Windows n’est pas signé et Windows peut afficher un avertissement SmartScreen à son ouverture.
+Le bouton **Télécharger CueForge Bridge** est affiché dans les paramètres d’un compte disposant du droit Bridge. Il ouvre, après contrôle du compte, la publication 0.5.0 qui contient une image disque `aarch64` pour les Mac Apple Silicon, une image disque `x64` pour les Mac Intel et un installateur NSIS `x64` pour Windows. Les paquets macOS utilisent une signature ad hoc et ne sont pas notariés par Apple. Le fond de l’image disque illustre le glisser-déposer vers Applications et indique en français et en anglais le chemin **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. L’installateur Windows n’est pas signé et Windows peut afficher un avertissement SmartScreen à son ouverture.
+
+### Mise à jour du bridge
+
+CueForge Bridge 0.5.0 est la première version qui contient le moteur de mise à jour. Elle doit donc être installée avec le paquet correspondant à la machine. À partir de cette version, le Bridge consulte au démarrage le fichier `latest.json` de la dernière publication GitHub, télécharge le paquet adapté à son système et vérifie sa signature avant l’installation.
+
+L’installation et le redémarrage automatiques ont lieu uniquement si aucune lecture audio n’est active à la fin du téléchargement. Lorsqu’une lecture est active, le paquet n’est pas installé et la vérification reprend au prochain démarrage du Bridge.
 
 Le bridge écoute sur `127.0.0.1:43821`. Les commandes de lecture sont envoyées à cette adresse avec la clé locale. Un WebSocket transmet l’état des lectures ; l’application utilise des requêtes HTTP périodiques si le navigateur bloque ce WebSocket. L’application web demande l’autorisation d’accès au réseau local lorsque le navigateur impose cette autorisation.
 

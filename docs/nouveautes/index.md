@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.23.0 — 29 août 2026
+
+- réglette lisible des sorties audio au-dessus du header ;
+- identification de la sortie principale et noms complets ;
+- mises à jour signées et automatiques avec CueForge Bridge 0.5.0.
+
+[Détails de la version 0.23.0](./0.23.0.md)
+
 ## Version 0.22.0 — 29 août 2026
 
 - sortie principale identifiée autour du grand Play ;

@@ -35,12 +35,18 @@ describe('sélecteur de sortie d’une lecture', () => {
     expect(markup).toContain('aria-label="Jouer Ouverture sur Jean Luc"');
   });
 
-  it('affiche le code couleur et le nom des sorties dans le header', () => {
+  it('affiche le tableau de bord des sorties au-dessus du header', () => {
     const markup = renderToStaticMarkup(createElement(BridgeOutputLegend, { outputs, mainOutputId: 'speakers' }));
-    expect(markup).toContain('aria-label="Code couleur des sorties audio"');
+    expect(markup).toContain('class="bridge-output-strip"');
+    expect(markup).toContain('aria-label="Tableau des sorties audio"');
     expect(markup).toContain('Haut-parleurs · sortie principale');
+    expect(markup).toContain('Principale');
     expect(markup).toContain('Jean Luc');
     expect(markup).toContain('--output-color:#22c55e');
     expect(markup).toContain('--output-color:#3b82f6');
+  });
+
+  it('masque le tableau de bord lorsqu’une seule sortie physique est disponible', () => {
+    expect(renderToStaticMarkup(createElement(BridgeOutputLegend, { outputs: outputs.slice(0, 1), mainOutputId: 'speakers' }))).toBe('');
   });
 });

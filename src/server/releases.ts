@@ -11,6 +11,21 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.23.0',
+    date: '2026-08-29',
+    title: 'Tableau des sorties et Bridge autonome',
+    summary: 'Les sorties disposent d’une réglette lisible au-dessus du header et CueForge Bridge peut désormais installer ses mises à jour signées.',
+    important: true,
+    changes: [
+      'Une réglette fine affiche côte à côte le nom complet et la couleur de chaque sortie physique.',
+      'La sortie principale est identifiée explicitement dans cette réglette.',
+      'Le sélecteur de sortie du header est élargi et la légende compacte qui le comprimait a été retirée.',
+      'CueForge Bridge 0.5.0 vérifie et installe automatiquement les versions signées publiées sur GitHub.',
+      'Une mise à jour du Bridge est différée si une lecture audio est active pendant son téléchargement.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.22.0',
     date: '2026-08-29',
     title: 'Des sorties audio plus lisibles',

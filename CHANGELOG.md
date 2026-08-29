@@ -2,6 +2,20 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.23.0] - 2026-08-29
+
+### Ajouté
+
+- réglette fine au-dessus du header avec le nom complet et la couleur de chaque sortie physique ;
+- identification explicite de la sortie principale dans la réglette ;
+- mise à jour automatique et signée de CueForge Bridge 0.5.0 depuis les publications GitHub.
+
+### Modifié
+
+- élargissement du sélecteur de sortie principal et retrait de la légende compacte qui comprimait le header ;
+- report de l’installation d’une mise à jour du Bridge lorsqu’une lecture audio est active ;
+- passage de l’application à la version `0.23.0` et du bridge à la version `0.5.0`.
+
 ## [0.22.0] - 2026-08-29
 
 ### Ajouté
