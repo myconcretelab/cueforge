@@ -28,7 +28,7 @@ describe('sélecteur de sortie d’une lecture', () => {
   it('entoure le Play principal et ajoute seulement les Plays des autres sorties', () => {
     const track = { id: 'track-1', title: 'Ouverture', durationMs: 60_000, startTimeMs: 0, endTimeMs: null, volume: 1, loop: false } as Track;
     const ignore = () => undefined;
-    const markup = renderToStaticMarkup(createElement(TrackPad, { track, color: '#f97316', active: false, playbacks: [], historyProgress: 0, loaded: false, reorderEnabled: false, playlistDropEnabled: false, dropTarget: false, bridgeOutputs: outputs, mainBridgeOutputId: 'speakers', onPrimary: ignore, onOutputPlay: ignore, onSecondary: ignore, onEdit: ignore, onDragStart: ignore, onDragOver: ignore, onDrop: ignore, onDragEnd: ignore }));
+    const markup = renderToStaticMarkup(createElement(TrackPad, { track, color: '#22d3b6', active: false, playbacks: [], historyProgress: 0, loaded: false, reorderEnabled: false, playlistDropEnabled: false, dropTarget: false, bridgeOutputs: outputs, mainBridgeOutputId: 'speakers', onPrimary: ignore, onOutputPlay: ignore, onSecondary: ignore, onEdit: ignore, onDragStart: ignore, onDragOver: ignore, onDrop: ignore, onDragEnd: ignore }));
     expect(markup).toContain('play-disc has-output-route');
     expect(markup).toContain('--main-output-color:#22c55e');
     expect(markup).not.toContain('aria-label="Jouer Ouverture sur Haut-parleurs"');

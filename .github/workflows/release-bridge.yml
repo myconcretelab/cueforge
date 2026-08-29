@@ -1,4 +1,4 @@
-name: Publication de CueForge Bridge
+name: Publication de SonoRiva Bridge
 
 on:
   workflow_dispatch:
@@ -73,7 +73,7 @@ jobs:
           projectPath: bridge/src-tauri
           tauriScript: ${{ github.workspace }}/bridge/node_modules/.bin/${{ matrix.tauriExecutable }}
           tagName: bridge-v__VERSION__
-          releaseName: CueForge Bridge v__VERSION__
+          releaseName: SonoRiva Bridge v__VERSION__
           releaseBody: |
             Trois paquets sont disponibles : macOS Apple Silicon (aarch64), macOS Intel (x64) et Windows x64.
 
@@ -82,5 +82,5 @@ jobs:
           prerelease: false
           uploadUpdaterJson: true
           updaterJsonPreferNsis: true
-          releaseAssetNamePattern: CueForge-Bridge_[version]_[arch].[ext]
+          releaseAssetNamePattern: SonoRiva-Bridge_[version]_[arch].[ext]
           args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}

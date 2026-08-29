@@ -1,6 +1,6 @@
 # Télécommande
 
-La télécommande transmet des commandes de lecture à une autre instance de CueForge connectée au même spectacle.
+La télécommande transmet des commandes de lecture à une autre instance de SonoRiva connectée au même spectacle.
 
 ## Rôles
 

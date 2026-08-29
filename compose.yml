@@ -2,18 +2,18 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: cueforge
-      POSTGRES_USER: cueforge
+      POSTGRES_DB: sonoriva
+      POSTGRES_USER: sonoriva
       POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
     volumes:
-      - cueforge-postgres:/var/lib/postgresql/data
+      - sonoriva-postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cueforge -d cueforge"]
+      test: ["CMD-SHELL", "pg_isready -U sonoriva -d sonoriva"]
       interval: 3s
       timeout: 3s
       retries: 10
 
 volumes:
-  cueforge-postgres:
+  sonoriva-postgres:

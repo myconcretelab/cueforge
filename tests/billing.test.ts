@@ -23,7 +23,7 @@ describe('Stripe billing access projection', () => {
 describe('Stripe checkout trial', () => {
   const now = new Date('2030-01-01T00:00:00Z');
 
-  it('conserve la date de fin de l’essai déjà commencé dans CueForge', () => {
+  it('conserve la date de fin de l’essai déjà commencé dans SonoRiva', () => {
     const storedTrialEndsAt = new Date('2030-01-10T00:00:00Z');
     expect(checkoutTrialSettings({ storedTrialEndsAt, trialStartedAt: now, planTrialDays: 14, now }))
       .toEqual({ trial_end: Math.floor(storedTrialEndsAt.getTime() / 1000) });

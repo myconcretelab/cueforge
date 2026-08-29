@@ -1,6 +1,6 @@
 # Fonctionnement général
 
-CueForge organise les données par compte et par spectacle. La lecture audio est exécutée dans le navigateur utilisé comme lecteur principal.
+SonoRiva organise les données par compte et par spectacle. La lecture audio est exécutée dans le navigateur utilisé comme lecteur principal.
 
 ## Compte
 

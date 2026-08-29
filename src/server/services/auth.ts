@@ -7,8 +7,7 @@ import { sessions, users, type User } from '../db/schema.js';
 import { demoExpiration, demoLifetimeMs } from './demo.js';
 
 const scrypt = promisify(scryptCallback);
-export const sessionCookieName = 'cueforge_session';
-export const legacySessionCookieName = 'sf_session';
+export const sessionCookieName = 'sonoriva_session';
 const sessionLifetimeMs = 30 * 24 * 60 * 60 * 1000;
 
 function sessionCookieOptions(expires?: Date) {
@@ -47,10 +46,9 @@ export async function startSession(userId: string, reply: FastifyReply): Promise
 }
 
 export async function endSession(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-  const token = request.cookies[sessionCookieName] ?? request.cookies[legacySessionCookieName];
+  const token = request.cookies[sessionCookieName];
   if (token) await db.delete(sessions).where(eq(sessions.tokenHash, tokenHash(token)));
   reply.clearCookie(sessionCookieName, sessionCookieOptions());
-  reply.clearCookie(legacySessionCookieName, sessionCookieOptions());
 }
 
 export async function userFromToken(token?: string): Promise<User | null> {
@@ -87,9 +85,7 @@ export function cookieValue(cookieHeader: string | undefined, name: string): str
 }
 
 export async function requireUser(request: FastifyRequest, reply: FastifyReply): Promise<User | null> {
-  const currentToken = request.cookies[sessionCookieName];
-  const legacyToken = request.cookies[legacySessionCookieName];
-  const user = await userFromToken(currentToken ?? legacyToken);
+  const user = await userFromToken(request.cookies[sessionCookieName]);
   if (!user) {
     await reply.code(401).send({ error: 'Authentification requise.' });
     return null;
@@ -106,10 +102,6 @@ export async function requireUser(request: FastifyRequest, reply: FastifyReply):
       await db.update(users).set({ demoExpiresAt: expiresAt }).where(eq(users.id, user.id));
       user.demoExpiresAt = expiresAt;
     }
-  }
-  if (!currentToken && legacyToken) {
-    reply.setCookie(sessionCookieName, legacyToken, sessionCookieOptions(new Date(Date.now() + sessionLifetimeMs)));
-    reply.clearCookie(legacySessionCookieName, sessionCookieOptions());
   }
   return user;
 }

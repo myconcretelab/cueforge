@@ -2,19 +2,19 @@
 layout: home
 
 hero:
-  name: "CueForge"
+  name: "SonoRiva"
   text: "Documentation"
   tagline: Fonctions, commandes, paramètres, formats et limites de l’application.
   image:
-    src: /cueforge-mark.svg
-    alt: Logo de CueForge
+    src: /sonoriva-mark.svg
+    alt: Logo de SonoRiva
   actions:
     - theme: brand
       text: Fonctionnement général
       link: /premiers-pas/
     - theme: alt
       text: Ouvrir l’application
-      link: https://app.cueforge.fr
+      link: https://app.sonoriva.fr
 
 features:
   - icon: "▶"
@@ -41,8 +41,8 @@ features:
 
 ## Service
 
-CueForge est une application hébergée. Le service gère l’exécution de l’application, la base de données et le stockage des médias.
+SonoRiva est une application hébergée. Le service gère l’exécution de l’application, la base de données et le stockage des médias.
 
 ## Support
 
-Une déclaration d’incident contient la version de CueForge, le navigateur, le système d’exploitation, les étapes de reproduction et le message d’erreur.
+Une déclaration d’incident contient la version de SonoRiva, le navigateur, le système d’exploitation, les étapes de reproduction et le message d’erreur.

@@ -24,8 +24,8 @@ async function refresh() {
     dot.className = status.paired ? 'ready' : '';
     title.textContent = status.paired ? 'Bridge associé' : 'Association requise';
     message.textContent = status.paired
-      ? `Connecté à ${status.serverUrl}. CueForge peut piloter cette machine.`
-      : 'Dans CueForge, ouvrez Paramètres puis cliquez sur « Connecter CueForge Bridge ».';
+      ? `Connecté à ${status.serverUrl}. SonoRiva peut piloter cette machine.`
+      : 'Dans SonoRiva, ouvrez Paramètres puis cliquez sur « Connecter SonoRiva Bridge ».';
     if (!status.paired) return;
     const data = await request('/v1/outputs');
     output.innerHTML = '';

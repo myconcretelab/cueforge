@@ -34,14 +34,14 @@ describe('password reset', () => {
   });
 
   it('échappe le nom affiché dans la version HTML de l’e-mail', () => {
-    const message = passwordResetMessage('<script>alert(1)</script>', 'https://app.cueforge.fr/reset-password?token=abc');
+    const message = passwordResetMessage('<script>alert(1)</script>', 'https://app.sonoriva.fr/reset-password?token=abc');
     expect(message.html).not.toContain('<script>');
     expect(message.html).toContain('&lt;script&gt;');
     expect(message.text).toContain('expire dans 30 minutes');
   });
 });
 
-describe('CueForge Bridge tokens', () => {
+describe('SonoRiva Bridge tokens', () => {
   it('crée des tickets aléatoires et ne conserve qu’une empreinte', () => {
     const first = createBridgeToken();
     const second = createBridgeToken();

@@ -1,16 +1,16 @@
 [package]
-name = "cueforge-bridge"
-version = "0.5.0"
-description = "Pont audio local de CueForge"
-authors = ["CueForge"]
+name = "sonoriva-bridge"
+version = "1.0.0"
+description = "Pont audio local de SonoRiva"
+authors = ["SonoRiva"]
 edition = "2024"
 
 [lib]
-name = "cueforge_bridge_lib"
+name = "sonoriva_bridge_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
-name = "cueforge-bridge"
+name = "sonoriva-bridge"
 path = "src/main.rs"
 
 [build-dependencies]

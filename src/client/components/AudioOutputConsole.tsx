@@ -49,7 +49,7 @@ export function AudioOutputConsole({ bridgeAvailable, onError }: Props) {
     const mode = audioEngine.getPlaybackMode();
     try {
       if (mode === 'bridge') {
-        if (!bridgeClient.isAssociated()) throw new Error('CueForge Bridge n’est pas associé.');
+        if (!bridgeClient.isAssociated()) throw new Error('SonoRiva Bridge n’est pas associé.');
         const result = await bridgeClient.outputs();
         const selected = result.outputs.find((candidate) => candidate.id === result.mainOutputId);
         if (sequence !== refreshSequence.current) return;
@@ -157,7 +157,7 @@ export function AudioOutputConsole({ bridgeAvailable, onError }: Props) {
           await new Promise((resolve) => window.setTimeout(resolve, 500));
           detected = await detectBridge();
         }
-        if (!detected) throw new Error('CueForge Bridge ne répond pas sur cette machine.');
+        if (!detected) throw new Error('SonoRiva Bridge ne répond pas sur cette machine.');
         audioEngine.setPlaybackMode('bridge');
       } else if (connection.action === 'activate') {
         audioEngine.setPlaybackMode('bridge');
@@ -166,7 +166,7 @@ export function AudioOutputConsole({ bridgeAvailable, onError }: Props) {
       }
       await Promise.all([detectBridge(), refresh()]);
     } catch (cause) {
-      onError(cause instanceof Error ? cause.message : 'Impossible de connecter CueForge Bridge.');
+      onError(cause instanceof Error ? cause.message : 'Impossible de connecter SonoRiva Bridge.');
       await Promise.all([detectBridge(), refresh()]);
     } finally {
       setBridgeBusy(false);
@@ -179,7 +179,7 @@ export function AudioOutputConsole({ bridgeAvailable, onError }: Props) {
     associated: bridgeClient.isAssociated(),
     mode: audioEngine.getPlaybackMode(),
   });
-  const title = output.error || `Sortie principale · ${output.mode === 'bridge' ? 'CueForge Bridge' : 'Web Audio'}`;
+  const title = output.error || `Sortie principale · ${output.mode === 'bridge' ? 'SonoRiva Bridge' : 'Web Audio'}`;
   return <section className={`console-module console-audio-output ${output.unavailable ? 'is-unavailable' : ''}`} title={title}>
     <span><Speaker size={14} />Sortie audio<i className={`bridge-status-led ${bridgeConnection.state}`} role="status" aria-label={bridgeConnection.label} title={bridgeConnection.label} /></span>
     <div className="console-audio-output-control">

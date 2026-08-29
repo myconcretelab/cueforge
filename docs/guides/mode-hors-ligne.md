@@ -13,7 +13,7 @@ Chaque fichier audio est téléchargé puis ajouté au cache du navigateur. La c
 
 ## Lecture
 
-Lorsqu’un média est présent dans le cache, CueForge utilise cette copie locale pour la lecture. Une requête réseau reste nécessaire pour un média absent du cache.
+Lorsqu’un média est présent dans le cache, SonoRiva utilise cette copie locale pour la lecture. Une requête réseau reste nécessaire pour un média absent du cache.
 
 La liste des spectacles et les dernières données consultées sont également conservées localement. Les modifications et imports restent des opérations serveur et ne sont pas disponibles sans connexion.
 
@@ -24,12 +24,12 @@ Le cache appartient :
 - au navigateur utilisé ;
 - au profil du navigateur ;
 - à l’appareil ;
-- au domaine de CueForge.
+- au domaine de SonoRiva.
 
 La mise en cache d’un spectacle sur un appareil ne le rend pas disponible sur les autres appareils. Une fenêtre privée utilise un stockage séparé qui peut être supprimé à sa fermeture.
 
 ## Suppression du cache
 
-Les fichiers hors ligne disparaissent lorsque les données du site ou le cache de CueForge sont supprimés. Le navigateur peut également libérer cet espace selon sa politique de stockage.
+Les fichiers hors ligne disparaissent lorsque les données du site ou le cache de SonoRiva sont supprimés. Le navigateur peut également libérer cet espace selon sa politique de stockage.
 
 Le cache hors ligne est distinct du stockage serveur et ne constitue pas une copie de sauvegarde des projets.

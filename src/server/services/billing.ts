@@ -46,7 +46,7 @@ export function getStripe(): Stripe {
   }
   stripeClient ??= new Stripe(config.STRIPE_SECRET_KEY, {
     apiVersion: stripeApiVersion,
-    appInfo: { name: 'CueForge', version: CURRENT_VERSION, url: 'https://cueforge.fr' },
+    appInfo: { name: 'SonoRiva', version: CURRENT_VERSION, url: 'https://sonoriva.fr' },
   });
   return stripeClient;
 }
@@ -220,10 +220,10 @@ async function ensureStripeCustomer(context: Awaited<ReturnType<typeof requireOw
     email: context.user.email,
     name: context.user.displayName,
     metadata: {
-      cueforge_account_id: context.account.id,
-      cueforge_environment: config.STRIPE_MODE,
+      sonoriva_account_id: context.account.id,
+      sonoriva_environment: config.STRIPE_MODE,
     },
-  }, { idempotencyKey: `cueforge:customer:${config.STRIPE_MODE}:${context.account.id}` });
+  }, { idempotencyKey: `sonoriva:customer:${config.STRIPE_MODE}:${context.account.id}` });
 
   await db.insert(subscriptions).values({
     accountId: context.account.id,
@@ -271,19 +271,19 @@ export async function createCheckoutSession(input: {
     success_url: `${baseUrl}/?billing=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/?billing=cancelled`,
     metadata: {
-      cueforge_account_id: context.account.id,
-      cueforge_plan_code: selectedPlan.code,
-      cueforge_environment: config.STRIPE_MODE,
+      sonoriva_account_id: context.account.id,
+      sonoriva_plan_code: selectedPlan.code,
+      sonoriva_environment: config.STRIPE_MODE,
     },
     subscription_data: {
       ...trialSettings,
       metadata: {
-        cueforge_account_id: context.account.id,
-        cueforge_plan_code: selectedPlan.code,
-        cueforge_environment: config.STRIPE_MODE,
+        sonoriva_account_id: context.account.id,
+        sonoriva_plan_code: selectedPlan.code,
+        sonoriva_environment: config.STRIPE_MODE,
       },
     },
-  }, { idempotencyKey: `cueforge:checkout:${config.STRIPE_MODE}:${context.account.id}:${input.requestId}` });
+  }, { idempotencyKey: `sonoriva:checkout:${config.STRIPE_MODE}:${context.account.id}:${input.requestId}` });
   if (!session.url) throw new BillingError('Stripe n’a pas retourné de page de paiement.', 502, 'stripe_checkout_url_missing');
   return session.url;
 }
@@ -330,11 +330,11 @@ async function synchronizeInterval(plan: Plan, productId: string, billingInterva
     recurring: { interval: billingInterval },
     nickname: `${plan.name} — ${billingInterval === 'month' ? 'mensuel' : 'annuel'}`,
     metadata: {
-      cueforge_plan_code: plan.code,
-      cueforge_environment: config.STRIPE_MODE,
-      cueforge_billing_interval: billingInterval,
+      sonoriva_plan_code: plan.code,
+      sonoriva_environment: config.STRIPE_MODE,
+      sonoriva_billing_interval: billingInterval,
     },
-  }, { idempotencyKey: `cueforge:price:${config.STRIPE_MODE}:${plan.code}:${billingInterval}:${unitAmountCents}:${plan.updatedAt.getTime()}` });
+  }, { idempotencyKey: `sonoriva:price:${config.STRIPE_MODE}:${plan.code}:${billingInterval}:${unitAmountCents}:${plan.updatedAt.getTime()}` });
   const [mapping] = await db.insert(billingPriceMappings).values({
     planCode: plan.code,
     environment: config.STRIPE_MODE,
@@ -362,15 +362,15 @@ export async function synchronizeStripePlan(planCode: string) {
       name: plan.name,
       description: plan.description || undefined,
       active: plan.active,
-      metadata: { cueforge_plan_code: plan.code, cueforge_environment: config.STRIPE_MODE },
-    }, { idempotencyKey: `cueforge:product:${config.STRIPE_MODE}:${plan.code}` });
+      metadata: { sonoriva_plan_code: plan.code, sonoriva_environment: config.STRIPE_MODE },
+    }, { idempotencyKey: `sonoriva:product:${config.STRIPE_MODE}:${plan.code}` });
     productId = product.id;
   } else {
     await stripe.products.update(productId, {
       name: plan.name,
       description: plan.description || '',
       active: plan.active,
-      metadata: { cueforge_plan_code: plan.code, cueforge_environment: config.STRIPE_MODE },
+      metadata: { sonoriva_plan_code: plan.code, sonoriva_environment: config.STRIPE_MODE },
     });
   }
   const [monthly, annual] = await Promise.all([
@@ -386,7 +386,7 @@ export async function synchronizeStripePlan(planCode: string) {
 }
 
 async function findAccountId(subscription: Stripe.Subscription): Promise<string> {
-  const metadataId = subscription.metadata.cueforge_account_id;
+  const metadataId = subscription.metadata.sonoriva_account_id;
   if (z.string().uuid().safeParse(metadataId).success) return metadataId;
   const customerId = idOf(subscription.customer);
   const [stored] = await db.select({ accountId: subscriptions.accountId }).from(subscriptions).where(
@@ -400,7 +400,7 @@ async function findAccountId(subscription: Stripe.Subscription): Promise<string>
       .where(eq(subscriptions.providerCustomerId, customerId)).limit(1);
     if (byCustomer) return byCustomer.accountId;
   }
-  throw new BillingError('Impossible de relier cet abonnement Stripe à un compte CueForge.', 422, 'stripe_account_mapping_missing');
+  throw new BillingError('Impossible de relier cet abonnement Stripe à un compte SonoRiva.', 422, 'stripe_account_mapping_missing');
 }
 
 async function synchronizeSubscription(subscription: Stripe.Subscription, event: Stripe.Event): Promise<void> {
@@ -424,7 +424,7 @@ async function synchronizeSubscription(subscription: Stripe.Subscription, event:
       subscription: subscriptions,
     }).from(accounts).leftJoin(subscriptions, eq(subscriptions.accountId, accounts.id))
       .where(eq(accounts.id, accountId)).limit(1);
-    if (!current) throw new BillingError('Compte CueForge introuvable pour cet abonnement.', 404, 'account_not_found');
+    if (!current) throw new BillingError('Compte SonoRiva introuvable pour cet abonnement.', 404, 'account_not_found');
     if (current.subscription?.lastProviderEventCreatedAt && current.subscription.lastProviderEventCreatedAt > providerCreatedAt) return;
 
     await transaction.insert(subscriptions).values({
@@ -522,7 +522,7 @@ export function constructStripeEvent(rawBody: Buffer, signature: string): Stripe
 
 export async function processStripeEvent(event: Stripe.Event): Promise<{ duplicate: boolean }> {
   if (event.livemode !== stripeIsLivemode()) {
-    throw new BillingError('Le mode de cet événement Stripe ne correspond pas à celui de CueForge.', 400, 'stripe_mode_mismatch');
+    throw new BillingError('Le mode de cet événement Stripe ne correspond pas à celui de SonoRiva.', 400, 'stripe_mode_mismatch');
   }
   const [existing] = await db.select().from(billingEvents).where(eq(billingEvents.providerEventId, event.id)).limit(1);
   if (existing?.status === 'processed') return { duplicate: true };

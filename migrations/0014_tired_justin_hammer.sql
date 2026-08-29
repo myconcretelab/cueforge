@@ -39,7 +39,7 @@ CREATE TABLE "subscriptions" (
 );
 --> statement-breakpoint
 INSERT INTO "plans" ("code", "name", "description", "storage_quota_bytes", "trial_days", "is_default", "active")
-VALUES ('solo', 'Solo', 'Forfait individuel CueForge.', 5368709120, 14, true, true);
+VALUES ('solo', 'Solo', 'Forfait individuel SonoRiva.', 5368709120, 14, true, true);
 --> statement-breakpoint
 ALTER TABLE "accounts" ALTER COLUMN "plan_code" DROP DEFAULT;--> statement-breakpoint
 ALTER TABLE "accounts" ADD COLUMN "access_status" text DEFAULT 'trialing' NOT NULL;--> statement-breakpoint

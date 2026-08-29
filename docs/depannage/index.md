@@ -4,10 +4,10 @@
 
 Points de contrôle :
 
-1. volume de la piste dans CueForge ;
+1. volume de la piste dans SonoRiva ;
 2. volume du système ;
 3. sortie sélectionnée dans **Paramètres → Sortie audio** ou sortie audio du système ;
-4. lecture d’une autre piste dans CueForge ;
+4. lecture d’une autre piste dans SonoRiva ;
 5. lecture du fichier d’origine dans un lecteur externe ;
 6. accès exclusif éventuel d’une autre application à l’interface audio.
 
@@ -29,7 +29,7 @@ Un fichier accepté à l’import peut encore échouer au décodage si son codec
 Points de contrôle :
 
 - état final de l’opération **Rendre disponible hors ligne** ;
-- autorisation de stockage du domaine CueForge ;
+- autorisation de stockage du domaine SonoRiva ;
 - profil et navigateur utilisés lors de la mise en cache ;
 - utilisation éventuelle d’une fenêtre privée ;
 - espace disponible sur l’appareil.
@@ -55,7 +55,7 @@ Une nouvelle version PWA est téléchargée en arrière-plan. Le bouton **Mettre
 
 Une déclaration d’incident peut contenir :
 
-- la version de CueForge affichée dans l’application ;
+- la version de SonoRiva affichée dans l’application ;
 - le nom et la version du navigateur ;
 - le système d’exploitation ;
 - les étapes de reproduction ;

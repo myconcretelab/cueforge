@@ -108,7 +108,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
 
   return <main className="auth-shell">
     <section className="auth-intro">
-      <div className="brand-mark" aria-label="CueForge">CF</div>
+      <div className="brand-mark" aria-label="SonoRiva">SR</div>
       <p className="eyebrow">Régie son en ligne</p>
       <h1>Play sound.<br /><span>Play the scene.</span></h1>
       <p className="auth-copy">Préparez votre spectacle, déclenchez vos sons instantanément et gardez toute votre bibliothèque à portée de main.</p>
@@ -117,7 +117,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
     <section className="auth-panel">
       <form className="auth-card" onSubmit={submit}>
         <div>
-          <p className="eyebrow">CueForge</p>
+          <p className="eyebrow">SonoRiva</p>
           <h2>{mode === 'register' ? 'Créer votre régie' : mode === 'forgot' ? 'Réinitialiser le mot de passe' : 'Heureux de vous revoir'}</h2>
           <p>{mode === 'register' ? 'Choisissez votre offre. Les forfaits payants utilisent Stripe pour enregistrer le moyen de paiement.' : mode === 'forgot' ? 'Saisissez l’adresse e-mail associée à votre compte.' : 'Connectez-vous pour reprendre votre spectacle.'}</p>
         </div>

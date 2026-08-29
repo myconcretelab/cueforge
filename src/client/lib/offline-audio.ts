@@ -1,4 +1,4 @@
-export const audioCacheName = 'cueforge-audio-v1';
+export const audioCacheName = 'sonoriva-audio-v1';
 
 export function trackStreamUrl(trackId: string): string {
   return `/api/tracks/${trackId}/stream`;

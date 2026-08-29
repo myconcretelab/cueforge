@@ -2,7 +2,7 @@
 /**
  * Site header.
  *
- * @package CueForge_Marketing
+ * @package SonoRiva_Marketing
  */
 ?><!doctype html>
 <html <?php language_attributes(); ?>>
@@ -16,9 +16,9 @@
 <a class="skip-link" href="#main">Aller au contenu</a>
 <header class="site-header" data-site-header>
     <div class="shell header-inner">
-        <a class="brand" href="<?php echo esc_url(home_url('/')); ?>" aria-label="CueForge — Accueil">
-            <img src="<?php echo esc_url(get_template_directory_uri() . '/assets/images/cueforge-mark.svg'); ?>" alt="" width="42" height="42">
-            <span class="brand-lockup"><strong>CueForge</strong><small>Play sound. Play the scene.</small></span>
+        <a class="brand" href="<?php echo esc_url(home_url('/')); ?>" aria-label="SonoRiva — Accueil">
+            <img src="<?php echo esc_url(get_template_directory_uri() . '/assets/images/sonoriva-mark.svg'); ?>" alt="" width="42" height="42">
+            <span class="brand-lockup"><strong>SonoRiva</strong><small>Play sound. Play the scene.</small></span>
         </a>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" data-nav-toggle>
             <span></span><span></span><span></span><span class="screen-reader-text">Ouvrir le menu</span>
@@ -27,11 +27,11 @@
             <a href="<?php echo esc_url(home_url('/#fonctionnalites')); ?>">Fonctionnalités</a>
             <a href="<?php echo esc_url(home_url('/#pour-qui')); ?>">Pour qui&nbsp;?</a>
             <a href="<?php echo esc_url(home_url('/#tarifs')); ?>">Offres</a>
-            <a href="https://app.cueforge.fr/docs/">Documentation</a>
+            <a href="https://app.sonoriva.fr/docs/">Documentation</a>
             <a href="<?php echo esc_url(home_url('/#faq')); ?>">FAQ</a>
         </nav>
         <div class="header-actions">
-            <a class="button button-small button-light" href="https://app.cueforge.fr/demo">Essayer maintenant ! <span aria-hidden="true">↗</span></a>
+            <a class="button button-small button-light" href="https://app.sonoriva.fr/demo">Essayer maintenant ! <span aria-hidden="true">↗</span></a>
         </div>
     </div>
 </header>

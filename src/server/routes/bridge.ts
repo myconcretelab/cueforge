@@ -33,7 +33,7 @@ import { consumeBridgePairingStatus } from '../services/bridge-pairing.js';
 const ticketSchema = z.object({ ticket: z.string().min(32).max(200) });
 const deviceIdSchema = z.object({ id: z.string().uuid() });
 const pairingAlreadyClaimed = Symbol('pairing-already-claimed');
-const bridgeDownloadUrl = 'https://github.com/myconcretelab/cueforge/releases/tag/bridge-v0.5.0';
+const bridgeDownloadUrl = 'https://github.com/myconcretelab/sonoriva/releases/tag/bridge-v1.0.0';
 
 function accountHasBridgeAccess(context: Awaited<ReturnType<typeof accountForUser>>): boolean {
   return Boolean(context && accountCanUseBridge({
@@ -51,7 +51,7 @@ export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
     const account = await accountForUser(user.id);
     if (!account) return reply.code(404).send({ error: 'Espace de travail introuvable.' });
     if (!accountHasBridgeAccess(account)) {
-      return reply.code(403).send({ error: 'CueForge Bridge est réservé aux forfaits payants actifs.' });
+      return reply.code(403).send({ error: 'SonoRiva Bridge est réservé aux forfaits payants actifs.' });
     }
 
     await db.delete(bridgePairingTickets).where(lt(bridgePairingTickets.expiresAt, new Date()));
@@ -72,7 +72,7 @@ export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
     const account = await accountForUser(user.id);
     if (!account) return reply.code(404).send({ error: 'Espace de travail introuvable.' });
     if (!accountHasBridgeAccess(account)) {
-      return reply.code(403).send({ error: 'CueForge Bridge est réservé aux forfaits payants actifs.' });
+      return reply.code(403).send({ error: 'SonoRiva Bridge est réservé aux forfaits payants actifs.' });
     }
     const { ticket } = ticketSchema.parse(request.body);
     const tokenHash = hashBridgeToken(ticket);
@@ -176,7 +176,7 @@ export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
     const account = await accountForUser(user.id);
     if (!account) return reply.code(404).send({ error: 'Espace de travail introuvable.' });
     if (!accountHasBridgeAccess(account)) {
-      return reply.code(403).send({ error: 'Le téléchargement de CueForge Bridge est réservé aux forfaits payants actifs.' });
+      return reply.code(403).send({ error: 'Le téléchargement de SonoRiva Bridge est réservé aux forfaits payants actifs.' });
     }
     return reply.redirect(bridgeDownloadUrl);
   });

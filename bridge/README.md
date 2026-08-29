@@ -1,6 +1,6 @@
-# CueForge Bridge
+# SonoRiva Bridge
 
-CueForge Bridge est le moteur audio natif facultatif de CueForge. L’application web reste autonome et utilise Web Audio lorsque le bridge n’est pas sélectionné.
+SonoRiva Bridge 1.0.0 est le moteur audio natif facultatif de SonoRiva. L’application web reste autonome et utilise Web Audio lorsque le bridge n’est pas sélectionné.
 
 ## Composants
 
@@ -12,7 +12,7 @@ CueForge Bridge est le moteur audio natif facultatif de CueForge. L’applicatio
 - cache de fichiers compressés dans le dossier de cache de l’utilisateur ;
 - nombre de fichiers et taille totale du cache affichés dans la fenêtre ;
 - jeton d’appareil et clé locale dans le trousseau macOS ou le Gestionnaire d’identification Windows ;
-- association par URL `cueforge-bridge://pair` et ticket CueForge temporaire.
+- association par URL `sonoriva-bridge://pair` et ticket SonoRiva temporaire.
 - mise à jour automatique signée depuis la dernière publication GitHub.
 
 ## Compilation
@@ -42,7 +42,7 @@ Le workflow `.github/workflows/release-bridge.yml` est déclenché par les étiq
 
 Le workflow génère également les paquets de mise à jour signés et `latest.json`. La clé privée et son mot de passe proviennent des secrets GitHub Actions `TAURI_SIGNING_PRIVATE_KEY` et `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. La clé privée n’est pas présente dans le dépôt.
 
-Les téléchargements sont disponibles sur `https://github.com/myconcretelab/cueforge/releases`.
+Les téléchargements sont disponibles sur `https://github.com/myconcretelab/sonoriva/releases`.
 
 ## Exécution en développement
 
@@ -51,8 +51,8 @@ cd bridge/src-tauri
 npx tauri dev
 ```
 
-Le lien d’association accepte `https://app.cueforge.fr`. En développement, les origines `http://localhost` et `http://127.0.0.1` sont également acceptées lorsqu’elles sont transmises par le paramètre `server`.
+Le lien d’association accepte `https://app.sonoriva.fr`. En développement, les origines `http://localhost` et `http://127.0.0.1` sont également acceptées lorsqu’elles sont transmises par le paramètre `server`.
 
 ## API locale
 
-`GET /v1/status` expose l’état général du processus, ses capacités, `cachedTracks` et `cachedBytes`. `POST /v1/play` accepte une propriété facultative `outputId`. `PUT /v1/playbacks/:id/output` déplace une lecture active vers le périphérique fourni. Les routes de lecture, de cache et de synchronisation exigent `Authorization: Bearer <clé-locale>`. Les origines CORS admises sont l’application CueForge en production, Vite en développement et la fenêtre Tauri.
+`GET /v1/status` expose l’état général du processus, ses capacités, `cachedTracks` et `cachedBytes`. `POST /v1/play` accepte une propriété facultative `outputId`. `PUT /v1/playbacks/:id/output` déplace une lecture active vers le périphérique fourni. Les routes de lecture, de cache et de synchronisation exigent `Authorization: Bearer <clé-locale>`. Les origines CORS admises sont l’application SonoRiva en production, Vite en développement et la fenêtre Tauri.

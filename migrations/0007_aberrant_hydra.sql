@@ -12,7 +12,7 @@ INSERT INTO "project_colors" ("project_id", "color", "position")
 SELECT "projects"."id", "palette"."color", "palette"."position"
 FROM "projects"
 CROSS JOIN (VALUES
-	('#f97316', 0),
+	('#22d3b6', 0),
 	('#f59e0b', 1),
 	('#eab308', 2),
 	('#84cc16', 3),

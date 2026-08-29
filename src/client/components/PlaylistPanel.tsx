@@ -30,9 +30,9 @@ interface Props {
   onClear: () => void;
 }
 
-const trackMime = 'application/x-cueforge-track';
-const playlistItemMime = 'application/x-cueforge-playlist-item';
-const panelHeightStorageKey = 'cueforge-playlist-panel-height';
+const trackMime = 'application/x-sonoriva-track';
+const playlistItemMime = 'application/x-sonoriva-playlist-item';
+const panelHeightStorageKey = 'sonoriva-playlist-panel-height';
 const panelMinHeight = 160;
 
 function maxPanelHeight() {

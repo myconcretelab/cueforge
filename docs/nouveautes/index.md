@@ -2,6 +2,15 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.0.0 — 29 août 2026
+
+- nouvelle identité SonoRiva et monogramme SR ;
+- palette aqua dans l’application, la documentation, le site et les e-mails ;
+- nouvelles adresses `sonoriva.fr` et `app.sonoriva.fr` ;
+- identifiants exclusivement SonoRiva pour l’application web et le Bridge.
+
+[Détails de la version 1.0.0](./1.0.0.md)
+
 ## Version 0.24.0 — 29 août 2026
 
 - gestion des sorties audio réservée aux forfaits payants actifs ;
@@ -14,7 +23,7 @@ Chaque entrée décrit les modifications fonctionnelles et techniques d’une ve
 
 - réglette lisible des sorties audio au-dessus du header ;
 - identification de la sortie principale et noms complets ;
-- mises à jour signées et automatiques avec CueForge Bridge 0.5.0.
+- mises à jour signées et automatiques avec SonoRiva Bridge 0.5.0.
 
 [Détails de la version 0.23.0](./0.23.0.md)
 
@@ -23,7 +32,7 @@ Chaque entrée décrit les modifications fonctionnelles et techniques d’une ve
 - sortie principale identifiée autour du grand Play ;
 - sorties alternatives et légende colorées sans doublon ;
 - espace disque du cache affiché dans le Bridge ;
-- fond d’installation macOS bilingue pour CueForge Bridge 0.4.0.
+- fond d’installation macOS bilingue pour SonoRiva Bridge 0.4.0.
 
 [Détails de la version 0.22.0](./0.22.0.md)
 
@@ -32,7 +41,7 @@ Chaque entrée décrit les modifications fonctionnelles et techniques d’une ve
 - lancement direct d’un morceau sur une sortie physique précise ;
 - couleur propre à chaque sortie disponible ;
 - changement de sortie depuis une lecture active ;
-- publication de CueForge Bridge 0.3.0.
+- publication de SonoRiva Bridge 0.3.0.
 
 [Détails de la version 0.21.0](./0.21.0.md)
 
@@ -61,15 +70,15 @@ Chaque entrée décrit les modifications fonctionnelles et techniques d’une ve
 
 ## Version 0.18.0 — 29 août 2026
 
-- intégration de CueForge Bridge aux forfaits payants ;
+- intégration de SonoRiva Bridge aux forfaits payants ;
 - contrôle du forfait lors de l’association et de l’accès aux médias du bridge ;
-- indication de cette fonction dans les offres du site CueForge.
+- indication de cette fonction dans les offres du site SonoRiva.
 
 [Détails de la version 0.18.0](./0.18.0.md)
 
 ## Version 0.17.0 — 29 août 2026
 
-- ajout d’un installateur CueForge Bridge pour Windows x64 ;
+- ajout d’un installateur SonoRiva Bridge pour Windows x64 ;
 - stockage des clés dans le Gestionnaire d’identification Windows ;
 - conservation du moteur Web Audio complet lorsque le bridge n’est pas installé ou sélectionné.
 
@@ -77,7 +86,7 @@ Chaque entrée décrit les modifications fonctionnelles et techniques d’une ve
 
 ## Version 0.16.1 — 29 août 2026
 
-- téléchargement de CueForge Bridge depuis une publication GitHub publique ;
+- téléchargement de SonoRiva Bridge depuis une publication GitHub publique ;
 - paquet Apple Silicon et paquet Intel ;
 - signature ad hoc sans certificat Apple Developer ni notarisation.
 
@@ -85,7 +94,7 @@ Chaque entrée décrit les modifications fonctionnelles et techniques d’une ve
 
 ## Version 0.16.0 — 29 août 2026
 
-- ajout du moteur natif facultatif CueForge Bridge pour macOS ;
+- ajout du moteur natif facultatif SonoRiva Bridge pour macOS ;
 - association depuis les paramètres au moyen d’un lien natif à usage unique ;
 - cache audio propre au bridge et sélection indépendante des sorties principale et préécoute ;
 - maintien du moteur Web Audio complet lorsque le bridge n’est pas installé ou sélectionné.
@@ -120,7 +129,7 @@ Chaque entrée décrit les modifications fonctionnelles et techniques d’une ve
 
 - ajout de la souscription mensuelle ou annuelle avec Stripe Checkout ;
 - ajout du portail Stripe pour l’abonnement, les factures et le moyen de paiement ;
-- synchronisation des droits CueForge à partir des événements Stripe.
+- synchronisation des droits SonoRiva à partir des événements Stripe.
 
 [Détails de la version 0.12.0](./0.12.0.md)
 
@@ -159,15 +168,15 @@ Chaque entrée décrit les modifications fonctionnelles et techniques d’une ve
 
 ## Version 0.6.0 — 25 août 2026
 
-- mise en ligne du site de présentation sur `cueforge.fr` ;
-- déplacement de l’application sur `app.cueforge.fr` ;
+- mise en ligne du site de présentation sur `sonoriva.fr` ;
+- déplacement de l’application sur `app.sonoriva.fr` ;
 - maintien de la documentation sous `/docs/` sur le domaine de l’application.
 
 [Détails de la version 0.6.0](./0.6.0.md)
 
 ## Version 0.4.0 — 25 août 2026
 
-- changement du nom de l’application vers CueForge ;
+- changement du nom de l’application vers SonoRiva ;
 - changement des domaines, chemins, identifiants techniques et éléments graphiques ;
 - migration des préférences locales, du cache audio et des cookies de session ;
 - maintien temporaire de l’ancienne origine pour les PWA et télécommandes existantes.

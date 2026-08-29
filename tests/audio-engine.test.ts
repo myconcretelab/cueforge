@@ -142,7 +142,7 @@ describe('audio player instance controls', () => {
 
     expect(FakeAudioContext.lastSinkId).toBe('studio-output');
     expect(audioEngine.getAudioOutputSelection()).toEqual({ deviceId: 'studio-output', label: 'Interface studio' });
-    expect(JSON.parse(localStorage.getItem('cueforge-audio-output-v1') ?? '{}')).toEqual({ deviceId: 'studio-output', label: 'Interface studio' });
+    expect(JSON.parse(localStorage.getItem('sonoriva-audio-output-v1') ?? '{}')).toEqual({ deviceId: 'studio-output', label: 'Interface studio' });
 
     const setSinkId = vi.fn(async () => undefined);
     await audioEngine.applyAudioOutput({ setSinkId } as unknown as HTMLMediaElement);
@@ -150,7 +150,7 @@ describe('audio player instance controls', () => {
 
     await audioEngine.setAudioOutput('');
     expect(FakeAudioContext.lastSinkId).toBe('');
-    expect(localStorage.getItem('cueforge-audio-output-v1')).toBeNull();
+    expect(localStorage.getItem('sonoriva-audio-output-v1')).toBeNull();
   });
 
   it('notifie les contrôles de régie lorsque la sortie change', async () => {

@@ -13,7 +13,7 @@ use tauri_plugin_updater::UpdaterExt;
 use url::Url;
 
 pub fn run() {
-    let runtime = Runtime::load().expect("initialisation de CueForge Bridge impossible");
+    let runtime = Runtime::load().expect("initialisation de SonoRiva Bridge impossible");
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(
             |app, _arguments, _working_directory| {
@@ -31,7 +31,7 @@ pub fn run() {
             let local_runtime = runtime.clone();
             tauri::async_runtime::spawn(async move {
                 if let Err(error) = local_api::serve(local_runtime).await {
-                    eprintln!("Serveur local CueForge Bridge arrêté: {error}");
+                    eprintln!("Serveur local SonoRiva Bridge arrêté: {error}");
                 }
             });
 
@@ -39,7 +39,7 @@ pub fn run() {
             let update_runtime = runtime.clone();
             tauri::async_runtime::spawn(async move {
                 if let Err(error) = install_available_update(update_handle, update_runtime).await {
-                    eprintln!("Mise à jour automatique de CueForge Bridge impossible: {error}");
+                    eprintln!("Mise à jour automatique de SonoRiva Bridge impossible: {error}");
                 }
             });
 
@@ -61,7 +61,7 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("exécution de CueForge Bridge impossible");
+        .expect("exécution de SonoRiva Bridge impossible");
 }
 
 async fn install_available_update<R: TauriRuntime>(
@@ -88,7 +88,7 @@ async fn install_available_update<R: TauriRuntime>(
         .map_err(|_| "Moteur audio inaccessible pendant la mise à jour.".to_string())?;
     if !audio.snapshots().is_empty() {
         eprintln!(
-            "Mise à jour CueForge Bridge {version} téléchargée mais différée: une lecture audio est active."
+            "Mise à jour SonoRiva Bridge {version} téléchargée mais différée: une lecture audio est active."
         );
         return Ok(());
     }
@@ -98,7 +98,7 @@ async fn install_available_update<R: TauriRuntime>(
 }
 
 fn handle_pairing_url<R: TauriRuntime>(app: &tauri::AppHandle<R>, runtime: Arc<Runtime>, url: Url) {
-    if url.scheme() != "cueforge-bridge" || url.host_str() != Some("pair") {
+    if url.scheme() != "sonoriva-bridge" || url.host_str() != Some("pair") {
         return;
     }
     let Some(ticket) = url
@@ -110,14 +110,14 @@ fn handle_pairing_url<R: TauriRuntime>(app: &tauri::AppHandle<R>, runtime: Arc<R
     let server_url = url
         .query_pairs()
         .find_map(|(key, value)| (key == "server").then(|| value.into_owned()))
-        .unwrap_or_else(|| "https://app.cueforge.fr".to_string());
+        .unwrap_or_else(|| "https://app.sonoriva.fr".to_string());
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.set_focus();
     }
     tauri::async_runtime::spawn(async move {
         if let Err(error) = runtime.claim_pairing(&ticket, &server_url).await {
-            eprintln!("Association CueForge Bridge refusée: {error}");
+            eprintln!("Association SonoRiva Bridge refusée: {error}");
         }
     });
 }

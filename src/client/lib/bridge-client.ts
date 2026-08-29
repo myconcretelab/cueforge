@@ -42,8 +42,8 @@ type CacheListener = (trackIds: Set<string>) => void;
 type RoutingListener = () => void;
 
 const bridgeBaseUrl = 'http://127.0.0.1:43821';
-const associationStorageKey = 'cueforge-bridge-association-v1';
-const modeStorageKey = 'cueforge-audio-mode-v1';
+const associationStorageKey = 'sonoriva-bridge-association-v1';
+const modeStorageKey = 'sonoriva-audio-mode-v1';
 
 class BridgeClient {
   private association = readAssociation();
@@ -64,7 +64,7 @@ class BridgeClient {
   getCachedTrackIds(): Set<string> { return new Set(this.cachedTrackIds); }
 
   setMode(mode: AudioPlaybackMode): void {
-    if (mode === 'bridge' && !this.association) throw new Error('Associez d’abord CueForge Bridge à ce navigateur.');
+    if (mode === 'bridge' && !this.association) throw new Error('Associez d’abord SonoRiva Bridge à ce navigateur.');
     this.mode = mode;
     localStorage.setItem(modeStorageKey, mode);
     if (mode === 'bridge') this.startPolling();
@@ -237,7 +237,7 @@ class BridgeClient {
   }
 
   private async request<T>(path: string, init: RequestInit = {}, authenticated = true): Promise<T> {
-    if (authenticated && !this.association) throw new Error('CueForge Bridge n’est pas associé à ce navigateur.');
+    if (authenticated && !this.association) throw new Error('SonoRiva Bridge n’est pas associé à ce navigateur.');
     const response = await fetch(`${bridgeBaseUrl}${path}`, {
       ...init,
       headers: {
@@ -247,8 +247,8 @@ class BridgeClient {
       },
     });
     if (!response.ok) {
-      const body = await response.json().catch(() => ({ error: 'CueForge Bridge ne répond pas.' }));
-      throw new Error(body.error ?? 'CueForge Bridge ne répond pas.');
+      const body = await response.json().catch(() => ({ error: 'SonoRiva Bridge ne répond pas.' }));
+      throw new Error(body.error ?? 'SonoRiva Bridge ne répond pas.');
     }
     if (response.status === 204) return undefined as T;
     return response.json() as Promise<T>;

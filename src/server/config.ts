@@ -3,17 +3,12 @@ import path from 'node:path';
 import { z } from 'zod';
 
 const schema = z.object({
-  DATABASE_URL: z.string().min(1).default('postgresql://cueforge:password@localhost:5432/cueforge'),
+  DATABASE_URL: z.string().min(1).default('postgresql://sonoriva:password@localhost:5432/sonoriva'),
   SESSION_SECRET: z.string().min(16).default('development-only-change-me'),
   STORAGE_PATH: z.string().default('./storage'),
   HOST: z.string().default('127.0.0.1'),
   PORT: z.coerce.number().int().positive().default(8100),
   PUBLIC_URL: z.string().url().default('http://localhost:5173'),
-  LEGACY_PUBLIC_URLS: z.string().default('').transform((value) => value
-    .split(',')
-    .map((url) => url.trim())
-    .filter(Boolean))
-    .pipe(z.array(z.string().url())),
   FREESOUND_API_KEY: z.preprocess(
     (value) => value === '' ? undefined : value,
     z.string().trim().min(1).optional(),
@@ -23,7 +18,7 @@ const schema = z.object({
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean))
     .pipe(z.array(z.string().email())),
-  MAIL_FROM: z.string().trim().min(1).default('CueForge <noreply@cueforge.fr>'),
+  MAIL_FROM: z.string().trim().min(1).default('SonoRiva <noreply@sonoriva.fr>'),
   SMTP_HOST: z.preprocess(
     (value) => value === '' ? undefined : value,
     z.string().trim().min(1).optional(),
@@ -107,6 +102,6 @@ if (parsed.data.NODE_ENV === 'production' && parsed.data.SESSION_SECRET === 'dev
 export const config = {
   ...parsed.data,
   STORAGE_PATH: path.resolve(parsed.data.STORAGE_PATH),
-  PUBLIC_ORIGINS: [parsed.data.PUBLIC_URL, ...parsed.data.LEGACY_PUBLIC_URLS],
+  PUBLIC_ORIGINS: [parsed.data.PUBLIC_URL],
   isProduction: parsed.data.NODE_ENV === 'production',
 };

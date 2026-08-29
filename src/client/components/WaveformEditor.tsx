@@ -113,7 +113,7 @@ export function WaveformEditor({ track, startMs, endMs, onStartChange, onEndChan
     const lastSample = Math.min(buffer.length, Math.ceil(view.endMs / 1_000 * buffer.sampleRate));
     const samplesPerPixel = Math.max(1, (lastSample - firstSample) / width);
     const gradient = context.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, '#fb923c'); gradient.addColorStop(.5, '#f97316'); gradient.addColorStop(1, '#c2410c');
+    gradient.addColorStop(0, '#5eead4'); gradient.addColorStop(.5, '#22d3b6'); gradient.addColorStop(1, '#0f766e');
     context.fillStyle = gradient;
     context.beginPath();
     for (let x = 0; x < width; x += 1) {

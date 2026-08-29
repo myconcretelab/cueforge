@@ -31,7 +31,7 @@ export function PasswordResetScreen() {
 
   return <main className="auth-shell">
     <section className="auth-intro">
-      <div className="brand-mark" aria-label="CueForge">CF</div>
+      <div className="brand-mark" aria-label="SonoRiva">SR</div>
       <p className="eyebrow">Régie son en ligne</p>
       <h1>Play sound.<br /><span>Play the scene.</span></h1>
       <div className="signal-lines" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /></div>
@@ -40,14 +40,14 @@ export function PasswordResetScreen() {
       {done ? <div className="auth-card auth-confirmation">
         <CheckCircle2 size={42} />
         <div>
-          <p className="eyebrow">CueForge</p>
+          <p className="eyebrow">SonoRiva</p>
           <h2>Mot de passe modifié</h2>
           <p>Toutes les sessions précédentes ont été déconnectées. Vous pouvez utiliser votre nouveau mot de passe.</p>
         </div>
         <a className="button primary wide" href="/">Se connecter</a>
       </div> : <form className="auth-card" onSubmit={submit}>
         <div>
-          <p className="eyebrow">CueForge</p>
+          <p className="eyebrow">SonoRiva</p>
           <h2>Nouveau mot de passe</h2>
           <p>Le nouveau mot de passe doit contenir au moins 8 caractères.</p>
         </div>

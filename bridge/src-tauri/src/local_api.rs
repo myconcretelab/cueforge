@@ -90,7 +90,7 @@ struct SeekInput {
 pub async fn serve(state: Arc<Runtime>) -> Result<(), String> {
     let cors = CorsLayer::new()
         .allow_origin([
-            "https://app.cueforge.fr".parse::<HeaderValue>().unwrap(),
+            "https://app.sonoriva.fr".parse::<HeaderValue>().unwrap(),
             "http://localhost:5173".parse::<HeaderValue>().unwrap(),
             "http://127.0.0.1:5173".parse::<HeaderValue>().unwrap(),
             "tauri://localhost".parse::<HeaderValue>().unwrap(),
@@ -274,7 +274,7 @@ async fn events(
     if !matches!(
         origin,
         Some(
-            "https://app.cueforge.fr"
+            "https://app.sonoriva.fr"
                 | "http://localhost:5173"
                 | "http://127.0.0.1:5173"
                 | "tauri://localhost"

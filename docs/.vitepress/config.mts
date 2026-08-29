@@ -5,20 +5,20 @@ const packageMetadata = JSON.parse(readFileSync(new URL('../../package.json', im
 
 export default defineConfig({
   lang: 'fr-FR',
-  title: 'Documentation CueForge',
-  description: 'Documentation fonctionnelle de CueForge : commandes, paramètres, formats et limites.',
+  title: 'Documentation SonoRiva',
+  description: 'Documentation fonctionnelle de SonoRiva : commandes, paramètres, formats et limites.',
   base: '/docs/',
   outDir: '../dist/client/docs',
   cleanUrls: false,
   lastUpdated: true,
   head: [
-    ['link', { rel: 'icon', href: '/docs/cueforge-mark.svg', type: 'image/svg+xml' }],
+    ['link', { rel: 'icon', href: '/docs/sonoriva-mark.svg', type: 'image/svg+xml' }],
     ['meta', { name: 'theme-color', content: '#09090b' }],
     ['meta', { property: 'og:locale', content: 'fr_FR' }],
   ],
   themeConfig: {
-    logo: '/cueforge-mark.svg',
-    siteTitle: 'CueForge · Documentation',
+    logo: '/sonoriva-mark.svg',
+    siteTitle: 'SonoRiva · Documentation',
     nav: [
       { text: 'Fonctionnement', link: '/premiers-pas/' },
       { text: 'Fonctions', link: '/guides/importer-des-sons' },
@@ -27,7 +27,7 @@ export default defineConfig({
       {
         text: `v${packageMetadata.version}`,
         items: [
-          { text: 'Ouvrir CueForge', link: 'https://app.cueforge.fr' },
+          { text: 'Ouvrir SonoRiva', link: 'https://app.sonoriva.fr' },
         ],
       },
     ],
@@ -82,8 +82,8 @@ export default defineConfig({
     lastUpdated: { text: 'Mis à jour le', formatOptions: { dateStyle: 'long' } },
     docFooter: { prev: 'Page précédente', next: 'Page suivante' },
     footer: {
-      message: 'Documentation de CueForge',
-      copyright: 'Documentation de CueForge',
+      message: 'Documentation de SonoRiva',
+      copyright: 'Documentation de SonoRiva',
     },
   },
 });

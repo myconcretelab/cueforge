@@ -27,7 +27,7 @@ export function bearerToken(authorization: string | undefined): string | undefin
 export async function requireBridgeDevice(request: FastifyRequest, reply: FastifyReply): Promise<BridgeDevice | null> {
   const token = bearerToken(request.headers.authorization);
   if (!token) {
-    await reply.code(401).send({ error: 'Jeton CueForge Bridge requis.' });
+    await reply.code(401).send({ error: 'Jeton SonoRiva Bridge requis.' });
     return null;
   }
   const [context] = await db.select({
@@ -49,7 +49,7 @@ export async function requireBridgeDevice(request: FastifyRequest, reply: Fastif
     return null;
   }
   if (!accountCanUseBridge(context)) {
-    await reply.code(403).send({ error: 'CueForge Bridge est réservé aux forfaits payants actifs.' });
+    await reply.code(403).send({ error: 'SonoRiva Bridge est réservé aux forfaits payants actifs.' });
     return null;
   }
   const now = new Date();

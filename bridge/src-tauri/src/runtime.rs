@@ -41,7 +41,7 @@ impl Runtime {
             audio: std::sync::Mutex::new(AudioEngine::new()),
             store,
             client: reqwest::Client::builder()
-                .user_agent(format!("CueForge-Bridge/{}", env!("CARGO_PKG_VERSION")))
+                .user_agent(format!("SonoRiva-Bridge/{}", env!("CARGO_PKG_VERSION")))
                 .build()
                 .map_err(|error| error.to_string())?,
         }))
@@ -57,9 +57,9 @@ impl Runtime {
 
     pub async fn claim_pairing(&self, ticket: &str, server_url: &str) -> Result<(), String> {
         let parsed_server = url::Url::parse(server_url)
-            .map_err(|_| "Adresse du serveur CueForge invalide.".to_string())?;
+            .map_err(|_| "Adresse du serveur SonoRiva invalide.".to_string())?;
         let allowed = (parsed_server.scheme() == "https"
-            && parsed_server.host_str() == Some("app.cueforge.fr"))
+            && parsed_server.host_str() == Some("app.sonoriva.fr"))
             || (parsed_server.scheme() == "http"
                 && matches!(parsed_server.host_str(), Some("localhost" | "127.0.0.1")));
         if !allowed {
@@ -85,7 +85,7 @@ impl Runtime {
                 .await
                 .ok()
                 .and_then(|body| body.get("error")?.as_str().map(str::to_string))
-                .unwrap_or_else(|| "Association refusée par CueForge.".to_string()));
+                .unwrap_or_else(|| "Association refusée par SonoRiva.".to_string()));
         }
         let claim = response
             .json::<PairingClaim>()
@@ -117,7 +117,7 @@ impl Runtime {
         let config = self.config.read().await.clone();
         let server_url = config
             .server_url
-            .ok_or_else(|| "Le bridge n’est pas associé à CueForge.".to_string())?;
+            .ok_or_else(|| "Le bridge n’est pas associé à SonoRiva.".to_string())?;
         let device_token = self
             .device_token
             .read()
@@ -178,7 +178,7 @@ impl Runtime {
         let config = self.config.read().await.clone();
         let server_url = config
             .server_url
-            .ok_or_else(|| "Le bridge n’est pas associé à CueForge.".to_string())?;
+            .ok_or_else(|| "Le bridge n’est pas associé à SonoRiva.".to_string())?;
         let device_token = self
             .device_token
             .read()
@@ -269,11 +269,11 @@ fn platform_name() -> &'static str {
 
 fn default_device_name() -> &'static str {
     if cfg!(target_os = "windows") {
-        "PC CueForge"
+        "PC SonoRiva"
     } else if cfg!(target_os = "macos") {
-        "Mac CueForge"
+        "Mac SonoRiva"
     } else {
-        "CueForge Bridge"
+        "SonoRiva Bridge"
     }
 }
 

@@ -47,7 +47,7 @@ describe('commercial free plan', () => {
   });
 });
 
-describe('CueForge Bridge entitlement', () => {
+describe('SonoRiva Bridge entitlement', () => {
   it('inclut le bridge dans un forfait comportant un prix payant', () => {
     expect(planIncludesBridge({ monthlyPriceCents: 300, annualPriceCents: 2_500 })).toBe(true);
   });

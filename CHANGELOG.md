@@ -1,6 +1,24 @@
 # Changelog
 
-Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
+Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
+
+## [1.0.0] - 2026-08-29
+
+### Ajouté
+
+- identité globale **SonoRiva** avec monogramme `SR` et palette aqua ;
+- domaines publics `sonoriva.fr` et `app.sonoriva.fr` ;
+- paquet autonome SonoRiva Bridge 1.0.0 pour macOS et Windows.
+
+### Modifié
+
+- renommage de l’application, du dépôt, du site WordPress, de la documentation, des e-mails et des métadonnées PWA ;
+- remplacement des identifiants techniques, clés locales, caches, cookies, protocole natif, identifiants Tauri et chemins de déploiement ;
+- passage de l’application et du Bridge à la version `1.0.0`.
+
+### Supprimé
+
+- mécanismes de migration et alias associés aux identités antérieures.
 
 ## [0.24.0] - 2026-08-29
 
@@ -22,7 +40,7 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 
 - réglette fine au-dessus du header avec le nom complet et la couleur de chaque sortie physique ;
 - identification explicite de la sortie principale dans la réglette ;
-- mise à jour automatique et signée de CueForge Bridge 0.5.0 depuis les publications GitHub.
+- mise à jour automatique et signée de SonoRiva Bridge 0.5.0 depuis les publications GitHub.
 
 ### Modifié
 
@@ -35,7 +53,7 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 ### Ajouté
 
 - légende des couleurs et des noms des sorties physiques dans la barre de régie ;
-- taille totale des fichiers audio du cache dans la fenêtre de CueForge Bridge ;
+- taille totale des fichiers audio du cache dans la fenêtre de SonoRiva Bridge ;
 - fond d’installation macOS bilingue avec représentation du glisser-déposer et chemin d’ouverture d’une application non notariée.
 
 ### Corrigé
@@ -55,7 +73,7 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 - boutons Play colorés par sortie physique sur chaque morceau lorsque plusieurs sorties sont disponibles ;
 - indication colorée de la sortie utilisée par chaque lecture active ;
 - changement de sortie pendant la lecture avec conservation de la position et des réglages ;
-- API locale de routage par lecture dans CueForge Bridge 0.3.0.
+- API locale de routage par lecture dans SonoRiva Bridge 0.3.0.
 
 ### Modifié
 
@@ -66,7 +84,7 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 
 ### Ajouté
 
-- détection automatique de CueForge Bridge depuis la barre de régie ;
+- détection automatique de SonoRiva Bridge depuis la barre de régie ;
 - LED d’état pour distinguer Bridge fermé, détecté, prêt et actif ;
 - commandes compactes pour associer, ouvrir, activer, désactiver ou actualiser le Bridge ;
 - logique de connexion partagée entre la barre de régie et les paramètres.
@@ -79,7 +97,7 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 
 ### Corrigé
 
-- récupération de la clé locale par le navigateur à la fin de l’association avec CueForge Bridge ;
+- récupération de la clé locale par le navigateur à la fin de l’association avec SonoRiva Bridge ;
 - consommation atomique du ticket avant l’effacement de sa clé à usage unique ;
 - maintien du refus des tentatives de récupération ultérieures.
 
@@ -100,10 +118,10 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 
 ### Ajouté
 
-- droit CueForge Bridge calculé automatiquement à partir du prix et de l’état d’accès du forfait ;
+- droit SonoRiva Bridge calculé automatiquement à partir du prix et de l’état d’accès du forfait ;
 - contrôle du droit Bridge lors de l’association, des requêtes natives et de l’ouverture de la page de téléchargement ;
 - indication `bridgeIncluded` dans l’API publique des forfaits ;
-- mention de CueForge Bridge sur les cartes tarifaires du site WordPress ;
+- mention de SonoRiva Bridge sur les cartes tarifaires du site WordPress ;
 - source et script de déploiement du bloc WordPress des forfaits.
 
 ### Modifié
@@ -117,7 +135,7 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 
 ### Ajouté
 
-- application CueForge Bridge pour Windows x64 avec installateur NSIS ;
+- application SonoRiva Bridge pour Windows x64 avec installateur NSIS ;
 - stockage sécurisé du jeton d’appareil et de la clé locale dans le Gestionnaire d’identification Windows ;
 - transmission des liens d’association à l’instance du bridge déjà ouverte ;
 - compilation et tests du bridge sur un runner Windows dédié ;
@@ -134,9 +152,9 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 
 ### Ajouté
 
-- publication de CueForge Bridge dans les Releases GitHub ;
+- publication de SonoRiva Bridge dans les Releases GitHub ;
 - images disque distinctes pour les Mac Apple Silicon et Intel ;
-- lien de téléchargement dans les paramètres audio de CueForge.
+- lien de téléchargement dans les paramètres audio de SonoRiva.
 
 ### Modifié
 
@@ -147,9 +165,9 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 
 ### Ajouté
 
-- application macOS CueForge Bridge fondée sur Tauri, CPAL et Rodio ;
-- association par lien natif `cueforge-bridge://` et ticket serveur temporaire à usage unique ;
-- jeton d’appareil conservé dans le trousseau macOS et révocable depuis CueForge ;
+- application macOS SonoRiva Bridge fondée sur Tauri, CPAL et Rodio ;
+- association par lien natif `sonoriva-bridge://` et ticket serveur temporaire à usage unique ;
+- jeton d’appareil conservé dans le trousseau macOS et révocable depuis SonoRiva ;
 - serveur local sur `127.0.0.1:43821` protégé par une clé propre au navigateur associé ;
 - cache natif des fichiers audio compressés avec synchronisation complète d’un spectacle ;
 - sorties distinctes pour la régie principale et la préécoute ;
@@ -157,7 +175,7 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 
 ### Modifié
 
-- ajout du choix entre le moteur Navigateur et CueForge Bridge dans les paramètres ;
+- ajout du choix entre le moteur Navigateur et SonoRiva Bridge dans les paramètres ;
 - maintien de Web Audio comme moteur par défaut et fonctionnement complet sans bridge ;
 - ajout d’API serveur dédiées aux appareils associés, manifestes et téléchargements audio ;
 - passage de l’application à la version `0.16.0`.
@@ -287,7 +305,7 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 - réglages de visibilité publique, mise en avant et ordre d’affichage pour chaque forfait ;
 - API publique en lecture seule sous `/api/public/plans` ;
 - cache HTTP de la réponse publique ;
-- bloc WordPress dynamique **Forfaits CueForge** ;
+- bloc WordPress dynamique **Forfaits SonoRiva** ;
 - cache WordPress de cinq minutes avec repli sur la dernière réponse valide.
 
 ### Modifié
@@ -331,9 +349,9 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 
 ### Modifié
 
-- mise en ligne du site WordPress sur `cueforge.fr` ;
-- déplacement de l’application, de l’API, de l’administration et de la documentation sur `app.cueforge.fr` ;
-- redirection de `www.cueforge.fr` vers le domaine principal ;
+- mise en ligne du site WordPress sur `sonoriva.fr` ;
+- déplacement de l’application, de l’API, de l’administration et de la documentation sur `app.sonoriva.fr` ;
+- redirection de `www.sonoriva.fr` vers le domaine principal ;
 - suppression des références publiques à l’ancienne édition Community ;
 - passage de l’application à la version `0.6.0`.
 
@@ -358,14 +376,14 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 
 ### Modifié
 
-- nouvelle identité globale **CueForge**, accompagnée de la signature « Play sound. Play the scene. » ;
+- nouvelle identité globale **SonoRiva**, accompagnée de la signature « Play sound. Play the scene. » ;
 - renommage de l’application, de la PWA, de la documentation, du dépôt, des domaines et des chemins de déploiement ;
-- nouveau monogramme `CF` dans l’interface et les icônes.
+- nouveau monogramme `SR` dans l’interface et les icônes.
 
 ### Migration
 
 - reprise automatique des préférences navigateur enregistrées sous les anciennes clés `s1-*` ;
-- transfert du cache audio hors ligne existant vers le cache CueForge ;
+- transfert du cache audio hors ligne existant vers le cache SonoRiva ;
 - prise en charge transitoire de l’ancien cookie de session afin de conserver les connexions valides.
 - compatibilité CORS transitoire pour les PWA et télécommandes ouvertes depuis l’ancienne adresse.
 
@@ -373,8 +391,8 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 
 ### Ajouté
 
-- centre de documentation public intégré au déploiement de CueForge ;
-- recherche locale, navigation thématique et design aux couleurs de CueForge ;
+- centre de documentation public intégré au déploiement de SonoRiva ;
+- recherche locale, navigation thématique et design aux couleurs de SonoRiva ;
 - guides de prise en main, préparation, import, mode hors ligne et télécommande ;
 - référence des formats, raccourcis, dépannage et installation Community ;
 - accès à la documentation depuis les paramètres, les notes de version et le site WordPress ;
@@ -403,5 +421,5 @@ Toutes les évolutions notables de CueForge sont documentées ici. Le projet sui
 
 ## [0.1.0] - 2026-08-24
 
-- première version publique de CueForge ;
+- première version publique de SonoRiva ;
 - régie sonore, projets, catégories, playlists, import et fonctionnement hors ligne.

@@ -59,7 +59,7 @@ describe('client API', () => {
     }));
   });
 
-  it('crée et interroge une association CueForge Bridge', async () => {
+  it('crée et interroge une association SonoRiva Bridge', async () => {
     const fetcher = vi.fn(async (_url: string, init?: RequestInit) => init?.body
       ? new Response(JSON.stringify({ status: 'pending' }), { status: 200, headers: { 'Content-Type': 'application/json' } })
       : new Response(JSON.stringify({ ticket: 'ticket-test', expiresAt: '2030-01-01T00:05:00.000Z' }), { status: 201, headers: { 'Content-Type': 'application/json' } }));
@@ -89,14 +89,14 @@ describe('client API', () => {
   });
 
   it('enregistre une couleur dans la palette du spectacle', async () => {
-    const fetcher = vi.fn(async () => new Response(JSON.stringify({ projectColor: { color: '#f97316' } }), { status: 201, headers: { 'Content-Type': 'application/json' } }));
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ projectColor: { color: '#22d3b6' } }), { status: 201, headers: { 'Content-Type': 'application/json' } }));
     vi.stubGlobal('fetch', fetcher);
 
-    await api.createProjectColor('11111111-1111-4111-8111-111111111111', '#f97316');
+    await api.createProjectColor('11111111-1111-4111-8111-111111111111', '#22d3b6');
 
     expect(fetcher).toHaveBeenCalledWith('/api/projects/11111111-1111-4111-8111-111111111111/colors', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ color: '#f97316' }),
+      body: JSON.stringify({ color: '#22d3b6' }),
     }));
   });
 

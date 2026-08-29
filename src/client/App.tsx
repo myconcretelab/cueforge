@@ -30,7 +30,7 @@ import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAud
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
 import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ReleaseInfo, RemoteCommand, Track, User } from './types';
 
-const colors = ['#f97316', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
+const colors = ['#22d3b6', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
 const mouseActions: Array<{ value: MouseAction; label: string }> = [
   { value: 'start', label: 'Démarrer' },
   { value: 'crossfade', label: 'Fondu enchaîné' },
@@ -54,7 +54,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>();
   const [projects, setProjects] = useState<Project[]>([]);
   const [detail, setDetail] = useState<ProjectDetail>();
-  const [selectedProjectId, setSelectedProjectId] = useState(localStorage.getItem('cueforge-project'));
+  const [selectedProjectId, setSelectedProjectId] = useState(localStorage.getItem('sonoriva-project'));
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [activePlaybacks, setActivePlaybacks] = useState<ActivePlayback[]>([]);
@@ -63,7 +63,7 @@ export default function App() {
   const [preloadProgress, setPreloadProgress] = useState<{ done: number; total: number }>();
   const [fileDropActive, setFileDropActive] = useState(false);
   const [dropUploadProgress, setDropUploadProgress] = useState<{ done: number; total: number; filename: string }>();
-  const [categoryWidth, setCategoryWidth] = useState(() => readNumber('cueforge-category-width', 112));
+  const [categoryWidth, setCategoryWidth] = useState(() => readNumber('sonoriva-category-width', 112));
   const [reorderMode, setReorderMode] = useState(false);
   const [draggedTrackId, setDraggedTrackId] = useState<string>();
   const [dropTrackId, setDropTrackId] = useState<string>();
@@ -80,8 +80,8 @@ export default function App() {
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [compactLayout, setCompactLayout] = useState(() => window.matchMedia('(max-width: 560px)').matches);
-  const [desktopColumns, setDesktopColumns] = useState(() => readNumberRange('cueforge-track-columns', 6, 2, 12));
-  const [mobileColumns, setMobileColumns] = useState(() => readNumberRange('cueforge-track-columns-mobile', 2, 1, 3));
+  const [desktopColumns, setDesktopColumns] = useState(() => readNumberRange('sonoriva-track-columns', 6, 2, 12));
+  const [mobileColumns, setMobileColumns] = useState(() => readNumberRange('sonoriva-track-columns-mobile', 2, 1, 3));
   const [uploadOpen, setUploadOpen] = useState(false);
   const [soundShowImportOpen, setSoundShowImportOpen] = useState(false);
   const [freesoundOpen, setFreesoundOpen] = useState(false);
@@ -94,7 +94,7 @@ export default function App() {
   const [releaseInfo, setReleaseInfo] = useState<ReleaseInfo>();
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [automaticUpdates, setAutomaticUpdates] = useState(() => localStorage.getItem('cueforge-automatic-updates') === 'true');
+  const [automaticUpdates, setAutomaticUpdates] = useState(() => localStorage.getItem('sonoriva-automatic-updates') === 'true');
   const [editingTrack, setEditingTrack] = useState<Track>();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarTool, setSidebarTool] = useState<'playlist'>();
@@ -109,8 +109,8 @@ export default function App() {
   const [connected, setConnected] = useState(false);
   const [offlineStatus, setOfflineStatus] = useState('');
   const [error, setError] = useState('');
-  const [nextTrackVolume, setNextTrackVolume] = useState(() => readNumberRange('cueforge-next-volume', 100, 0, 100));
-  const [keepNextTrackVolume, setKeepNextTrackVolume] = useState(() => localStorage.getItem('cueforge-keep-next-volume') === 'true');
+  const [nextTrackVolume, setNextTrackVolume] = useState(() => readNumberRange('sonoriva-next-volume', 100, 0, 100));
+  const [keepNextTrackVolume, setKeepNextTrackVolume] = useState(() => localStorage.getItem('sonoriva-keep-next-volume') === 'true');
   const [now, setNow] = useState(() => Date.now());
   const [chronoElapsedMs, setChronoElapsedMs] = useState(0);
   const [chronoStartedAt, setChronoStartedAt] = useState<number | undefined>(undefined);
@@ -186,15 +186,15 @@ export default function App() {
 
   useEffect(() => {
     bootstrapAuthentication().then(({ user: current }) => {
-      localStorage.setItem('cueforge-user', JSON.stringify(current));
+      localStorage.setItem('sonoriva-user', JSON.stringify(current));
       setUser(current);
     }).catch((cause) => {
       if (cause instanceof ApiError && cause.status === 401) {
-        localStorage.removeItem('cueforge-user');
+        localStorage.removeItem('sonoriva-user');
         setUser(null);
       } else {
-        const cached = readCache<User>('cueforge-user');
-        if (cached?.isDemo) localStorage.removeItem('cueforge-user');
+        const cached = readCache<User>('sonoriva-user');
+        if (cached?.isDemo) localStorage.removeItem('sonoriva-user');
         if (cached && !cached.isDemo) setUser(cached);
         else { setError('Le serveur est indisponible.'); setUser(null); }
       }
@@ -205,16 +205,16 @@ export default function App() {
     let result: { projects: Project[] };
     try {
       result = await api.projects();
-      localStorage.setItem('cueforge-projects', JSON.stringify(result));
+      localStorage.setItem('sonoriva-projects', JSON.stringify(result));
     } catch (cause) {
-      const cached = readCache<{ projects: Project[] }>('cueforge-projects');
+      const cached = readCache<{ projects: Project[] }>('sonoriva-projects');
       if (!cached) throw cause;
       result = cached;
     }
     setProjects(result.projects);
     setSelectedProjectId((current) => {
       const next = result.projects.some((project) => project.id === current) ? current : result.projects[0]?.id ?? null;
-      if (next) localStorage.setItem('cueforge-project', next); else localStorage.removeItem('cueforge-project');
+      if (next) localStorage.setItem('sonoriva-project', next); else localStorage.removeItem('sonoriva-project');
       return next;
     });
   }, []);
@@ -271,9 +271,9 @@ export default function App() {
     let result: ProjectDetail;
     try {
       result = await api.project(selectedProjectId);
-      localStorage.setItem(`cueforge-detail:${selectedProjectId}`, JSON.stringify(result));
+      localStorage.setItem(`sonoriva-detail:${selectedProjectId}`, JSON.stringify(result));
     } catch (cause) {
-      const cached = readCache<ProjectDetail>(`cueforge-detail:${selectedProjectId}`);
+      const cached = readCache<ProjectDetail>(`sonoriva-detail:${selectedProjectId}`);
       if (!cached) throw cause;
       result = cached;
     }
@@ -410,7 +410,7 @@ export default function App() {
     if (!remote) connection.on('remote-command', (command: RemoteCommand) => {
       const currentTracks = detail?.tracks ?? [];
       if (command.type === 'stop-all' || command.type === 'stop-all-immediate') {
-        window.dispatchEvent(new Event('cueforge:stop-temporary-audio'));
+        window.dispatchEvent(new Event('sonoriva:stop-temporary-audio'));
         return audioEngine.stopAll(currentTracks, command.type === 'stop-all-immediate' ? 0 : undefined);
       }
       const track = currentTracks.find((candidate) => candidate.id === command.trackId);
@@ -465,17 +465,15 @@ export default function App() {
 
   useEffect(() => {
     if (!detailProjectId) return;
-    const legacyDesktop = readNumberRange('cueforge-track-columns', 6, 2, 12);
-    const legacyMobile = readNumberRange('cueforge-track-columns-mobile', 2, 1, 3);
-    setDesktopColumns(readNumberRange(trackColumnsStorageKey(detailProjectId, columnCategoryId, false), legacyDesktop, 2, 12));
-    setMobileColumns(readNumberRange(trackColumnsStorageKey(detailProjectId, columnCategoryId, true), legacyMobile, 1, 3));
+    setDesktopColumns(readNumberRange(trackColumnsStorageKey(detailProjectId, columnCategoryId, false), 6, 2, 12));
+    setMobileColumns(readNumberRange(trackColumnsStorageKey(detailProjectId, columnCategoryId, true), 2, 1, 3));
   }, [columnCategoryId, detailProjectId]);
 
   const consumeNextTrackVolume = useCallback(() => {
     const multiplier = nextTrackVolume / 100;
     if (!keepNextTrackVolume) {
       setNextTrackVolume(100);
-      localStorage.removeItem('cueforge-next-volume');
+      localStorage.removeItem('sonoriva-next-volume');
     }
     return multiplier;
   }, [keepNextTrackVolume, nextTrackVolume]);
@@ -493,7 +491,7 @@ export default function App() {
       playlistTransitioningRef.current = false;
       clearPlaylistAdvanceTimer();
       setPlaylistPlaybackId(undefined);
-      window.dispatchEvent(new Event('cueforge:stop-temporary-audio'));
+      window.dispatchEvent(new Event('sonoriva:stop-temporary-audio'));
       audioEngine.stopAll(detail?.tracks ?? [], preparedCommand.type === 'stop-all-immediate' ? 0 : undefined);
     }
     else if (preparedCommand.type === 'stop' && track) audioEngine.stop(track.id, track.fadeOutMs);
@@ -880,7 +878,7 @@ export default function App() {
     try {
       const result = await api.reorderProjects(projectIds);
       setProjects(result.projects);
-      localStorage.setItem('cueforge-projects', JSON.stringify(result));
+      localStorage.setItem('sonoriva-projects', JSON.stringify(result));
     } catch (cause) {
       setProjects(previous);
       setError(cause instanceof Error ? cause.message : 'Réorganisation des spectacles impossible.');
@@ -900,7 +898,7 @@ export default function App() {
       if (project.id === selectedProjectId) setDetail(undefined);
       audioEngine.resetHistory(deletedTrackIds);
       await deleteCachedTracks(deletedTrackIds).catch(() => undefined);
-      localStorage.removeItem(`cueforge-detail:${project.id}`);
+      localStorage.removeItem(`sonoriva-detail:${project.id}`);
       localStorage.removeItem(categoryStorageKey(project.id));
       localStorage.removeItem(stopwatchStorageKey(project.id));
       await loadProjects();
@@ -943,7 +941,7 @@ export default function App() {
     try {
       const result = await api.reorderTrack(trackId, { categoryId, beforeTrackId });
       setDetail((current) => current ? { ...current, tracks: result.tracks } : current);
-      localStorage.setItem(`cueforge-detail:${detail.project.id}`, JSON.stringify({ ...detail, tracks: result.tracks }));
+      localStorage.setItem(`sonoriva-detail:${detail.project.id}`, JSON.stringify({ ...detail, tracks: result.tracks }));
     } catch (cause) {
       setDetail((current) => current ? { ...current, tracks: previousTracks } : current);
       setError(cause instanceof Error ? cause.message : 'Réorganisation impossible.');
@@ -980,7 +978,7 @@ export default function App() {
     setReordering(true);
     try {
       await api.positionPlaylist(detail.project.id, playlistId, position, categoryId);
-      localStorage.setItem(`cueforge-detail:${detail.project.id}`, JSON.stringify({ ...detail, playlists: optimistic }));
+      localStorage.setItem(`sonoriva-detail:${detail.project.id}`, JSON.stringify({ ...detail, playlists: optimistic }));
     } catch (cause) {
       setDetail((current) => current ? { ...current, playlists: previousPlaylists } : current);
       setError(cause instanceof Error ? cause.message : 'Réorganisation des playlists impossible.');
@@ -1008,7 +1006,7 @@ export default function App() {
     setReordering(true);
     try {
       await api.positionPlaylist(detail.project.id, playlistId, position, categoryId);
-      localStorage.setItem(`cueforge-detail:${detail.project.id}`, JSON.stringify({ ...detail, playlists: optimistic }));
+      localStorage.setItem(`sonoriva-detail:${detail.project.id}`, JSON.stringify({ ...detail, playlists: optimistic }));
     } catch (cause) {
       setDetail((current) => current ? { ...current, playlists: previousPlaylists } : current);
       setError(cause instanceof Error ? cause.message : 'Déplacement de la playlist impossible.');
@@ -1026,7 +1024,7 @@ export default function App() {
     setSelectedCategoryId('all');
     setReorderMode(false);
     setSidebarOpen(false);
-    localStorage.setItem('cueforge-project', id);
+    localStorage.setItem('sonoriva-project', id);
   }
 
   function selectCategory(categoryId: string) {
@@ -1097,7 +1095,7 @@ export default function App() {
     if (!detail) return;
     const confirmed = window.confirm(`Réinitialiser « ${detail.project.name} » ?\n\nLes lectures en cours, les progressions, le chronomètre, la catégorie active et les réglages temporaires seront remis à zéro.\n\nLes morceaux, catégories, couleurs et fichiers hors ligne seront conservés.`);
     if (!confirmed) return;
-    window.dispatchEvent(new Event('cueforge:stop-temporary-audio'));
+    window.dispatchEvent(new Event('sonoriva:stop-temporary-audio'));
     audioEngine.resetProjectSession(detail.tracks);
     resetPlaylistEditor();
     setChronoElapsedMs(0);
@@ -1109,8 +1107,8 @@ export default function App() {
     setSearch('');
     setNextTrackVolume(100);
     setKeepNextTrackVolume(false);
-    localStorage.removeItem('cueforge-next-volume');
-    localStorage.removeItem('cueforge-keep-next-volume');
+    localStorage.removeItem('sonoriva-next-volume');
+    localStorage.removeItem('sonoriva-keep-next-volume');
     setReorderMode(false);
     setCategoryManageMode(false);
     setDraggedTrackId(undefined);
@@ -1157,7 +1155,7 @@ export default function App() {
     await api.logout();
     await deleteOfflineAudio().catch(() => false);
     for (const key of Object.keys(localStorage)) {
-      if (key.startsWith('cueforge-') || key.startsWith('cueforge:')) localStorage.removeItem(key);
+      if (key.startsWith('sonoriva-') || key.startsWith('sonoriva:')) localStorage.removeItem(key);
     }
     setUser(null); setDetail(undefined); setProjects([]);
   }
@@ -1165,7 +1163,7 @@ export default function App() {
   async function resetDemo() {
     await api.resetDemo();
     for (const key of Object.keys(localStorage)) {
-      if (key.startsWith('cueforge-') || key.startsWith('cueforge:')) localStorage.removeItem(key);
+      if (key.startsWith('sonoriva-') || key.startsWith('sonoriva:')) localStorage.removeItem(key);
     }
     window.location.reload();
   }
@@ -1194,11 +1192,11 @@ export default function App() {
 
   function setAutomaticUpdatePreference(enabled: boolean) {
     setAutomaticUpdates(enabled);
-    localStorage.setItem('cueforge-automatic-updates', String(enabled));
+    localStorage.setItem('sonoriva-automatic-updates', String(enabled));
   }
 
-  if (user === undefined) return <div className="app-loader"><span className="brand-mark loader pulse" aria-hidden="true">CF</span><span>CueForge</span></div>;
-  if (!user) return <><AuthScreen onAuthenticated={(authenticated) => { localStorage.setItem('cueforge-user', JSON.stringify(authenticated)); setUser(authenticated); }} />{error && <Toast message={error} onClose={() => setError('')} />}</>;
+  if (user === undefined) return <div className="app-loader"><span className="brand-mark loader pulse" aria-hidden="true">SR</span><span>SonoRiva</span></div>;
+  if (!user) return <><AuthScreen onAuthenticated={(authenticated) => { localStorage.setItem('sonoriva-user', JSON.stringify(authenticated)); setUser(authenticated); }} />{error && <Toast message={error} onClose={() => setError('')} />}</>;
 
   const audioOutputUpgradeMode: AudioOutputUpgradeMode | undefined = user.isDemo
     ? 'demo'
@@ -1212,7 +1210,7 @@ export default function App() {
 
   return <div className={`app-shell ${remote ? 'remote-mode' : ''}`}>
     <aside className={sidebarOpen ? 'sidebar open' : 'sidebar'}>
-      <header className="brand"><span className="brand-mark small" aria-hidden="true">CF</span><strong>CueForge</strong><button className="icon-button sidebar-close" onClick={() => setSidebarOpen(false)}><X /></button></header>
+      <header className="brand"><span className="brand-mark small" aria-hidden="true">SR</span><strong>SonoRiva</strong><button className="icon-button sidebar-close" onClick={() => setSidebarOpen(false)}><X /></button></header>
       {detail && <section className="mouse-actions">
         <div className="side-label"><span>Actions souris</span></div>
         <label><span><i>G</i>Clic gauche</span><select value={detail.project.leftClickAction ?? 'start'} onChange={(event) => updateMouseAction('left', event.target.value as MouseAction)}>{mouseActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
@@ -1254,7 +1252,7 @@ export default function App() {
             : <AudioOutputConsole bridgeAvailable={bridgeAvailable} onError={setError} />)}
           <section className="console-module next-volume" title="Ce multiplicateur s'applique au prochain son, puis revient à 100 %.">
             <span><Volume2 size={14} />Son suivant</span>
-            <div className="next-volume-control"><input type="range" min="0" max="100" value={nextTrackVolume} aria-label="Volume du son suivant" onChange={(event) => { const value = Number(event.target.value); setNextTrackVolume(value); localStorage.setItem('cueforge-next-volume', String(value)); }} /><strong>{nextTrackVolume} %</strong><button type="button" className={`console-volume-lock ${keepNextTrackVolume ? 'active' : ''}`} role="switch" aria-checked={keepNextTrackVolume} aria-label="Conserver le volume pour les sons suivants" title={keepNextTrackVolume ? 'Volume conservé après chaque lancement' : 'Réinitialiser à 100 % après le prochain lancement'} onClick={() => { const next = !keepNextTrackVolume; setKeepNextTrackVolume(next); localStorage.setItem('cueforge-keep-next-volume', String(next)); localStorage.setItem('cueforge-next-volume', String(nextTrackVolume)); }}><i /></button></div>
+            <div className="next-volume-control"><input type="range" min="0" max="100" value={nextTrackVolume} aria-label="Volume du son suivant" onChange={(event) => { const value = Number(event.target.value); setNextTrackVolume(value); localStorage.setItem('sonoriva-next-volume', String(value)); }} /><strong>{nextTrackVolume} %</strong><button type="button" className={`console-volume-lock ${keepNextTrackVolume ? 'active' : ''}`} role="switch" aria-checked={keepNextTrackVolume} aria-label="Conserver le volume pour les sons suivants" title={keepNextTrackVolume ? 'Volume conservé après chaque lancement' : 'Réinitialiser à 100 % après le prochain lancement'} onClick={() => { const next = !keepNextTrackVolume; setKeepNextTrackVolume(next); localStorage.setItem('sonoriva-keep-next-volume', String(next)); localStorage.setItem('sonoriva-next-volume', String(nextTrackVolume)); }}><i /></button></div>
           </section>
           <section className="console-module stopwatch">
             <span><Timer size={14} />Chrono</span>
@@ -1290,10 +1288,10 @@ export default function App() {
             </div>)}
           </nav>
           <button className="category-resizer" aria-label="Régler la largeur des catégories" title="Glisser pour régler la largeur · Double-cliquer pour réinitialiser"
-            onDoubleClick={() => { setCategoryWidth(112); localStorage.setItem('cueforge-category-width', '112'); }}
+            onDoubleClick={() => { setCategoryWidth(112); localStorage.setItem('sonoriva-category-width', '112'); }}
             onPointerDown={(event) => { categoryResize.current = { x: event.clientX, width: categoryWidth, latest: categoryWidth }; event.currentTarget.setPointerCapture(event.pointerId); }}
             onPointerMove={(event) => { if (!categoryResize.current) return; const next = Math.min(220, Math.max(82, categoryResize.current.width + event.clientX - categoryResize.current.x)); categoryResize.current.latest = next; setCategoryWidth(next); }}
-            onPointerUp={(event) => { if (!categoryResize.current) return; event.currentTarget.releasePointerCapture(event.pointerId); localStorage.setItem('cueforge-category-width', String(categoryResize.current.latest)); categoryResize.current = undefined; }}>
+            onPointerUp={(event) => { if (!categoryResize.current) return; event.currentTarget.releasePointerCapture(event.pointerId); localStorage.setItem('sonoriva-category-width', String(categoryResize.current.latest)); categoryResize.current = undefined; }}>
             <GripVertical size={17} />
           </button>
         </div>
@@ -1334,7 +1332,7 @@ export default function App() {
             if (boardItem.kind === 'playlist') {
               const playlist = boardItem.playlist;
               return <PlaylistPad key={`playlist:${playlist.id}`} playlist={playlist} reorderEnabled={reorderMode} dropTarget={dropPlaylistId === playlist.id} dropAfter={dropPlaylistAfter} onLoad={() => loadPlaylist(playlist)}
-                onDragStart={(event) => { if (!reorderMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-cueforge-playlist', playlist.id); setDraggedPlaylistId(playlist.id); }}
+                onDragStart={(event) => { if (!reorderMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-sonoriva-playlist', playlist.id); setDraggedPlaylistId(playlist.id); }}
                 onDragOver={(event) => { if (!reorderMode || !draggedPlaylistId || draggedPlaylistId === playlist.id) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; const bounds = event.currentTarget.getBoundingClientRect(); setDropPlaylistId(playlist.id); setDropPlaylistTrackId(undefined); setDropPlaylistAfter(event.clientX > bounds.left + bounds.width / 2); }}
                 onDrop={(event) => { if (!draggedPlaylistId || draggedPlaylistId === playlist.id) return; event.preventDefault(); const bounds = event.currentTarget.getBoundingClientRect(); reorderPlaylist(draggedPlaylistId, 'playlist', playlist.id, event.clientX > bounds.left + bounds.width / 2).catch(() => undefined); }}
                 onDragEnd={() => { setDraggedPlaylistId(undefined); setDropPlaylistId(undefined); setDropPlaylistTrackId(undefined); setDropPlaylistAfter(false); }} />;
@@ -1347,7 +1345,7 @@ export default function App() {
               onOutputPlay={(outputId) => playTrackOnOutput(track, outputId)}
               onSecondary={() => runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
               onEdit={() => { if (!reorderMode) setEditingTrack(track); }}
-              onDragStart={(event) => { if (reorderMode) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', track.id); setDraggedTrackId(track.id); } else if (sidebarTool === 'playlist') { event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('application/x-cueforge-track', track.id); } }}
+              onDragStart={(event) => { if (reorderMode) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', track.id); setDraggedTrackId(track.id); } else if (sidebarTool === 'playlist') { event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('application/x-sonoriva-track', track.id); } }}
               onDragOver={(event) => { if (!reorderMode) return; if (draggedPlaylistId) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; const bounds = event.currentTarget.getBoundingClientRect(); setDropPlaylistTrackId(track.id); setDropPlaylistId(undefined); setDropPlaylistAfter(event.clientX > bounds.left + bounds.width / 2); return; } if (!draggedTrackId || draggedTrackId === track.id) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropTrackId(track.id); setDropCategoryId(undefined); }}
               onDrop={(event) => { event.preventDefault(); if (draggedPlaylistId) { const bounds = event.currentTarget.getBoundingClientRect(); reorderPlaylist(draggedPlaylistId, 'track', track.id, event.clientX > bounds.left + bounds.width / 2).catch(() => undefined); } else if (draggedTrackId && draggedTrackId !== track.id) reorderTrack(draggedTrackId, track.categoryId, track.id).catch(() => undefined); }}
               onDragEnd={() => { setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); }} />;
@@ -1355,7 +1353,7 @@ export default function App() {
         </div>}
       </section>
 
-      <footer className="statusbar"><span><i className={connected ? 'live' : ''} />{remote ? 'Contrôleur' : 'Lecteur principal'}</span><span><Settings2 size={14} /> CueForge {releaseInfo?.currentVersion ?? __APP_VERSION__} · {audioEngine.getPlaybackMode() === 'bridge' ? 'Bridge audio' : 'Web Audio'} · {activePlaybacks.length} actif{activePlaybacks.length !== 1 ? 's' : ''}</span></footer>
+      <footer className="statusbar"><span><i className={connected ? 'live' : ''} />{remote ? 'Contrôleur' : 'Lecteur principal'}</span><span><Settings2 size={14} /> SonoRiva {releaseInfo?.currentVersion ?? __APP_VERSION__} · {audioEngine.getPlaybackMode() === 'bridge' ? 'Bridge audio' : 'Web Audio'} · {activePlaybacks.length} actif{activePlaybacks.length !== 1 ? 's' : ''}</span></footer>
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
@@ -1406,15 +1404,15 @@ function readNumberRange(key: string, fallback: number, min: number, max: number
 }
 
 function categoryStorageKey(projectId: string): string {
-  return `cueforge-category:${projectId}`;
+  return `sonoriva-category:${projectId}`;
 }
 
 function trackColumnsStorageKey(projectId: string, categoryId: string, compact: boolean): string {
-  return `cueforge-track-columns:${projectId}:${categoryId}:${compact ? 'mobile' : 'desktop'}`;
+  return `sonoriva-track-columns:${projectId}:${categoryId}:${compact ? 'mobile' : 'desktop'}`;
 }
 
 function stopwatchStorageKey(projectId: string): string {
-  return `cueforge-stopwatch:${projectId}`;
+  return `sonoriva-stopwatch:${projectId}`;
 }
 
 function persistStopwatch(projectId: string | null, elapsedMs: number, startedAt?: number): void {

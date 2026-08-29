@@ -60,7 +60,7 @@ function formatPrice(cents: number): string {
 
 export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, onAutomaticUpdatesChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
-  const [newColor, setNewColor] = useState('#f97316');
+  const [newColor, setNewColor] = useState('#22d3b6');
   const [draggedProjectId, setDraggedProjectId] = useState<string>();
   const [dropProjectId, setDropProjectId] = useState<string>();
   const [dropProjectAfter, setDropProjectAfter] = useState(false);
@@ -275,7 +275,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
       await associateLocalBridge(setBridgeMessage);
       audioEngine.setPlaybackMode('bridge');
       setAudioMode('bridge');
-      setBridgeMessage('CueForge Bridge est associé et devient le moteur audio actif.');
+      setBridgeMessage('SonoRiva Bridge est associé et devient le moteur audio actif.');
       const devices = await api.bridgeDevices();
       setBridgeDevices(devices.devices);
       await refreshBridge();
@@ -349,7 +349,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
 
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="dialog settings-dialog">
-      <header><div><p className="eyebrow">CueForge</p><h2>Paramètres</h2></div><button className="icon-button" onClick={onClose} aria-label="Fermer les paramètres"><X /></button></header>
+      <header><div><p className="eyebrow">SonoRiva</p><h2>Paramètres</h2></div><button className="icon-button" onClick={onClose} aria-label="Fermer les paramètres"><X /></button></header>
       <section className="settings-section">
         <div className="settings-section-title"><Settings2 size={16} /><div><strong>Spectacles</strong><span>Sélectionnez, glissez ou supprimez une régie.</span></div></div>
         <div className="settings-project-list">
@@ -393,11 +393,11 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
           <div className="audio-output-controls">
             <label><span>Moteur</span><select value={audioMode} disabled={bridgeBusy} onChange={(event) => changeAudioMode(event.target.value as 'browser' | 'bridge')}>
               <option value="browser">Navigateur · Web Audio</option>
-              <option value="bridge" disabled={!bridgeClient.isAssociated()}>CueForge Bridge</option>
+              <option value="bridge" disabled={!bridgeClient.isAssociated()}>SonoRiva Bridge</option>
             </select></label>
             {!bridgeClient.isAssociated() && <button type="button" className="button ghost" disabled={bridgeBusy} onClick={connectBridge}>{bridgeBusy ? <LoaderCircle className="spin" size={16} /> : <Cable size={16} />}Connecter le bridge</button>}
           </div>
-          <div className="settings-actions"><a className="button ghost" href="/api/bridge/download" target="_blank" rel="noreferrer"><CloudDownload size={16} />Télécharger CueForge Bridge</a></div>
+          <div className="settings-actions"><a className="button ghost" href="/api/bridge/download" target="_blank" rel="noreferrer"><CloudDownload size={16} />Télécharger SonoRiva Bridge</a></div>
           <p className="audio-output-note">La page de téléchargement propose des paquets pour macOS Apple Silicon, macOS Intel et Windows x64. Les paquets actuels ne sont pas signés pour une distribution publique.</p>
           {audioMode === 'browser' && (audioOutputSupported ? <>
             <div className="audio-output-controls">
@@ -410,7 +410,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
             </div>
             <p className="audio-output-note">Le choix est enregistré sur cet appareil. La sortie système est utilisée si le périphérique enregistré n’est plus disponible.</p>
             {audioOutputError && <p className="audio-output-error">{audioOutputError}</p>}
-          </> : <p className="audio-output-unavailable">Ce navigateur ne permet pas à CueForge de choisir la sortie du moteur Web Audio. La sortie système reste utilisée.</p>)}
+          </> : <p className="audio-output-unavailable">Ce navigateur ne permet pas à SonoRiva de choisir la sortie du moteur Web Audio. La sortie système reste utilisée.</p>)}
           {audioMode === 'bridge' && <>
             <div className="bridge-output-grid">
               <label><span>Régie principale</span><select value={bridgeMainOutputId} disabled={bridgeBusy} onChange={(event) => changeBridgeOutput('main', event.target.value)}>{bridgeOutputs.map((device) => <option key={device.id} value={device.id}>{device.name}</option>)}</select></label>
@@ -466,7 +466,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         <a className="button ghost wide" href="/admin"><ShieldCheck size={17} />Ouvrir l’administration</a>
       </section>}
       {!user.isDemo && <section className="settings-section">
-        <div className="settings-section-title"><RefreshCcw size={16} /><div><strong>Mises à jour</strong><span>CueForge {appVersion ?? '—'} sur cet appareil.</span></div></div>
+        <div className="settings-section-title"><RefreshCcw size={16} /><div><strong>Mises à jour</strong><span>SonoRiva {appVersion ?? '—'} sur cet appareil.</span></div></div>
         <label className="automatic-update-setting"><span><strong>Installer automatiquement</strong><small>Masque les notifications de version et recharge l’application lorsqu’aucun son n’est en lecture.</small></span><input type="checkbox" checked={automaticUpdates} onChange={(event) => onAutomaticUpdatesChange(event.target.checked)} /><i aria-hidden="true" /></label>
         <button className={`button ghost wide release-button ${hasUnseenReleases ? 'has-update' : ''}`} onClick={onOpenWhatsNew}><Gift size={17} />Voir les notes de version{hasUnseenReleases && <em>Nouveau</em>}</button>
       </section>}
@@ -485,8 +485,8 @@ function audioOutputErrorMessage(error: unknown): string {
 }
 
 function bridgeErrorMessage(error: unknown): string {
-  if (error instanceof TypeError) return 'CueForge Bridge ne répond pas sur cette machine. Vérifiez qu’il est ouvert.';
-  return error instanceof Error ? error.message : 'CueForge Bridge est indisponible.';
+  if (error instanceof TypeError) return 'SonoRiva Bridge ne répond pas sur cette machine. Vérifiez qu’il est ouvert.';
+  return error instanceof Error ? error.message : 'SonoRiva Bridge est indisponible.';
 }
 
 function bridgePlatformLabel(platform: string): string {

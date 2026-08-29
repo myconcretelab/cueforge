@@ -1,10 +1,10 @@
-# CueForge
+# SonoRiva
 
 > Play sound. Play the scene.
 
-CueForge est une régie son web inspirée de SoundShow. Les médias sont stockés en ligne, préparés hors connexion dans une PWA, puis joués localement avec Web Audio pour éviter la latence du réseau pendant un spectacle.
+SonoRiva est une régie son web inspirée de SoundShow. Les médias sont stockés en ligne, préparés hors connexion dans une PWA, puis joués localement avec Web Audio pour éviter la latence du réseau pendant un spectacle.
 
-L’identité visuelle repose sur le monogramme **CF** ; les identifiants techniques et le déploiement utilisent le nom `cueforge`.
+L’identité visuelle repose sur le monogramme **SR** et un accent aqua ; les identifiants techniques et le déploiement utilisent le nom `sonoriva`.
 
 ## Fonctionnalités actuelles
 
@@ -66,7 +66,7 @@ Pour mettre à jour la production depuis le Mac d’administration après avoir 
 ./scripts/deploy-alwaysdata.sh
 ```
 
-Le script refuse un dépôt sale ou non poussé, récupère les variables du site via l’API Alwaysdata, compile l’application, applique les migrations, redémarre le site et contrôle son endpoint de santé. Le jeton d’API n’est jamais stocké dans Git : il est lu dans le trousseau Apple (`cueforge-alwaysdata-api` / `myconcretelab`).
+Le script refuse un dépôt sale ou non poussé, récupère les variables du site via l’API Alwaysdata, compile l’application, applique les migrations, redémarre le site et contrôle son endpoint de santé. Le jeton d’API n’est jamais stocké dans Git : il est lu dans le trousseau Apple (`sonoriva-alwaysdata-api` / `myconcretelab`).
 
 ## Publier une version
 
@@ -86,16 +86,15 @@ Pour une installation initiale manuelle :
 
 1. Créer une base PostgreSQL et un utilisateur dans **Bases de données > PostgreSQL**.
 2. Choisir Node.js 24 dans **Environnement > Node.js**.
-3. Déployer le dépôt dans `/home/<compte>/cueforge`.
+3. Déployer le dépôt dans `/home/<compte>/sonoriva`.
 4. Configurer les variables d’environnement suivantes dans le site Node.js :
 
 ```dotenv
 NODE_ENV=production
 DATABASE_URL=postgresql://<utilisateur>:<mot-de-passe>@postgresql-<compte>.alwaysdata.net:5433/<base>
 SESSION_SECRET=<une-valeur-aleatoire-d-au-moins-32-caracteres>
-STORAGE_PATH=/home/<compte>/cueforge/storage
+STORAGE_PATH=/home/<compte>/sonoriva/storage
 PUBLIC_URL=https://<votre-domaine>
-LEGACY_PUBLIC_URLS=
 FREESOUND_API_KEY=<clé-api-freesound>
 SUPER_ADMIN_EMAILS=<adresse-du-super-administrateur>
 STRIPE_MODE=test
@@ -110,8 +109,6 @@ BILLING_RECONCILIATION_INTERVAL_MINUTES=360
 
 `SUPER_ADMIN_EMAILS` accepte plusieurs adresses séparées par des virgules. Lors de l’inscription, une adresse présente dans cette liste reçoit le rôle `super_admin`. Les autres utilisateurs reçoivent le rôle `user`. Le forfait `Solo`, créé par la migration du module commercial, fournit 5 Go et 14 jours d’essai ; ses valeurs et les autres forfaits se modifient dans `/admin`.
 
-`LEGACY_PUBLIC_URLS` accepte, au besoin, plusieurs anciennes origines séparées par des virgules. Elles restent autorisées temporairement pour les installations PWA et les télécommandes pendant un changement de domaine.
-
 ## Stripe Billing
 
 L’intégration utilise un catalogue distinct par `STRIPE_MODE`. En phase de test, la clé doit commencer par `sk_test_` ou `rk_test_`. Une clé live est refusée tant que le mode vaut `test`.
@@ -119,7 +116,7 @@ L’intégration utilise un catalogue distinct par `STRIPE_MODE`. En phase de te
 Le webhook Stripe pointe vers :
 
 ```text
-https://app.cueforge.fr/api/billing/webhook
+https://app.sonoriva.fr/api/billing/webhook
 ```
 
 Événements configurés :
@@ -137,12 +134,12 @@ Après définition de la clé et du secret de webhook, chaque forfait est enregi
 
 La création d’un compte demande un forfait. Lorsque tous les tarifs renseignés du forfait valent `0`, l’espace est activé immédiatement avec son quota, sans client ni abonnement Stripe. Pour un forfait payant, la périodicité est demandée puis Stripe Checkout est ouvert. L’espace reste en lecture seule jusqu’à la confirmation du Checkout par webhook. Stripe démarre alors l’essai défini sur le forfait et conserve le moyen de paiement pour la première échéance à la fin de cet essai. Une annulation du Checkout laisse le compte existant et permet de reprendre la souscription depuis **Paramètres → Offre et stockage**.
 
-CueForge Bridge est inclus lorsqu’un forfait comporte au moins un tarif positif. L’association, les requêtes natives et l’accès au téléchargement exigent un compte en essai payant, actif ou en délai de grâce. L’API publique des forfaits expose ce droit dans `bridgeIncluded` pour le bloc tarifaire WordPress.
+SonoRiva Bridge est inclus lorsqu’un forfait comporte au moins un tarif positif. L’association, les requêtes natives et l’accès au téléchargement exigent un compte en essai payant, actif ou en délai de grâce. L’API publique des forfaits expose ce droit dans `bridgeIncluded` pour le bloc tarifaire WordPress.
 
 5. Depuis SSH, préparer l’application :
 
 ```bash
-cd /home/<compte>/cueforge
+cd /home/<compte>/sonoriva
 npm ci --include=optional
 npm run build
 npm run db:migrate
@@ -152,14 +149,14 @@ npm prune --omit=dev
 6. Créer un site de type **Node.js** avec cette commande :
 
 ```bash
-node /home/<compte>/cueforge/dist/server/index.js
+node /home/<compte>/sonoriva/dist/server/index.js
 ```
 
 Le serveur utilise automatiquement les variables `IP` et `PORT` fournies par Alwaysdata. Dans les réglages avancés du site, mettre le temps d’inactivité à `0` afin de conserver les connexions WebSocket. Activer HTTPS et vérifier que `PUBLIC_URL` contient exactement l’origine publique.
 
 Les fichiers audio résident dans `STORAGE_PATH`, jamais dans PostgreSQL. Ils sont servis uniquement après contrôle de la session et avec prise en charge des requêtes HTTP `Range`.
 
-La recherche Freesound utilise `FREESOUND_API_KEY` exclusivement côté serveur. Les préécoutes peuvent être écoutées sans stockage ou importées dans le spectacle sous un nouveau nom et dans la catégorie choisie. CueForge télécharge alors la préécoute haute qualité dans `STORAGE_PATH` et conserve l’auteur, la licence et l’URL source. Seuls les résultats CC0 et CC BY sont proposés.
+La recherche Freesound utilise `FREESOUND_API_KEY` exclusivement côté serveur. Les préécoutes peuvent être écoutées sans stockage ou importées dans le spectacle sous un nouveau nom et dans la catégorie choisie. SonoRiva télécharge alors la préécoute haute qualité dans `STORAGE_PATH` et conserve l’auteur, la licence et l’URL source. Seuls les résultats CC0 et CC BY sont proposés.
 
 ## Structure
 

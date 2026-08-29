@@ -1,6 +1,6 @@
 {
-  "name": "CueForge — Play sound. Play the scene.",
-  "short_name": "CueForge",
+  "name": "SonoRiva — Play sound. Play the scene.",
+  "short_name": "SonoRiva",
   "description": "Play sound. Play the scene. Votre régie son en ligne et hors connexion.",
   "start_url": "/",
   "display": "standalone",

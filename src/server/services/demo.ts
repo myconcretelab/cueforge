@@ -13,7 +13,7 @@ export const demoMaxFileBytes = 5 * 1024 * 1024;
 export const demoStorageQuotaBytes = 80 * 1024 * 1024;
 
 const demoSounds = [
-  { title: 'Ouverture', filename: 'ouverture.wav', frequencies: [392, 523.25, 659.25], category: 0, color: '#f97316' },
+  { title: 'Ouverture', filename: 'ouverture.wav', frequencies: [392, 523.25, 659.25], category: 0, color: '#22d3b6' },
   { title: 'Transition', filename: 'transition.wav', frequencies: [440, 554.37, 659.25], category: 1, color: '#8b5cf6' },
   { title: 'Final', filename: 'final.wav', frequencies: [523.25, 659.25, 783.99], category: 2, color: '#06b6d4' },
 ] as const;
@@ -81,7 +81,7 @@ export async function createDemoWorkspace(now = new Date()): Promise<User> {
         lastSeenRelease: CURRENT_VERSION,
       }).returning();
       const [account] = await transaction.insert(accounts).values({
-        name: 'Démo CueForge',
+        name: 'Démo SonoRiva',
         planCode: defaultPlan.code,
         accessStatus: 'active',
         isDemo: true,
@@ -89,9 +89,9 @@ export async function createDemoWorkspace(now = new Date()): Promise<User> {
       }).returning();
       await transaction.insert(accountMemberships).values({ accountId: account.id, userId: user.id, role: 'owner' });
       await transaction.insert(subscriptions).values({ accountId: account.id });
-      const [project] = await transaction.insert(projects).values({ accountId: account.id, name: 'Découverte de CueForge' }).returning();
+      const [project] = await transaction.insert(projects).values({ accountId: account.id, name: 'Découverte de SonoRiva' }).returning();
       const seededCategories = await transaction.insert(categories).values([
-        { projectId: project.id, name: 'Lancements', color: '#f97316', position: 0 },
+        { projectId: project.id, name: 'Lancements', color: '#22d3b6', position: 0 },
         { projectId: project.id, name: 'Transitions', color: '#8b5cf6', position: 1 },
         { projectId: project.id, name: 'Final', color: '#06b6d4', position: 2 },
       ]).returning();

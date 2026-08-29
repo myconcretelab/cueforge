@@ -28,10 +28,10 @@ export function bridgeConnectionView(input: {
 
 export async function associateLocalBridge(onProgress?: (message: string) => void): Promise<void> {
   const pairing = await api.createBridgePairing();
-  const link = new URL('cueforge-bridge://pair');
+  const link = new URL('sonoriva-bridge://pair');
   link.searchParams.set('ticket', pairing.ticket);
-  if (window.location.origin !== 'https://app.cueforge.fr') link.searchParams.set('server', window.location.origin);
-  onProgress?.('Ouverture de CueForge Bridge…');
+  if (window.location.origin !== 'https://app.sonoriva.fr') link.searchParams.set('server', window.location.origin);
+  onProgress?.('Ouverture de SonoRiva Bridge…');
   window.location.href = link.toString();
 
   const expiresAt = new Date(pairing.expiresAt).getTime();
@@ -49,5 +49,5 @@ export async function associateLocalBridge(onProgress?: (message: string) => voi
 }
 
 export function openLocalBridge(): void {
-  window.location.href = 'cueforge-bridge://open';
+  window.location.href = 'sonoriva-bridge://open';
 }

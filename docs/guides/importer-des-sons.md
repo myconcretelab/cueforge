@@ -1,6 +1,6 @@
 # Import des sons
 
-CueForge accepte un fichier unique, une sélection de fichiers, une source Freesound ou un projet SoundShow.
+SonoRiva accepte un fichier unique, une sélection de fichiers, une source Freesound ou un projet SoundShow.
 
 ## Fichier unique
 
@@ -14,7 +14,7 @@ Le titre initial correspond au nom du fichier sans son extension. Le fichier est
 
 ## Sélection de fichiers
 
-Une sélection de fichiers peut être déposée sur la fenêtre de CueForge. Les fichiers sont importés dans la catégorie active et la progression globale est affichée pendant le transfert.
+Une sélection de fichiers peut être déposée sur la fenêtre de SonoRiva. Les fichiers sont importés dans la catégorie active et la progression globale est affichée pendant le transfert.
 
 Un fichier dont l’extension n’est pas reconnue est ignoré. Un fichier qui dépasse la taille maximale ou le quota disponible est refusé sans annuler les imports terminés.
 
@@ -22,7 +22,7 @@ Un fichier dont l’extension n’est pas reconnue est ignoré. Un fichier qui d
 
 La commande **Paramètres → Bibliothèque → Rechercher sur Freesound** ouvre la recherche. Les résultats peuvent être filtrés par durée, préécoutés puis importés dans le spectacle sélectionné.
 
-CueForge propose les résultats sous licence CC0 ou CC BY. Lors de l’import, l’application conserve le nom de l’auteur, la licence et l’adresse de la source. La préécoute haute qualité devient un média du compte.
+SonoRiva propose les résultats sous licence CC0 ou CC BY. Lors de l’import, l’application conserve le nom de l’auteur, la licence et l’adresse de la source. La préécoute haute qualité devient un média du compte.
 
 ## Projet SoundShow
 

@@ -1,10 +1,10 @@
 # Moteur et sorties audio
 
-Le réglage se trouve dans **Paramètres → Moteur et sorties audio**. Deux moteurs sont disponibles : **Navigateur · Web Audio** et **CueForge Bridge**.
+Le réglage se trouve dans **Paramètres → Moteur et sorties audio**. Deux moteurs sont disponibles : **Navigateur · Web Audio** et **SonoRiva Bridge**.
 
 ## Contrôle dans la barre de régie
 
-Le grand sélecteur **Sortie audio**, placé à côté du volume **Son suivant**, affiche la sortie principale active. Sa liste agit sur la sortie Web Audio lorsque le moteur Navigateur est actif et sur la sortie **Régie principale** lorsque CueForge Bridge est actif.
+Le grand sélecteur **Sortie audio**, placé à côté du volume **Son suivant**, affiche la sortie principale active. Sa liste agit sur la sortie Web Audio lorsque le moteur Navigateur est actif et sur la sortie **Régie principale** lorsque SonoRiva Bridge est actif.
 
 Le contrôle devient rouge et affiche un symbole d’alerte si le périphérique enregistré n’est plus présent ou si le Bridge local ne répond pas. La liste est actualisée lorsque les périphériques de la machine changent et après une modification effectuée dans les paramètres.
 
@@ -14,7 +14,7 @@ Le premier petit bouton associe, ouvre, active ou désactive le Bridge selon son
 
 ## Routage par morceau
 
-Avec CueForge Bridge 0.3.0 ou une version ultérieure, les commandes de routage par morceau apparaissent lorsque le Bridge est actif et qu’au moins deux sorties physiques sont détectées. L’entrée virtuelle **Sortie système par défaut** n’est pas comptée comme une sortie physique supplémentaire. Une réglette fine apparaît alors au-dessus du header. Elle affiche côte à côte le nom complet et la couleur de chaque sortie physique, avec la mention **Principale** sur la sortie sélectionnée.
+Avec SonoRiva Bridge 0.3.0 ou une version ultérieure, les commandes de routage par morceau apparaissent lorsque le Bridge est actif et qu’au moins deux sorties physiques sont détectées. L’entrée virtuelle **Sortie système par défaut** n’est pas comptée comme une sortie physique supplémentaire. Une réglette fine apparaît alors au-dessus du header. Elle affiche côte à côte le nom complet et la couleur de chaque sortie physique, avec la mention **Principale** sur la sortie sélectionnée.
 
 Le grand Play reste lié à la sortie principale et aux actions souris du spectacle. Son anneau reprend la couleur de cette sortie. Un petit Play coloré est affiché uniquement pour chacune des autres sorties ; il lance une nouvelle lecture directement sur la sortie correspondante.
 
@@ -34,25 +34,25 @@ La sortie sélectionnée s’applique aux pads, aux playlists et aux préécoute
 
 ## Persistance et repli
 
-CueForge enregistre l’identifiant et le nom de la sortie dans le stockage local du navigateur. Cette préférence est réappliquée lors de la création du moteur audio.
+SonoRiva enregistre l’identifiant et le nom de la sortie dans le stockage local du navigateur. Cette préférence est réappliquée lors de la création du moteur audio.
 
-Si le périphérique enregistré n’existe plus, si son accès n’est plus autorisé ou si son identifiant a changé, CueForge efface cette préférence et utilise la sortie système.
+Si le périphérique enregistré n’existe plus, si son accès n’est plus autorisé ou si son identifiant a changé, SonoRiva efface cette préférence et utilise la sortie système.
 
 ## Compatibilité du navigateur
 
 La sélection nécessite la méthode `AudioContext.setSinkId()` du navigateur. Lorsque cette méthode n’est pas exposée, la rubrique indique que la sortie système reste active. La liste et les noms visibles dépendent des périphériques et des autorisations fournis par le navigateur.
 
-## CueForge Bridge
+## SonoRiva Bridge
 
-CueForge Bridge est inclus dans les forfaits payants. Il est accessible pendant l’essai d’un forfait payant, lorsque l’abonnement est actif et pendant un éventuel délai de grâce. Les forfaits gratuits utilisent le moteur **Navigateur · Web Audio**.
+SonoRiva Bridge est inclus dans les forfaits payants. Il est accessible pendant l’essai d’un forfait payant, lorsque l’abonnement est actif et pendant un éventuel délai de grâce. Les forfaits gratuits utilisent le moteur **Navigateur · Web Audio**.
 
-CueForge Bridge est une application de bureau distincte pour macOS et Windows x64. Le bouton **Connecter le bridge** crée un ticket valable cinq minutes, puis ouvre l’application au moyen du protocole `cueforge-bridge://`. Après validation du ticket, le navigateur et le bridge reçoivent une clé locale commune. Le jeton qui donne accès au compte CueForge reste uniquement dans le bridge. Il est conservé dans le trousseau macOS ou dans le Gestionnaire d’identification Windows.
+SonoRiva Bridge est une application de bureau distincte pour macOS et Windows x64. Le bouton **Connecter le bridge** crée un ticket valable cinq minutes, puis ouvre l’application au moyen du protocole `sonoriva-bridge://`. Après validation du ticket, le navigateur et le bridge reçoivent une clé locale commune. Le jeton qui donne accès au compte SonoRiva reste uniquement dans le bridge. Il est conservé dans le trousseau macOS ou dans le Gestionnaire d’identification Windows.
 
-Le bouton **Télécharger CueForge Bridge** est affiché dans les paramètres d’un compte disposant du droit Bridge. Il ouvre, après contrôle du compte, la publication 0.5.0 qui contient une image disque `aarch64` pour les Mac Apple Silicon, une image disque `x64` pour les Mac Intel et un installateur NSIS `x64` pour Windows. Les paquets macOS utilisent une signature ad hoc et ne sont pas notariés par Apple. Le fond de l’image disque illustre le glisser-déposer vers Applications et indique en français et en anglais le chemin **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. L’installateur Windows n’est pas signé et Windows peut afficher un avertissement SmartScreen à son ouverture.
+Le bouton **Télécharger SonoRiva Bridge** est affiché dans les paramètres d’un compte disposant du droit Bridge. Il ouvre, après contrôle du compte, la publication 1.0.0 qui contient une image disque `aarch64` pour les Mac Apple Silicon, une image disque `x64` pour les Mac Intel et un installateur NSIS `x64` pour Windows. Les paquets macOS utilisent une signature ad hoc et ne sont pas notariés par Apple. Le fond de l’image disque illustre le glisser-déposer vers Applications et indique en français et en anglais le chemin **Réglages Système → Confidentialité et sécurité → Ouvrir quand même**. L’installateur Windows n’est pas signé et Windows peut afficher un avertissement SmartScreen à son ouverture.
 
 ### Mise à jour du bridge
 
-CueForge Bridge 0.5.0 est la première version qui contient le moteur de mise à jour. Elle doit donc être installée avec le paquet correspondant à la machine. À partir de cette version, le Bridge consulte au démarrage le fichier `latest.json` de la dernière publication GitHub, télécharge le paquet adapté à son système et vérifie sa signature avant l’installation.
+SonoRiva Bridge 0.5.0 est la première version qui contient le moteur de mise à jour. Elle doit donc être installée avec le paquet correspondant à la machine. À partir de cette version, le Bridge consulte au démarrage le fichier `latest.json` de la dernière publication GitHub, télécharge le paquet adapté à son système et vérifie sa signature avant l’installation.
 
 L’installation et le redémarrage automatiques ont lieu uniquement si aucune lecture audio n’est active à la fin du téléchargement. Lorsqu’une lecture est active, le paquet n’est pas installé et la vérification reprend au prochain démarrage du Bridge.
 
@@ -68,7 +68,7 @@ Le bridge conserve les fichiers audio compressés dans le dossier de cache de l�
 
 Ce cache est distinct du stockage hors ligne du navigateur. Le passage au moteur Bridge n’efface pas les fichiers enregistrés par le navigateur et le retour au moteur Navigateur ne supprime pas le cache du bridge.
 
-La fenêtre de CueForge Bridge affiche le nombre de fichiers présents et leur taille totale sur le disque. Le bouton **Vider le cache audio** supprime les fichiers compressés et les téléchargements temporaires du bridge.
+La fenêtre de SonoRiva Bridge affiche le nombre de fichiers présents et leur taille totale sur le disque. Le bouton **Vider le cache audio** supprime les fichiers compressés et les téléchargements temporaires du bridge.
 
 ### Association et révocation
 

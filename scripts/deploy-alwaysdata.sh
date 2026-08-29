@@ -5,10 +5,10 @@ set -Eeuo pipefail
 readonly DEPLOY_BRANCH="main"
 readonly ALWAYSDATA_ACCOUNT="myconcretelab"
 readonly ALWAYSDATA_SITE_ID="1070862"
-readonly ALWAYSDATA_KEYCHAIN_SERVICE="cueforge-alwaysdata-api"
+readonly ALWAYSDATA_KEYCHAIN_SERVICE="sonoriva-alwaysdata-api"
 readonly ALWAYSDATA_SSH_HOST="ssh-myconcretelab.alwaysdata.net"
-readonly ALWAYSDATA_REMOTE_DIR="/home/myconcretelab/www/cueforge"
-readonly ALWAYSDATA_SITE_URL="https://app.cueforge.fr"
+readonly ALWAYSDATA_REMOTE_DIR="/home/myconcretelab/www/sonoriva"
+readonly ALWAYSDATA_SITE_URL="https://app.sonoriva.fr"
 
 fail() {
   printf 'Erreur : %s\n' "$*" >&2
@@ -23,7 +23,7 @@ for command_name in curl git jq security ssh; do
   require_command "$command_name"
 done
 
-repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || fail "ce script doit être lancé depuis le dépôt CueForge."
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || fail "ce script doit être lancé depuis le dépôt SonoRiva."
 cd "$repo_root"
 
 current_branch=$(git branch --show-current)
@@ -63,9 +63,9 @@ printf '%s\n' "$site_environment" | ssh "$ALWAYSDATA_ACCOUNT@$ALWAYSDATA_SSH_HOS
   npm ci --include=dev --include=optional --loglevel=warn
   npm run build
   command -v pg_dump >/dev/null
-  backup_dir='/home/myconcretelab/backups/cueforge'
+  backup_dir='/home/myconcretelab/backups/sonoriva'
   mkdir -p \"\$backup_dir\"
-  backup_file=\"\$backup_dir/cueforge-\$(date -u +%Y%m%dT%H%M%SZ)-${local_commit:0:12}.dump\"
+  backup_file=\"\$backup_dir/sonoriva-\$(date -u +%Y%m%dT%H%M%SZ)-${local_commit:0:12}.dump\"
   pg_dump --format=custom --no-owner --no-acl \"\$DATABASE_URL\" > \"\$backup_file\"
   test -s \"\$backup_file\"
   npm run db:migrate
@@ -94,8 +94,8 @@ done
 
 [[ "$health_ok" == true ]] || fail "le contrôle de santé du site a échoué après le redémarrage."
 
-if ! curl --fail --silent --show-error "$ALWAYSDATA_SITE_URL/docs/" | grep --quiet '<title>Documentation CueForge'; then
+if ! curl --fail --silent --show-error "$ALWAYSDATA_SITE_URL/docs/" | grep --quiet '<title>Documentation SonoRiva'; then
   fail "la documentation publique n'est pas disponible après le redémarrage."
 fi
 
-printf 'CueForge est déployé : %s (%s)\n' "$ALWAYSDATA_SITE_URL" "$local_commit"
+printf 'SonoRiva est déployé : %s (%s)\n' "$ALWAYSDATA_SITE_URL" "$local_commit"

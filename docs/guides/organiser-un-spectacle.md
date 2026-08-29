@@ -1,6 +1,6 @@
 # Organisation d’un spectacle
 
-CueForge utilise quatre niveaux d’organisation : spectacles, catégories, couleurs et playlists.
+SonoRiva utilise quatre niveaux d’organisation : spectacles, catégories, couleurs et playlists.
 
 ## Spectacles
 

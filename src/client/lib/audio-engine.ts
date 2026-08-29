@@ -56,8 +56,8 @@ type CacheListener = (loadedTrackIds: Set<string>) => void;
 type HistoryListener = (progressByTrack: Map<string, number>) => void;
 type RoutingListener = () => void;
 
-const historyStorageKey = 'cueforge-playback-history-v1';
-const audioOutputStorageKey = 'cueforge-audio-output-v1';
+const historyStorageKey = 'sonoriva-playback-history-v1';
+const audioOutputStorageKey = 'sonoriva-audio-output-v1';
 
 type AudioContextWithSink = AudioContext & {
   setSinkId: (sinkId: string) => Promise<void>;
@@ -433,7 +433,7 @@ class AudioEngine {
   }
 
   async setInstanceOutput(playbackId: string, outputId: string): Promise<void> {
-    if (!bridgeClient.isEnabled()) throw new Error('Le changement de sortie en cours de lecture nécessite CueForge Bridge.');
+    if (!bridgeClient.isEnabled()) throw new Error('Le changement de sortie en cours de lecture nécessite SonoRiva Bridge.');
     await bridgeClient.setPlaybackOutput(playbackId, outputId);
   }
 

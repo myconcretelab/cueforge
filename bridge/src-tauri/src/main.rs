@@ -1,3 +1,3 @@
 fn main() {
-    cueforge_bridge_lib::run();
+    sonoriva_bridge_lib::run();
 }

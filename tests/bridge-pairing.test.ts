@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { consumeBridgePairingStatus } from '../src/server/services/bridge-pairing.js';
 
-describe('CueForge Bridge pairing consumption', () => {
+describe('SonoRiva Bridge pairing consumption', () => {
   const now = new Date('2030-01-01T12:00:00Z');
   const claimed = {
     expiresAt: new Date('2030-01-01T12:05:00Z'),

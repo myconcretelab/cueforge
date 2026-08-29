@@ -13,7 +13,7 @@
 
 La taille maximale d’un fichier importé est de **250 Mo**.
 
-L’extension est contrôlée par CueForge. Le décodage dépend ensuite des codecs fournis par le navigateur et le système d’exploitation.
+L’extension est contrôlée par SonoRiva. Le décodage dépend ensuite des codecs fournis par le navigateur et le système d’exploitation.
 
 ## Stockage du compte
 
@@ -27,7 +27,7 @@ Le stockage hors ligne utilise le cache du navigateur. Sa capacité et sa durée
 
 ## Navigateurs
 
-CueForge fonctionne avec les API Web Audio, Cache Storage, Service Worker et WebSocket. La disponibilité des codecs audio, la lecture automatique et la persistance du stockage varient selon le navigateur et le système.
+SonoRiva fonctionne avec les API Web Audio, Cache Storage, Service Worker et WebSocket. La disponibilité des codecs audio, la lecture automatique et la persistance du stockage varient selon le navigateur et le système.
 
 ## Import SoundShow
 

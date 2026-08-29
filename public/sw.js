@@ -1,19 +1,5 @@
-const AUDIO_CACHE = 'cueforge-audio-v1';
-const SHELL_CACHE = 'cueforge-shell-v2';
-const LEGACY_AUDIO_CACHE = 's1-audio-v1';
-
-async function migrateLegacyAudioCache() {
-  const cacheNames = await caches.keys();
-  if (!cacheNames.includes(LEGACY_AUDIO_CACHE)) return;
-  const legacyCache = await caches.open(LEGACY_AUDIO_CACHE);
-  const currentCache = await caches.open(AUDIO_CACHE);
-  for (const request of await legacyCache.keys()) {
-    if (await currentCache.match(request)) continue;
-    const response = await legacyCache.match(request);
-    if (response) await currentCache.put(request, response);
-  }
-  await caches.delete(LEGACY_AUDIO_CACHE);
-}
+const AUDIO_CACHE = 'sonoriva-audio-v1';
+const SHELL_CACHE = 'sonoriva-shell-v1';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(['/', '/manifest.webmanifest', '/icon.svg'])));
@@ -22,9 +8,8 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(Promise.all([
     self.clients.claim(),
-    migrateLegacyAudioCache(),
     caches.keys().then((keys) => Promise.all(keys.filter((key) => (
-      (key.startsWith('cueforge-shell-') && key !== SHELL_CACHE) || key.startsWith('s1-shell-')
+      key.startsWith('sonoriva-shell-') && key !== SHELL_CACHE
     )).map((key) => caches.delete(key)))),
   ]));
 });

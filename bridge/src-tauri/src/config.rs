@@ -4,7 +4,7 @@ use directories::ProjectDirs;
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
 
-const SERVICE: &str = "fr.cueforge.bridge";
+const SERVICE: &str = "fr.sonoriva.bridge";
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -22,7 +22,7 @@ pub struct ConfigStore {
 
 impl ConfigStore {
     pub fn new() -> Result<Self, String> {
-        let project_dirs = ProjectDirs::from("fr", "CueForge", "CueForge Bridge")
+        let project_dirs = ProjectDirs::from("fr", "SonoRiva", "SonoRiva Bridge")
             .ok_or_else(|| "Dossier de données utilisateur introuvable.".to_string())?;
         let data_dir = project_dirs.data_local_dir();
         fs::create_dir_all(data_dir).map_err(|error| error.to_string())?;

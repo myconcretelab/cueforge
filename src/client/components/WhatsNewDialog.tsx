@@ -12,7 +12,7 @@ const dateFormatter = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 
 export function WhatsNewDialog({ releases, currentVersion, onClose }: Props) {
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="dialog whats-new-dialog" aria-labelledby="whats-new-title">
-      <header><div><p className="eyebrow"><PartyPopper size={15} /> CueForge · Version {currentVersion}</p><h2 id="whats-new-title">Nouveautés</h2></div><button className="icon-button" onClick={onClose} aria-label="Fermer les nouveautés"><X /></button></header>
+      <header><div><p className="eyebrow"><PartyPopper size={15} /> SonoRiva · Version {currentVersion}</p><h2 id="whats-new-title">Nouveautés</h2></div><button className="icon-button" onClick={onClose} aria-label="Fermer les nouveautés"><X /></button></header>
       <div className="release-list">
         {releases.map((release) => <article className={release.important ? 'important' : ''} key={release.version}>
           <div className="release-heading"><div><strong>{release.title}</strong><span>Version {release.version}</span></div><time dateTime={release.date}>{dateFormatter.format(new Date(`${release.date}T00:00:00Z`))}</time></div>

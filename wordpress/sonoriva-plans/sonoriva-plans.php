@@ -1,47 +1,47 @@
 <?php
 /**
- * Plugin Name: CueForge Plans
- * Description: Bloc dynamique affichant les forfaits publics de CueForge.
- * Version: 1.3.1
- * Author: CueForge
+ * Plugin Name: SonoRiva Plans
+ * Description: Bloc dynamique affichant les forfaits publics de SonoRiva.
+ * Version: 2.0.0
+ * Author: SonoRiva
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-const CUEFORGE_PLANS_API_URL = 'https://app.cueforge.fr/api/public/plans';
-const CUEFORGE_PLANS_CACHE_KEY = 'cueforge_plans_api_response';
-const CUEFORGE_PLANS_LAST_GOOD_KEY = 'cueforge_plans_last_good_response';
+const SONORIVA_PLANS_API_URL = 'https://app.sonoriva.fr/api/public/plans';
+const SONORIVA_PLANS_CACHE_KEY = 'sonoriva_plans_api_response';
+const SONORIVA_PLANS_LAST_GOOD_KEY = 'sonoriva_plans_last_good_response';
 
-function cueforge_plans_api_data(): array
+function sonoriva_plans_api_data(): array
 {
-    $cached = get_transient(CUEFORGE_PLANS_CACHE_KEY);
+    $cached = get_transient(SONORIVA_PLANS_CACHE_KEY);
     if (is_array($cached)) {
         return $cached;
     }
 
-    $endpoint = apply_filters('cueforge_plans_api_url', CUEFORGE_PLANS_API_URL);
+    $endpoint = apply_filters('sonoriva_plans_api_url', SONORIVA_PLANS_API_URL);
     $response = wp_remote_get($endpoint, [
         'timeout' => 5,
         'headers' => ['Accept' => 'application/json'],
-        'user-agent' => 'CueForge-WordPress/' . get_bloginfo('version'),
+        'user-agent' => 'SonoRiva-WordPress/' . get_bloginfo('version'),
     ]);
 
     if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) === 200) {
         $decoded = json_decode(wp_remote_retrieve_body($response), true);
         if (is_array($decoded) && isset($decoded['plans']) && is_array($decoded['plans'])) {
-            set_transient(CUEFORGE_PLANS_CACHE_KEY, $decoded, 5 * MINUTE_IN_SECONDS);
-            update_option(CUEFORGE_PLANS_LAST_GOOD_KEY, $decoded, false);
+            set_transient(SONORIVA_PLANS_CACHE_KEY, $decoded, 5 * MINUTE_IN_SECONDS);
+            update_option(SONORIVA_PLANS_LAST_GOOD_KEY, $decoded, false);
             return $decoded;
         }
     }
 
-    $last_good = get_option(CUEFORGE_PLANS_LAST_GOOD_KEY, []);
+    $last_good = get_option(SONORIVA_PLANS_LAST_GOOD_KEY, []);
     return is_array($last_good) ? $last_good : [];
 }
 
-function cueforge_plans_price(?int $cents): ?string
+function sonoriva_plans_price(?int $cents): ?string
 {
     if ($cents === null) {
         return null;
@@ -52,32 +52,32 @@ function cueforge_plans_price(?int $cents): ?string
     return number_format($cents / 100, 2, ',', ' ') . ' €';
 }
 
-function cueforge_plans_storage(int $bytes): string
+function sonoriva_plans_storage(int $bytes): string
 {
     $gigabytes = $bytes / (1024 ** 3);
     $decimals = abs($gigabytes - round($gigabytes)) < 0.001 ? 0 : 1;
     return number_format($gigabytes, $decimals, ',', ' ') . ' Go';
 }
 
-function cueforge_plans_render_block(): string
+function sonoriva_plans_render_block(): string
 {
-    $data = cueforge_plans_api_data();
+    $data = sonoriva_plans_api_data();
     $plans = isset($data['plans']) && is_array($data['plans']) ? $data['plans'] : [];
-    $signup_url = isset($data['signupUrl']) ? (string) $data['signupUrl'] : 'https://app.cueforge.fr/?register=1';
+    $signup_url = isset($data['signupUrl']) ? (string) $data['signupUrl'] : 'https://app.sonoriva.fr/?register=1';
 
     if ($plans === []) {
-        return '<div ' . get_block_wrapper_attributes(['class' => 'cueforge-plans-block']) . '><p class="pricing-note">Les offres seront affichées prochainement.</p></div>';
+        return '<div ' . get_block_wrapper_attributes(['class' => 'sonoriva-plans-block']) . '><p class="pricing-note">Les offres seront affichées prochainement.</p></div>';
     }
 
     $column_count = min(4, max(1, count($plans)));
 
     ob_start();
     ?>
-    <div <?php echo get_block_wrapper_attributes(['class' => 'cueforge-plans-block']); ?>>
+    <div <?php echo get_block_wrapper_attributes(['class' => 'sonoriva-plans-block']); ?>>
         <div class="pricing-grid <?php echo count($plans) === 1 ? 'is-single' : ''; ?>" style="--pricing-columns: <?php echo esc_attr((string) $column_count); ?>;">
             <?php foreach ($plans as $plan) :
-                $monthly = cueforge_plans_price(array_key_exists('monthlyPriceCents', $plan) && $plan['monthlyPriceCents'] !== null ? (int) $plan['monthlyPriceCents'] : null);
-                $annual = cueforge_plans_price(array_key_exists('annualPriceCents', $plan) && $plan['annualPriceCents'] !== null ? (int) $plan['annualPriceCents'] : null);
+                $monthly = sonoriva_plans_price(array_key_exists('monthlyPriceCents', $plan) && $plan['monthlyPriceCents'] !== null ? (int) $plan['monthlyPriceCents'] : null);
+                $annual = sonoriva_plans_price(array_key_exists('annualPriceCents', $plan) && $plan['annualPriceCents'] !== null ? (int) $plan['annualPriceCents'] : null);
                 $trial_days = isset($plan['trialDays']) ? (int) $plan['trialDays'] : 0;
                 $featured = !empty($plan['featured']);
                 $free = !empty($plan['free']);
@@ -86,9 +86,9 @@ function cueforge_plans_render_block(): string
                 ?>
                 <article class="pricing-card <?php echo $featured ? 'featured' : ''; ?>" data-reveal>
                     <?php if ($featured) : ?><div class="plan-top"><span>Mis en avant</span></div><?php endif; ?>
-                    <h3><?php echo esc_html((string) ($plan['name'] ?? 'CueForge')); ?></h3>
+                    <h3><?php echo esc_html((string) ($plan['name'] ?? 'SonoRiva')); ?></h3>
                     <div class="plan-storage">
-                        <strong><?php echo esc_html(cueforge_plans_storage((int) ($plan['storageQuotaBytes'] ?? 0))); ?></strong>
+                        <strong><?php echo esc_html(sonoriva_plans_storage((int) ($plan['storageQuotaBytes'] ?? 0))); ?></strong>
                         <span>de stockage audio</span>
                     </div>
                     <div class="price">
@@ -113,9 +113,9 @@ function cueforge_plans_render_block(): string
                         <li><i>✓</i> Toutes les fonctions de régie</li>
                         <li><i>✓</i> PWA et mode hors ligne</li>
                         <?php if ($bridge_included) : ?>
-                            <li><i>✓</i> CueForge Bridge pour macOS et Windows</li>
+                            <li><i>✓</i> SonoRiva Bridge pour macOS et Windows</li>
                         <?php else : ?>
-                            <li><i>—</i> CueForge Bridge non inclus</li>
+                            <li><i>—</i> SonoRiva Bridge non inclus</li>
                         <?php endif; ?>
                     </ul>
                 </article>
@@ -126,31 +126,31 @@ function cueforge_plans_render_block(): string
     return (string) ob_get_clean();
 }
 
-function cueforge_plans_register_block(): void
+function sonoriva_plans_register_block(): void
 {
     $asset = require __DIR__ . '/editor.asset.php';
     wp_register_script(
-        'cueforge-plans-editor',
+        'sonoriva-plans-editor',
         plugins_url('editor.js', __FILE__),
         $asset['dependencies'],
         $asset['version'],
         true
     );
     wp_register_style(
-        'cueforge-plans',
+        'sonoriva-plans',
         plugins_url('style.css', __FILE__),
         [],
-        '1.3.1'
+        '2.0.0'
     );
-    register_block_type('cueforge/plans', [
+    register_block_type('sonoriva/plans', [
         'api_version' => 2,
-        'title' => 'Forfaits CueForge',
+        'title' => 'Forfaits SonoRiva',
         'category' => 'widgets',
         'icon' => 'tickets-alt',
-        'description' => 'Affiche les forfaits publics configurés dans CueForge.',
-        'editor_script' => 'cueforge-plans-editor',
-        'style' => 'cueforge-plans',
-        'render_callback' => 'cueforge_plans_render_block',
+        'description' => 'Affiche les forfaits publics configurés dans SonoRiva.',
+        'editor_script' => 'sonoriva-plans-editor',
+        'style' => 'sonoriva-plans',
+        'render_callback' => 'sonoriva_plans_render_block',
     ]);
 }
-add_action('init', 'cueforge_plans_register_block');
+add_action('init', 'sonoriva_plans_register_block');
