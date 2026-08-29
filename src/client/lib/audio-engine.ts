@@ -53,6 +53,7 @@ interface Playback extends ActivePlayback {
 type Listener = (playbacks: ActivePlayback[]) => void;
 type CacheListener = (loadedTrackIds: Set<string>) => void;
 type HistoryListener = (progressByTrack: Map<string, number>) => void;
+type RoutingListener = () => void;
 
 const historyStorageKey = 'cueforge-playback-history-v1';
 const audioOutputStorageKey = 'cueforge-audio-output-v1';
@@ -73,6 +74,7 @@ class AudioEngine {
   private listeners = new Set<Listener>();
   private cacheListeners = new Set<CacheListener>();
   private historyListeners = new Set<HistoryListener>();
+  private routingListeners = new Set<RoutingListener>();
   private history = readHistory();
   private playbackSequence = 0;
   private outputSelection = readAudioOutputSelection();
@@ -136,6 +138,7 @@ class AudioEngine {
       label: deviceId ? label.trim() || 'Sortie audio sélectionnée' : 'Sortie système par défaut',
     };
     persistAudioOutputSelection(this.outputSelection);
+    this.notifyRouting();
   }
 
   async applyAudioOutput(element: HTMLMediaElement): Promise<void> {
@@ -171,6 +174,15 @@ class AudioEngine {
     this.historyListeners.add(listener);
     listener(new Map(this.history));
     return () => this.historyListeners.delete(listener);
+  }
+
+  subscribeRouting(listener: RoutingListener): () => void {
+    this.routingListeners.add(listener);
+    const unsubscribeBridge = bridgeClient.subscribeRouting(listener);
+    return () => {
+      this.routingListeners.delete(listener);
+      unsubscribeBridge();
+    };
   }
 
   resetHistory(trackIds?: string[]): void {
@@ -234,6 +246,10 @@ class AudioEngine {
     this.historyListeners.forEach((listener) => listener(history));
   }
 
+  private notifyRouting(): void {
+    this.routingListeners.forEach((listener) => listener());
+  }
+
   private recordProgress(playback: Pick<ActivePlayback, 'trackId'>, progress: number): void {
     const bounded = Math.min(1, Math.max(0, progress));
     if (bounded <= (this.history.get(playback.trackId) ?? 0)) return;
@@ -259,6 +275,7 @@ class AudioEngine {
         } catch {
           this.outputSelection = { deviceId: '', label: 'Sortie système par défaut' };
           persistAudioOutputSelection(this.outputSelection);
+          this.notifyRouting();
         }
       }
     }

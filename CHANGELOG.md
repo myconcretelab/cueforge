@@ -2,6 +2,19 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.19.0] - 2026-08-29
+
+### Ajouté
+
+- grand sélecteur de sortie audio dans la barre de régie, à côté du volume du son suivant ;
+- affichage direct de la sortie Web Audio ou de la sortie principale du Bridge ;
+- état d’alerte lorsqu’une sortie enregistrée disparaît ou lorsque le Bridge est indisponible ;
+- notification interne des changements de routage audio entre les réglages et la barre de régie.
+
+### Modifié
+
+- passage de l’application à la version `0.19.0`.
+
 ## [0.18.0] - 2026-08-29
 
 ### Ajouté

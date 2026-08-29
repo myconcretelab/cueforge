@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.19.0 — 29 août 2026
+
+- ajout du sélecteur de sortie audio dans la barre de régie ;
+- prise en charge du moteur Web Audio et de la sortie principale du Bridge ;
+- signalement visuel des périphériques indisponibles.
+
+[Détails de la version 0.19.0](./0.19.0.md)
+
 ## Version 0.18.0 — 29 août 2026
 
 - intégration de CueForge Bridge aux forfaits payants ;

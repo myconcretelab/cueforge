@@ -152,6 +152,18 @@ describe('audio player instance controls', () => {
     expect(FakeAudioContext.lastSinkId).toBe('');
     expect(localStorage.getItem('cueforge-audio-output-v1')).toBeNull();
   });
+
+  it('notifie les contrôles de régie lorsque la sortie change', async () => {
+    let notifications = 0;
+    const unsubscribeRouting = audioEngine.subscribeRouting(() => { notifications += 1; });
+    const initialNotifications = notifications;
+
+    await audioEngine.setAudioOutput('console-output', 'Console USB');
+
+    expect(notifications).toBeGreaterThan(initialNotifications);
+    unsubscribeRouting();
+    await audioEngine.setAudioOutput('');
+  });
 });
 
 describe('playbackPositionAt', () => {

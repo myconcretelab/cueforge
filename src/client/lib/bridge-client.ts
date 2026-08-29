@@ -36,6 +36,7 @@ interface BridgeAssociation {
 
 type PlaybackListener = (playbacks: BridgePlayback[]) => void;
 type CacheListener = (trackIds: Set<string>) => void;
+type RoutingListener = () => void;
 
 const bridgeBaseUrl = 'http://127.0.0.1:43821';
 const associationStorageKey = 'cueforge-bridge-association-v1';
@@ -48,6 +49,7 @@ class BridgeClient {
   private cachedTrackIds = new Set<string>();
   private playbackListeners = new Set<PlaybackListener>();
   private cacheListeners = new Set<CacheListener>();
+  private routingListeners = new Set<RoutingListener>();
   private polling?: number;
   private socket?: WebSocket;
 
@@ -66,11 +68,13 @@ class BridgeClient {
     else this.stopPolling();
     this.notifyPlaybacks();
     this.notifyCache();
+    this.notifyRouting();
   }
 
   saveAssociation(deviceId: string, localToken: string): void {
     this.association = { deviceId, localToken };
     localStorage.setItem(associationStorageKey, JSON.stringify(this.association));
+    this.notifyRouting();
   }
 
   forgetAssociation(): void {
@@ -83,6 +87,7 @@ class BridgeClient {
     localStorage.setItem(modeStorageKey, 'browser');
     this.notifyPlaybacks();
     this.notifyCache();
+    this.notifyRouting();
   }
 
   async discover(signal?: AbortSignal): Promise<BridgeStatus> {
@@ -95,6 +100,7 @@ class BridgeClient {
 
   async setOutput(channel: 'main' | 'preview', deviceId: string): Promise<void> {
     await this.request(`/v1/outputs/${channel}`, { method: 'PUT', body: JSON.stringify({ deviceId }) });
+    this.notifyRouting();
   }
 
   async syncProject(projectId: string): Promise<number> {
@@ -139,6 +145,12 @@ class BridgeClient {
     this.cacheListeners.add(listener);
     listener(this.getCachedTrackIds());
     return () => this.cacheListeners.delete(listener);
+  }
+
+  subscribeRouting(listener: RoutingListener): () => void {
+    this.routingListeners.add(listener);
+    listener();
+    return () => this.routingListeners.delete(listener);
   }
 
   private startPolling(): void {
@@ -211,6 +223,10 @@ class BridgeClient {
   private notifyCache(): void {
     const cached = this.getCachedTrackIds();
     this.cacheListeners.forEach((listener) => listener(cached));
+  }
+
+  private notifyRouting(): void {
+    this.routingListeners.forEach((listener) => listener());
   }
 
   private async request<T>(path: string, init: RequestInit = {}, authenticated = true): Promise<T> {

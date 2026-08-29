@@ -2,6 +2,12 @@
 
 Le réglage se trouve dans **Paramètres → Moteur et sorties audio**. Deux moteurs sont disponibles : **Navigateur · Web Audio** et **CueForge Bridge**.
 
+## Contrôle dans la barre de régie
+
+Le grand sélecteur **Sortie audio**, placé à côté du volume **Son suivant**, affiche la sortie principale active. Sa liste agit sur la sortie Web Audio lorsque le moteur Navigateur est actif et sur la sortie **Régie principale** lorsque CueForge Bridge est actif.
+
+Le contrôle devient rouge et affiche un symbole d’alerte si le périphérique enregistré n’est plus présent ou si le Bridge local ne répond pas. La liste est actualisée lorsque les périphériques de la machine changent et après une modification effectuée dans les paramètres.
+
 ## Moteur navigateur
 
 ## Sélection

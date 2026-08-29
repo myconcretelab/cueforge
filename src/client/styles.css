@@ -206,6 +206,13 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .console-module.next-volume .next-volume-control { display: grid; grid-template-columns: minmax(50px, 1fr) 35px 28px; align-items: center; gap: 5px; }
 .console-module.next-volume input { height: 16px; min-width: 0; }
 .console-module.next-volume strong { color: #fed7aa; font: .68rem ui-monospace, monospace; text-align: right; }
+.console-module.console-audio-output { width: 214px; border-color: rgba(59,130,246,.52); background: linear-gradient(145deg, rgba(37,99,235,.3), rgba(30,64,175,.16)); transition: border-color .15s, background .15s; }
+.console-module.console-audio-output:hover, .console-module.console-audio-output:focus-within { border-color: rgba(96,165,250,.82); background: linear-gradient(145deg, rgba(37,99,235,.38), rgba(30,64,175,.22)); }
+.console-audio-output-control { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; }
+.console-audio-output-control select { min-width: 0; height: 25px; padding: 0 24px 0 0; overflow: hidden; border: 0; border-radius: 0; color: #eff6ff; background-color: transparent; cursor: pointer; font-size: .76rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.console-audio-output-control select:disabled { opacity: 1; cursor: default; }
+.console-audio-output-control svg { flex: 0 0 auto; color: #ef4444; filter: drop-shadow(0 0 5px rgba(239,68,68,.45)); }
+.console-module.console-audio-output.is-unavailable { border-color: rgba(239,68,68,.55); background: linear-gradient(145deg, rgba(127,29,29,.3), rgba(69,10,10,.18)); }
 .console-volume-lock { position: relative; width: 28px; height: 16px; padding: 0; border: 1px solid rgba(255,255,255,.16); border-radius: 999px; background: #27272a; cursor: pointer; transition: border-color .15s, background .15s; }
 .console-volume-lock i { position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: #71717a; transition: transform .15s, background .15s; }
 .console-volume-lock.active { border-color: color-mix(in srgb, var(--orange) 60%, transparent); background: var(--orange-soft); }
@@ -604,6 +611,7 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
   .topbar { flex-wrap: wrap; }
   .topbar-console { order: 3; width: 100%; margin-left: 0; }
   .console-module.next-volume { flex: 1; }
+  .console-module.console-audio-output { flex: 1; }
   .top-actions { margin-left: auto; }
 }
 
@@ -640,10 +648,13 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
   .topbar .button.primary { width: 41px; padding: 0; font-size: 0; }
   .topbar .button.primary svg { margin: 0; }
   .topbar h1 { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .topbar-console { gap: 4px; }
+  .topbar-console { gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  .topbar-console::-webkit-scrollbar { display: none; }
   .console-module { height: 45px; padding: 6px 7px; }
   .console-module > span { display: none; }
   .console-module.next-volume { min-width: 105px; width: auto; }
+  .console-module.console-audio-output { min-width: 118px; width: auto; }
+  .console-audio-output-control select { font-size: .68rem; }
   .console-module.stopwatch { width: 132px; }
   .console-module.wall-clock { width: 82px; }
   .console-module.wall-clock strong { font-size: .76rem; }

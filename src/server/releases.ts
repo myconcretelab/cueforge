@@ -11,6 +11,20 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.19.0',
+    date: '2026-08-29',
+    title: 'La sortie audio dans la barre de régie',
+    summary: 'Un grand sélecteur placé à côté du volume du son suivant permet de voir et de changer immédiatement la sortie principale.',
+    important: false,
+    changes: [
+      'Le périphérique actif est visible en permanence dans la barre supérieure de la régie principale.',
+      'Le sélecteur pilote directement Web Audio ou la sortie principale de CueForge Bridge selon le moteur actif.',
+      'Un état rouge et un symbole d’alerte signalent une sortie déconnectée ou un Bridge indisponible.',
+      'La liste se met à jour lorsque les périphériques audio ou les réglages de sortie changent.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.18.0',
     date: '2026-08-29',
     title: 'CueForge Bridge dans les forfaits payants',
