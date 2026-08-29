@@ -20,6 +20,7 @@ import { adminRoutes } from './routes/admin.js';
 import { releaseRoutes } from './routes/releases.js';
 import { publicPlanRoutes } from './routes/public-plans.js';
 import { billingRoutes } from './routes/billing.js';
+import { bridgeRoutes } from './routes/bridge.js';
 import { CURRENT_VERSION } from './releases.js';
 import { AccountStorageError, DemoUploadError, requireWritableAccount } from './services/accounts.js';
 import { requireUser } from './services/auth.js';
@@ -74,6 +75,7 @@ export async function buildApp() {
   await app.register(releaseRoutes);
   await app.register(publicPlanRoutes);
   await app.register(billingRoutes);
+  await app.register(bridgeRoutes);
   await app.register(projectRoutes);
   await app.register(trackRoutes);
   await app.register(importRoutes);

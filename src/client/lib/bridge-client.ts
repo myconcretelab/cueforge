@@ -1,0 +1,253 @@
+import type { Track } from '../types';
+
+export type AudioPlaybackMode = 'browser' | 'bridge';
+
+export interface BridgeStatus {
+  version: string;
+  paired: boolean;
+  serverUrl: string | null;
+  deviceId: string | null;
+  cachedTracks: number;
+}
+
+export interface BridgeOutput {
+  id: string;
+  name: string;
+  isDefault: boolean;
+}
+
+export interface BridgePlayback {
+  id: string;
+  trackId: string;
+  sequence: number;
+  positionMs: number;
+  durationMs: number;
+  loopPlayback: boolean;
+  paused: boolean;
+  volume: number;
+  fadingOut: boolean;
+  channel: 'main' | 'preview';
+}
+
+interface BridgeAssociation {
+  deviceId: string;
+  localToken: string;
+}
+
+type PlaybackListener = (playbacks: BridgePlayback[]) => void;
+type CacheListener = (trackIds: Set<string>) => void;
+
+const bridgeBaseUrl = 'http://127.0.0.1:43821';
+const associationStorageKey = 'cueforge-bridge-association-v1';
+const modeStorageKey = 'cueforge-audio-mode-v1';
+
+class BridgeClient {
+  private association = readAssociation();
+  private mode: AudioPlaybackMode = readMode();
+  private playbacks: BridgePlayback[] = [];
+  private cachedTrackIds = new Set<string>();
+  private playbackListeners = new Set<PlaybackListener>();
+  private cacheListeners = new Set<CacheListener>();
+  private polling?: number;
+  private socket?: WebSocket;
+
+  getMode(): AudioPlaybackMode { return this.mode; }
+  isEnabled(): boolean { return this.mode === 'bridge' && Boolean(this.association); }
+  isAssociated(): boolean { return Boolean(this.association); }
+  getDeviceId(): string | null { return this.association?.deviceId ?? null; }
+  getPlaybacks(): BridgePlayback[] { return this.playbacks.map((playback) => ({ ...playback })); }
+  getCachedTrackIds(): Set<string> { return new Set(this.cachedTrackIds); }
+
+  setMode(mode: AudioPlaybackMode): void {
+    if (mode === 'bridge' && !this.association) throw new Error('Associez d’abord CueForge Bridge à ce navigateur.');
+    this.mode = mode;
+    localStorage.setItem(modeStorageKey, mode);
+    if (mode === 'bridge') this.startPolling();
+    else this.stopPolling();
+    this.notifyPlaybacks();
+    this.notifyCache();
+  }
+
+  saveAssociation(deviceId: string, localToken: string): void {
+    this.association = { deviceId, localToken };
+    localStorage.setItem(associationStorageKey, JSON.stringify(this.association));
+  }
+
+  forgetAssociation(): void {
+    this.stopPolling();
+    this.association = undefined;
+    this.mode = 'browser';
+    this.playbacks = [];
+    this.cachedTrackIds.clear();
+    localStorage.removeItem(associationStorageKey);
+    localStorage.setItem(modeStorageKey, 'browser');
+    this.notifyPlaybacks();
+    this.notifyCache();
+  }
+
+  async discover(signal?: AbortSignal): Promise<BridgeStatus> {
+    return this.request<BridgeStatus>('/v1/status', { signal }, false);
+  }
+
+  async outputs(): Promise<{ outputs: BridgeOutput[]; mainOutputId: string; previewOutputId: string }> {
+    return this.request('/v1/outputs');
+  }
+
+  async setOutput(channel: 'main' | 'preview', deviceId: string): Promise<void> {
+    await this.request(`/v1/outputs/${channel}`, { method: 'PUT', body: JSON.stringify({ deviceId }) });
+  }
+
+  async syncProject(projectId: string): Promise<number> {
+    const result = await this.request<{ cached: number }>(`/v1/projects/${encodeURIComponent(projectId)}/sync`, { method: 'POST' });
+    return result.cached;
+  }
+
+  async preload(track: Track): Promise<void> {
+    await this.request('/v1/cache', { method: 'POST', body: JSON.stringify(track) });
+    this.cachedTrackIds.add(track.id);
+    this.notifyCache();
+  }
+
+  async play(track: Track, fadeInMs: number, volumeMultiplier: number, channel: 'main' | 'preview' = 'main'): Promise<string> {
+    const result = await this.request<{ playbackId: string }>('/v1/play', {
+      method: 'POST',
+      body: JSON.stringify({ track, fadeInMs, volumeMultiplier, channel }),
+    });
+    await this.refreshPlaybacks();
+    return result.playbackId;
+  }
+
+  togglePause(id: string): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/pause`, 'POST'); }
+  setVolume(id: string, volume: number): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/volume`, 'PUT', { volume }); }
+  setLoop(id: string, loop: boolean): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/loop`, 'PUT', { loop }); }
+  seek(id: string, progress: number): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/seek`, 'PUT', { progress }); }
+  stop(id: string, fadeOutMs: number): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/stop`, 'POST', { fadeOutMs }); }
+  stopTrack(trackId: string, fadeOutMs: number): void { this.send('/v1/stop-track', 'POST', { trackId, fadeOutMs }); }
+  stopAll(fadeOutMs: number): void { this.send('/v1/stop-all', 'POST', { fadeOutMs }); }
+
+  subscribe(listener: PlaybackListener): () => void {
+    this.playbackListeners.add(listener);
+    listener(this.getPlaybacks());
+    if (this.isEnabled()) this.startPolling();
+    return () => {
+      this.playbackListeners.delete(listener);
+      if (!this.playbackListeners.size) this.stopPolling();
+    };
+  }
+
+  subscribeCache(listener: CacheListener): () => void {
+    this.cacheListeners.add(listener);
+    listener(this.getCachedTrackIds());
+    return () => this.cacheListeners.delete(listener);
+  }
+
+  private startPolling(): void {
+    if (this.polling || this.socket || typeof window === 'undefined') return;
+    if (typeof WebSocket !== 'undefined' && this.association) {
+      try {
+        const socket = new WebSocket('ws://127.0.0.1:43821/v1/events');
+        this.socket = socket;
+        socket.addEventListener('open', () => socket.send(JSON.stringify({ type: 'authenticate', token: this.association?.localToken })));
+        socket.addEventListener('message', (event) => {
+          try {
+            const payload = JSON.parse(String(event.data)) as { type?: string; playbacks?: BridgePlayback[] };
+            if (payload.type === 'playbacks' && Array.isArray(payload.playbacks)) {
+              this.playbacks = payload.playbacks;
+              this.notifyPlaybacks();
+            }
+          } catch { /* Un message local invalide est ignoré. */ }
+        });
+        const fallback = () => {
+          if (this.socket !== socket) return;
+          this.socket = undefined;
+          if (this.isEnabled() && this.playbackListeners.size) this.startHttpPolling();
+        };
+        socket.addEventListener('error', fallback, { once: true });
+        socket.addEventListener('close', fallback, { once: true });
+        return;
+      } catch {
+        this.socket = undefined;
+      }
+    }
+    this.startHttpPolling();
+  }
+
+  private startHttpPolling(): void {
+    if (this.polling || typeof window === 'undefined') return;
+    this.refreshPlaybacks().catch(() => undefined);
+    this.polling = window.setInterval(() => this.refreshPlaybacks().catch(() => undefined), 250);
+  }
+
+  private stopPolling(): void {
+    if (this.socket) {
+      const socket = this.socket;
+      this.socket = undefined;
+      socket.onclose = null;
+      socket.onerror = null;
+      socket.close();
+    }
+    if (this.polling !== undefined) window.clearInterval(this.polling);
+    this.polling = undefined;
+  }
+
+  private async refreshPlaybacks(): Promise<void> {
+    if (!this.isEnabled()) return;
+    const result = await this.request<{ playbacks: BridgePlayback[] }>('/v1/playbacks');
+    this.playbacks = result.playbacks;
+    this.notifyPlaybacks();
+  }
+
+  private send(path: string, method: 'POST' | 'PUT', body?: unknown): void {
+    this.request(path, { method, body: body === undefined ? undefined : JSON.stringify(body) })
+      .then(() => this.refreshPlaybacks())
+      .catch(() => undefined);
+  }
+
+  private notifyPlaybacks(): void {
+    const playbacks = this.getPlaybacks();
+    this.playbackListeners.forEach((listener) => listener(playbacks));
+  }
+
+  private notifyCache(): void {
+    const cached = this.getCachedTrackIds();
+    this.cacheListeners.forEach((listener) => listener(cached));
+  }
+
+  private async request<T>(path: string, init: RequestInit = {}, authenticated = true): Promise<T> {
+    if (authenticated && !this.association) throw new Error('CueForge Bridge n’est pas associé à ce navigateur.');
+    const response = await fetch(`${bridgeBaseUrl}${path}`, {
+      ...init,
+      headers: {
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(authenticated ? { Authorization: `Bearer ${this.association!.localToken}` } : {}),
+        ...init.headers,
+      },
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({ error: 'CueForge Bridge ne répond pas.' }));
+      throw new Error(body.error ?? 'CueForge Bridge ne répond pas.');
+    }
+    if (response.status === 204) return undefined as T;
+    return response.json() as Promise<T>;
+  }
+}
+
+function readAssociation(): BridgeAssociation | undefined {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(associationStorageKey) ?? '{}') as Partial<BridgeAssociation>;
+    if (typeof parsed.deviceId === 'string' && typeof parsed.localToken === 'string') {
+      return { deviceId: parsed.deviceId, localToken: parsed.localToken };
+    }
+  } catch { /* L’association pourra être recréée. */ }
+  return undefined;
+}
+
+function readMode(): AudioPlaybackMode {
+  try {
+    return localStorage.getItem(modeStorageKey) === 'bridge' && readAssociation() ? 'bridge' : 'browser';
+  } catch {
+    return 'browser';
+  }
+}
+
+export const bridgeClient = new BridgeClient();

@@ -1,5 +1,6 @@
 import type { MouseAction, Track } from '../types';
 import { fetchTrackAudio } from './offline-audio';
+import { bridgeClient, type AudioPlaybackMode } from './bridge-client';
 
 export interface ActivePlayback {
   id: string;
@@ -76,6 +77,18 @@ class AudioEngine {
   private playbackSequence = 0;
   private outputSelection = readAudioOutputSelection();
 
+  getPlaybackMode(): AudioPlaybackMode {
+    return bridgeClient.getMode();
+  }
+
+  setPlaybackMode(mode: AudioPlaybackMode): void {
+    if (mode === bridgeClient.getMode()) return;
+    if (this.getActivePlaybacks().length > 0) throw new Error('Arrêtez les lectures en cours avant de changer de moteur audio.');
+    bridgeClient.setMode(mode);
+    this.notify();
+    this.notifyCache();
+  }
+
   supportsAudioOutputSelection(): boolean {
     return typeof AudioContext !== 'undefined'
       && typeof (AudioContext.prototype as Partial<AudioContextWithSink>).setSinkId === 'function';
@@ -132,14 +145,26 @@ class AudioEngine {
 
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
+    const unsubscribeBridge = bridgeClient.subscribe(() => {
+      if (bridgeClient.isEnabled()) this.notify();
+    });
     listener(this.getActivePlaybacks());
-    return () => this.listeners.delete(listener);
+    return () => {
+      this.listeners.delete(listener);
+      unsubscribeBridge();
+    };
   }
 
   subscribeCache(listener: CacheListener): () => void {
     this.cacheListeners.add(listener);
-    listener(new Set(this.buffers.keys()));
-    return () => this.cacheListeners.delete(listener);
+    const unsubscribeBridge = bridgeClient.subscribeCache(() => {
+      if (bridgeClient.isEnabled()) this.notifyCache();
+    });
+    listener(bridgeClient.isEnabled() ? bridgeClient.getCachedTrackIds() : new Set(this.buffers.keys()));
+    return () => {
+      this.cacheListeners.delete(listener);
+      unsubscribeBridge();
+    };
   }
 
   subscribeHistory(listener: HistoryListener): () => void {
@@ -156,12 +181,35 @@ class AudioEngine {
   }
 
   persistActiveProgress(): void {
+    if (bridgeClient.isEnabled()) {
+      for (const playback of this.getActivePlaybacks()) this.recordProgress(playback, playbackPositionAt(playback) / playback.durationMs);
+      return;
+    }
     for (const instances of this.active.values()) {
       for (const playback of instances) this.recordProgress(playback, this.currentElapsedMs(playback) / playback.durationMs);
     }
   }
 
   private getActivePlaybacks(): ActivePlayback[] {
+    if (bridgeClient.isEnabled()) {
+      const now = performance.now();
+      return bridgeClient.getPlaybacks().filter((playback) => playback.channel === 'main').map((playback) => ({
+        id: playback.id,
+        trackId: playback.trackId,
+        sequence: playback.sequence,
+        startedAtMs: now - playback.positionMs,
+        resumedAtMs: now,
+        elapsedMs: playback.positionMs,
+        durationMs: playback.durationMs,
+        loop: playback.loopPlayback,
+        paused: playback.paused,
+        volume: playback.volume,
+        volumeFrom: playback.volume,
+        volumeTransitionStartedAtMs: now,
+        volumeTransitionDurationMs: 0,
+        fadingOut: playback.fadingOut,
+      }));
+    }
     return [...this.active.values()]
       .flatMap((instances) => [...instances])
       .map(({ id, trackId, sequence, startedAtMs, resumedAtMs, elapsedMs, durationMs, loop, paused, volume, volumeFrom, volumeTransitionStartedAtMs, volumeTransitionDurationMs, fadingOut }) => ({
@@ -177,7 +225,7 @@ class AudioEngine {
   }
 
   private notifyCache(): void {
-    const ids = new Set(this.buffers.keys());
+    const ids = bridgeClient.isEnabled() ? bridgeClient.getCachedTrackIds() : new Set(this.buffers.keys());
     this.cacheListeners.forEach((listener) => listener(ids));
   }
 
@@ -186,7 +234,7 @@ class AudioEngine {
     this.historyListeners.forEach((listener) => listener(history));
   }
 
-  private recordProgress(playback: Playback, progress: number): void {
+  private recordProgress(playback: Pick<ActivePlayback, 'trackId'>, progress: number): void {
     const bounded = Math.min(1, Math.max(0, progress));
     if (bounded <= (this.history.get(playback.trackId) ?? 0)) return;
     this.history.set(playback.trackId, bounded);
@@ -241,10 +289,12 @@ class AudioEngine {
   }
 
   async preload(track: Track): Promise<void> {
+    if (bridgeClient.isEnabled()) return bridgeClient.preload(track);
     await this.load(track);
   }
 
   async play(track: Track, fadeInMs = track.fadeInMs, volumeMultiplier = 1): Promise<string> {
+    if (bridgeClient.isEnabled()) return bridgeClient.play(track, fadeInMs, volumeMultiplier);
     const [context, buffer] = await Promise.all([this.getContext(), this.load(track)]);
     const gain = context.createGain();
     const startAt = Math.min(track.startTimeMs / 1000, Math.max(0, buffer.duration - 0.01));
@@ -292,6 +342,7 @@ class AudioEngine {
   }
 
   togglePauseInstance(playbackId: string): void {
+    if (bridgeClient.isEnabled()) return bridgeClient.togglePause(playbackId);
     const playback = this.findPlayback(playbackId);
     if (!playback || playback.stopping) return;
     if (playback.paused) {
@@ -309,6 +360,7 @@ class AudioEngine {
   }
 
   setInstanceVolume(playbackId: string, volume: number): void {
+    if (bridgeClient.isEnabled()) return bridgeClient.setVolume(playbackId, volume);
     const playback = this.findPlayback(playbackId);
     const context = this.context;
     if (!playback || !context || playback.stopping) return;
@@ -327,6 +379,7 @@ class AudioEngine {
   }
 
   setInstanceLoop(playbackId: string, loop: boolean): void {
+    if (bridgeClient.isEnabled()) return bridgeClient.setLoop(playbackId, loop);
     const playback = this.findPlayback(playbackId);
     if (!playback || playback.stopping || playback.loop === loop) return;
     if (!playback.paused) this.capturePosition(playback, true);
@@ -339,6 +392,7 @@ class AudioEngine {
   }
 
   seekInstance(playbackId: string, progress: number): void {
+    if (bridgeClient.isEnabled()) return bridgeClient.seek(playbackId, progress);
     const playback = this.findPlayback(playbackId);
     if (!playback || playback.stopping) return;
     const boundedProgress = Math.min(1, Math.max(0, progress));
@@ -360,6 +414,7 @@ class AudioEngine {
   }
 
   stop(trackId: string, fadeOutMs = 250): void {
+    if (bridgeClient.isEnabled()) return bridgeClient.stopTrack(trackId, fadeOutMs);
     const context = this.context;
     const instances = this.active.get(trackId);
     if (!context || !instances) return;
@@ -367,6 +422,7 @@ class AudioEngine {
   }
 
   stopInstance(playbackId: string, fadeOutMs = 250): void {
+    if (bridgeClient.isEnabled()) return bridgeClient.stop(playbackId, fadeOutMs);
     const playback = this.findPlayback(playbackId);
     if (playback) this.stopPlayback(playback, fadeOutMs);
   }
@@ -419,10 +475,22 @@ class AudioEngine {
   }
 
   stopAll(tracks: Track[], fadeOutMs?: number): void {
+    if (bridgeClient.isEnabled()) {
+      const fades = new Map(tracks.map((track) => [track.id, track.fadeOutMs]));
+      for (const playback of bridgeClient.getPlaybacks()) {
+        bridgeClient.stop(playback.id, fadeOutMs ?? fades.get(playback.trackId) ?? 250);
+      }
+      return;
+    }
     for (const track of tracks) this.stop(track.id, fadeOutMs ?? track.fadeOutMs);
   }
 
   resetProjectSession(tracks: Track[]): void {
+    if (bridgeClient.isEnabled()) {
+      bridgeClient.stopAll(0);
+      this.resetHistory(tracks.map((track) => track.id));
+      return;
+    }
     const trackIds = new Set(tracks.map((track) => track.id));
     for (const [trackId, instances] of this.active) {
       if (!trackIds.has(trackId)) continue;
@@ -437,7 +505,7 @@ class AudioEngine {
     if (action === 'stop') return this.stop(track.id, track.fadeOutMs);
     if (action === 'start') { await this.play(track, track.fadeInMs, volumeMultiplier); return; }
     if (action === 'fade-in') { await this.play(track, track.fadeInMs > 0 ? track.fadeInMs : 1_200, volumeMultiplier); return; }
-    await this.load(track);
+    await this.preload(track);
     if (action === 'replace') this.stopAll(projectTracks, 0);
     else this.stopAll(projectTracks);
     await this.play(track, track.fadeInMs, volumeMultiplier);

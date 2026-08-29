@@ -2,6 +2,25 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.16.0] - 2026-08-29
+
+### Ajouté
+
+- application macOS CueForge Bridge fondée sur Tauri, CPAL et Rodio ;
+- association par lien natif `cueforge-bridge://` et ticket serveur temporaire à usage unique ;
+- jeton d’appareil conservé dans le trousseau macOS et révocable depuis CueForge ;
+- serveur local sur `127.0.0.1:43821` protégé par une clé propre au navigateur associé ;
+- cache natif des fichiers audio compressés avec synchronisation complète d’un spectacle ;
+- sorties distinctes pour la régie principale et la préécoute ;
+- pilotage natif des lectures, fondus, pauses, volumes, boucles, positions et arrêts.
+
+### Modifié
+
+- ajout du choix entre le moteur Navigateur et CueForge Bridge dans les paramètres ;
+- maintien de Web Audio comme moteur par défaut et fonctionnement complet sans bridge ;
+- ajout d’API serveur dédiées aux appareils associés, manifestes et téléchargements audio ;
+- passage de l’application à la version `0.16.0`.
+
 ## [0.15.0] - 2026-08-28
 
 ### Ajouté

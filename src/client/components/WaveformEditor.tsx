@@ -10,18 +10,18 @@ import {
   waveformWindow,
 } from '../lib/waveform';
 import { audioEngine } from '../lib/audio-engine';
+import { bridgeClient } from '../lib/bridge-client';
+import type { Track } from '../types';
 
 interface Props {
-  trackId: string;
-  title: string;
-  initialDurationMs: number | null;
+  track: Track;
   startMs: number;
   endMs: number | null;
   onStartChange: (value: number) => void;
   onEndChange: (value: number | null) => void;
 }
 
-export function WaveformEditor({ trackId, title, initialDurationMs, startMs, endMs, onStartChange, onEndChange }: Props) {
+export function WaveformEditor({ track, startMs, endMs, onStartChange, onEndChange }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [buffer, setBuffer] = useState<AudioBuffer>();
@@ -34,10 +34,12 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
   const [stopResetArmed, setStopResetArmed] = useState(false);
   const [playheadMs, setPlayheadMs] = useState(startMs);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const bridgePreviewId = useRef<string | undefined>(undefined);
+  const bridgePreviewStartMs = useRef(0);
   const dragRef = useRef<{ kind: 'start' | 'end'; pointerId: number; offsetPx: number } | undefined>(undefined);
   const boundsRef = useRef({ startMs, endMs, onStartChange, onEndChange });
   boundsRef.current = { startMs, endMs, onStartChange, onEndChange };
-  const totalMs = Math.max(1, buffer ? Math.round(buffer.duration * 1_000) : initialDurationMs ?? 1);
+  const totalMs = Math.max(1, buffer ? Math.round(buffer.duration * 1_000) : track.durationMs ?? 1);
   const effectiveEndMs = endMs ?? totalMs;
   const view = useMemo(() => waveformWindow(totalMs, zoom, pan), [pan, totalMs, zoom]);
   const startPosition = waveformPosition(startMs, view);
@@ -50,7 +52,7 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
     const controller = new AbortController();
     const context = new AudioContext();
     setLoading(true); setError('');
-    fetch(`/api/tracks/${trackId}/stream`, { credentials: 'include', signal: controller.signal })
+    fetch(`/api/tracks/${track.id}/stream`, { credentials: 'include', signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error('Chargement de la forme d’onde impossible.');
         return response.arrayBuffer();
@@ -67,7 +69,25 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
       .catch((cause) => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Analyse impossible.'); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => { controller.abort(); context.close().catch(() => undefined); };
-  }, [trackId]);
+  }, [track.id]);
+
+  useEffect(() => bridgeClient.subscribe((playbacks) => {
+    const id = bridgePreviewId.current;
+    if (!id) return;
+    const playback = playbacks.find((candidate) => candidate.id === id);
+    if (!playback) {
+      bridgePreviewId.current = undefined;
+      setPreviewing(false);
+      setPlayheadMs(effectiveEndMs);
+      return;
+    }
+    setPreviewing(!playback.paused);
+    setPlayheadMs(Math.min(effectiveEndMs, bridgePreviewStartMs.current + playback.positionMs));
+  }), [effectiveEndMs]);
+
+  useEffect(() => () => {
+    if (bridgePreviewId.current) bridgeClient.stop(bridgePreviewId.current, 0);
+  }, []);
 
   useEffect(() => {
     setPlayheadMs((current) => Math.min(effectiveEndMs, Math.max(startMs, current)));
@@ -156,6 +176,7 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
     setPlayheadMs(nextMs);
     const audio = audioRef.current;
     if (audio) audio.currentTime = nextMs / 1_000;
+    if (bridgePreviewId.current) bridgeClient.seek(bridgePreviewId.current, (nextMs - startMs) / Math.max(1, effectiveEndMs - startMs));
   }
 
   function changeZoom(nextZoom: number) {
@@ -172,6 +193,22 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
   }
 
   async function togglePreview() {
+    if (bridgeClient.isEnabled()) {
+      if (bridgePreviewId.current) {
+        bridgeClient.togglePause(bridgePreviewId.current);
+        return;
+      }
+      const nextMs = playheadMs >= effectiveEndMs - 1 ? startMs : Math.min(effectiveEndMs, Math.max(startMs, playheadMs));
+      setPlayheadMs(nextMs);
+      setStopResetArmed(false);
+      try {
+        bridgePreviewStartMs.current = startMs;
+        bridgePreviewId.current = await bridgeClient.play({ ...track, startTimeMs: startMs, endTimeMs: effectiveEndMs, loop: false }, 0, 1, 'preview');
+        if (nextMs > startMs) bridgeClient.seek(bridgePreviewId.current, (nextMs - startMs) / Math.max(1, effectiveEndMs - startMs));
+        setPreviewing(true);
+      } catch { setError('La préécoute ne peut pas démarrer sur la sortie audio du bridge.'); }
+      return;
+    }
     const audio = audioRef.current;
     if (!audio) return;
     if (previewing) { audio.pause(); setPreviewing(false); return; }
@@ -187,6 +224,15 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
   }
 
   function stopPreview() {
+    if (bridgePreviewId.current) {
+      bridgeClient.stop(bridgePreviewId.current, 0);
+      bridgePreviewId.current = undefined;
+      setPreviewing(false);
+      if (!stopResetArmed) { setStopResetArmed(true); return; }
+      setPlayheadMs(startMs);
+      setStopResetArmed(false);
+      return;
+    }
     const audio = audioRef.current;
     if (!audio) return;
     audio.pause();
@@ -201,7 +247,7 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
   }
 
   return <section className="waveform-editor">
-    <header><div><strong>Début, fin et lecture</strong><span>Cliquez pour déplacer la lecture, ou maintenez une poignée pour régler précisément « {title} ».</span></div><div className="waveform-tools"><button type="button" onClick={() => changeZoom(zoom / 1.6)} aria-label="Dézoomer"><ZoomOut size={16} /></button><input aria-label="Zoom de la forme d’onde" type="range" min="1" max="64" step=".25" value={zoom} onChange={(event) => changeZoom(Number(event.target.value))} /><button type="button" onClick={() => changeZoom(zoom * 1.6)} aria-label="Zoomer"><ZoomIn size={16} /></button><button type="button" onClick={focusSelection} title="Cadrer la sélection"><Focus size={16} /></button><em>{zoom.toFixed(zoom < 10 ? 1 : 0)}×</em></div></header>
+    <header><div><strong>Début, fin et lecture</strong><span>Cliquez pour déplacer la lecture, ou maintenez une poignée pour régler précisément « {track.title} ».</span></div><div className="waveform-tools"><button type="button" onClick={() => changeZoom(zoom / 1.6)} aria-label="Dézoomer"><ZoomOut size={16} /></button><input aria-label="Zoom de la forme d’onde" type="range" min="1" max="64" step=".25" value={zoom} onChange={(event) => changeZoom(Number(event.target.value))} /><button type="button" onClick={() => changeZoom(zoom * 1.6)} aria-label="Zoomer"><ZoomIn size={16} /></button><button type="button" onClick={focusSelection} title="Cadrer la sélection"><Focus size={16} /></button><em>{zoom.toFixed(zoom < 10 ? 1 : 0)}×</em></div></header>
     <div className={`waveform-stage ${dragging ? 'is-dragging' : ''}`} ref={stageRef} onClick={seekFromPointer}>
       <canvas ref={canvasRef} />
       {loading && <span className="waveform-loading"><LoaderCircle className="spin" size={20} />Analyse du son…</span>}
@@ -218,6 +264,6 @@ export function WaveformEditor({ trackId, title, initialDurationMs, startMs, end
       <label><span>Début</span><input type="number" min="0" max={Math.max(0, effectiveEndMs / 1_000 - .001)} step=".001" value={(startMs / 1_000).toFixed(3)} onChange={(event) => onStartChange(clampStartMs(Number(event.target.value) * 1_000, effectiveEndMs, totalMs))} /><em>{formatWaveformTime(startMs)}</em><button type="button" onClick={() => onStartChange(0)} title="Réinitialiser le début"><RotateCcw size={14} /></button></label>
       <label><span>Fin</span><input type="number" min={(startMs + 1) / 1_000} max={totalMs / 1_000} step=".001" value={(effectiveEndMs / 1_000).toFixed(3)} onChange={(event) => onEndChange(clampEndMs(Number(event.target.value) * 1_000, startMs, totalMs))} /><em>{formatWaveformTime(effectiveEndMs)}</em><button type="button" onClick={() => onEndChange(null)} title="Utiliser la fin du fichier"><RotateCcw size={14} /></button></label>
     </div>
-    <audio ref={audioRef} src={`/api/tracks/${trackId}/stream`} preload="metadata" onLoadedMetadata={(event) => { event.currentTarget.currentTime = playheadMs / 1_000; }} onTimeUpdate={(event) => { const currentMs = Math.min(totalMs, event.currentTarget.currentTime * 1_000); setPlayheadMs(currentMs); if (currentMs >= effectiveEndMs) { event.currentTarget.pause(); setPlayheadMs(effectiveEndMs); setPreviewing(false); setStopResetArmed(false); } }} onEnded={() => { setPlayheadMs(effectiveEndMs); setPreviewing(false); setStopResetArmed(false); }} />
+    <audio ref={audioRef} src={`/api/tracks/${track.id}/stream`} preload="metadata" onLoadedMetadata={(event) => { event.currentTarget.currentTime = playheadMs / 1_000; }} onTimeUpdate={(event) => { const currentMs = Math.min(totalMs, event.currentTarget.currentTime * 1_000); setPlayheadMs(currentMs); if (currentMs >= effectiveEndMs) { event.currentTarget.pause(); setPlayheadMs(effectiveEndMs); setPreviewing(false); setStopResetArmed(false); } }} onEnded={() => { setPlayheadMs(effectiveEndMs); setPreviewing(false); setStopResetArmed(false); }} />
   </section>;
 }

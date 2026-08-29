@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CueForge Bridge</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <div class="brand"><span>C</span><div><strong>CueForge</strong><small>Bridge audio</small></div></div>
+      <section class="hero">
+        <i id="status-dot"></i>
+        <h1 id="status-title">Démarrage…</h1>
+        <p id="status-message">Le serveur audio local se prépare.</p>
+      </section>
+      <section>
+        <h2>Sorties audio</h2>
+        <label>Régie principale<select id="main-output" disabled><option>Chargement…</option></select></label>
+        <button id="refresh" type="button">Actualiser les périphériques</button>
+      </section>
+      <section>
+        <h2>Cache local</h2>
+        <p><strong id="cache-count">0</strong> fichier audio enregistré pour une lecture immédiate.</p>
+        <button id="clear-cache" type="button">Vider le cache audio</button>
+      </section>
+      <footer>CueForge Bridge 0.1.0 · localhost:43821</footer>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>

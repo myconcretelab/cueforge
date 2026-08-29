@@ -7,6 +7,14 @@ export interface User {
   demoExpiresAt: string | null;
 }
 
+export interface BridgeDevice {
+  id: string;
+  name: string;
+  platform: 'macos' | 'windows' | 'linux';
+  lastSeenAt: string | null;
+  createdAt: string;
+}
+
 export interface AppRelease {
   audience: 'app' | 'admin';
   version: string;

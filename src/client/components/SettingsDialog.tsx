@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BookOpen, CloudDownload, CreditCard, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, LoaderCircle, LogOut, Palette, Plus, RefreshCcw, Settings2, ShieldCheck, Speaker, Smartphone, Trash2, Waves, X } from 'lucide-react';
+import { BookOpen, Cable, CloudDownload, CreditCard, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, LoaderCircle, LogOut, Palette, Plus, RefreshCcw, Settings2, ShieldCheck, Speaker, Smartphone, Trash2, Waves, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { audioEngine, type AudioOutputDevice } from '../lib/audio-engine';
-import type { AccountSummary, KeyAction, Project, ProjectColor, PublicPlan, User } from '../types';
+import { bridgeClient, type BridgeOutput } from '../lib/bridge-client';
+import type { AccountSummary, BridgeDevice, KeyAction, Project, ProjectColor, PublicPlan, User } from '../types';
 
 interface Props {
   user: User;
@@ -74,6 +75,14 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
   const [selectedAudioOutputId, setSelectedAudioOutputId] = useState(() => audioEngine.getAudioOutputSelection().deviceId);
   const [audioOutputBusy, setAudioOutputBusy] = useState(false);
   const [audioOutputError, setAudioOutputError] = useState('');
+  const [audioMode, setAudioMode] = useState(() => audioEngine.getPlaybackMode());
+  const [bridgeBusy, setBridgeBusy] = useState(false);
+  const [bridgeMessage, setBridgeMessage] = useState('');
+  const [bridgeError, setBridgeError] = useState('');
+  const [bridgeOutputs, setBridgeOutputs] = useState<BridgeOutput[]>([]);
+  const [bridgeMainOutputId, setBridgeMainOutputId] = useState('default');
+  const [bridgePreviewOutputId, setBridgePreviewOutputId] = useState('default');
+  const [bridgeDevices, setBridgeDevices] = useState<BridgeDevice[]>([]);
 
   const refreshAudioOutputs = useCallback(async () => {
     if (!audioOutputSupported) return;
@@ -89,6 +98,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
   useEffect(() => {
     api.account().then((result) => setAccount(result.account)).catch(() => setAccount(undefined));
     api.publicPlans().then((result) => setPublicPlans(result.plans)).catch(() => setPublicPlans([]));
+    api.bridgeDevices().then((result) => setBridgeDevices(result.devices)).catch(() => setBridgeDevices([]));
   }, []);
 
   useEffect(() => {
@@ -215,6 +225,118 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
     }
   }
 
+  const refreshBridge = useCallback(async () => {
+    setBridgeError('');
+    try {
+      const [status, outputs] = await Promise.all([bridgeClient.discover(), bridgeClient.outputs()]);
+      setBridgeOutputs(outputs.outputs);
+      setBridgeMainOutputId(outputs.mainOutputId);
+      setBridgePreviewOutputId(outputs.previewOutputId);
+      setBridgeMessage(status.paired ? `Bridge ${status.version} prêt · ${status.cachedTracks} fichier${status.cachedTracks > 1 ? 's' : ''} en cache` : 'Le bridge local attend une association.');
+    } catch (error) {
+      setBridgeError(bridgeErrorMessage(error));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (bridgeClient.isAssociated()) refreshBridge().catch(() => undefined);
+  }, [refreshBridge]);
+
+  async function connectBridge() {
+    setBridgeBusy(true);
+    setBridgeError('');
+    setBridgeMessage('Ouverture de CueForge Bridge…');
+    try {
+      const pairing = await api.createBridgePairing();
+      const link = new URL('cueforge-bridge://pair');
+      link.searchParams.set('ticket', pairing.ticket);
+      if (window.location.origin !== 'https://app.cueforge.fr') link.searchParams.set('server', window.location.origin);
+      window.location.href = link.toString();
+      const expiresAt = new Date(pairing.expiresAt).getTime();
+      while (Date.now() < expiresAt) {
+        await new Promise((resolve) => window.setTimeout(resolve, 750));
+        const status = await api.bridgePairingStatus(pairing.ticket);
+        if (status.status === 'pending') continue;
+        if (status.status === 'paired') {
+          bridgeClient.saveAssociation(status.deviceId, status.localToken);
+          audioEngine.setPlaybackMode('bridge');
+          setAudioMode('bridge');
+          setBridgeMessage('CueForge Bridge est associé et devient le moteur audio actif.');
+          const devices = await api.bridgeDevices();
+          setBridgeDevices(devices.devices);
+          await refreshBridge();
+          return;
+        }
+        throw new Error('Cette association a déjà été récupérée. Relancez la connexion.');
+      }
+      throw new Error('Le lien d’association a expiré. Relancez la connexion.');
+    } catch (error) {
+      setBridgeError(bridgeErrorMessage(error));
+    } finally {
+      setBridgeBusy(false);
+    }
+  }
+
+  async function changeAudioMode(mode: 'browser' | 'bridge') {
+    setBridgeError('');
+    try {
+      audioEngine.setPlaybackMode(mode);
+      setAudioMode(mode);
+      if (mode === 'bridge') await refreshBridge();
+    } catch (error) {
+      setBridgeError(bridgeErrorMessage(error));
+    }
+  }
+
+  async function changeBridgeOutput(channel: 'main' | 'preview', deviceId: string) {
+    setBridgeBusy(true);
+    setBridgeError('');
+    try {
+      await bridgeClient.setOutput(channel, deviceId);
+      if (channel === 'main') setBridgeMainOutputId(deviceId);
+      else setBridgePreviewOutputId(deviceId);
+    } catch (error) {
+      setBridgeError(bridgeErrorMessage(error));
+    } finally {
+      setBridgeBusy(false);
+    }
+  }
+
+  async function syncBridge() {
+    if (!selectedProjectId) return;
+    setBridgeBusy(true);
+    setBridgeError('');
+    setBridgeMessage('Synchronisation du spectacle avec le bridge…');
+    try {
+      const count = await bridgeClient.syncProject(selectedProjectId);
+      setBridgeMessage(`${count} fichier${count > 1 ? 's' : ''} audio prêt${count > 1 ? 's' : ''} dans le cache du bridge.`);
+    } catch (error) {
+      setBridgeError(bridgeErrorMessage(error));
+    } finally {
+      setBridgeBusy(false);
+    }
+  }
+
+  async function revokeBridge(device: BridgeDevice) {
+    setBridgeBusy(true);
+    setBridgeError('');
+    try {
+      if (bridgeClient.getDeviceId() === device.id) {
+        audioEngine.setPlaybackMode('browser');
+        bridgeClient.forgetAssociation();
+        setAudioMode('browser');
+        setBridgeOutputs([]);
+      }
+      await api.revokeBridgeDevice(device.id);
+      setBridgeDevices((current) => current.filter((candidate) => candidate.id !== device.id));
+      setBridgeMessage(`${device.name} a été dissocié.`);
+    } catch (error) {
+      setBridgeError(bridgeErrorMessage(error));
+    } finally {
+      setBridgeBusy(false);
+    }
+  }
+
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="dialog settings-dialog">
       <header><div><p className="eyebrow">CueForge</p><h2>Paramètres</h2></div><button className="icon-button" onClick={onClose} aria-label="Fermer les paramètres"><X /></button></header>
@@ -256,8 +378,15 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         <div className="settings-actions"><button className="button ghost" onClick={onImportSoundShow}><FileArchive size={17} />Importer SoundShow</button><button className="button ghost" onClick={onOpenFreesound}><Waves size={17} />Rechercher sur Freesound</button><button className="button ghost" onClick={onCacheOffline}><CloudDownload size={17} />{offlineStatus || 'Rendre disponible hors ligne'}</button></div>
       </section>
       <section className="settings-section">
-        <div className="settings-section-title"><Speaker size={16} /><div><strong>Sortie audio</strong><span>Dirigez la régie et les préécoutes vers un périphérique de cet appareil.</span></div></div>
-        {audioOutputSupported ? <>
+        <div className="settings-section-title"><Speaker size={16} /><div><strong>Moteur et sorties audio</strong><span>Le navigateur reste utilisable seul. Le bridge ajoute un cache natif et plusieurs sorties indépendantes.</span></div></div>
+        <div className="audio-output-controls">
+          <label><span>Moteur</span><select value={audioMode} disabled={bridgeBusy} onChange={(event) => changeAudioMode(event.target.value as 'browser' | 'bridge')}>
+            <option value="browser">Navigateur · Web Audio</option>
+            <option value="bridge" disabled={!bridgeClient.isAssociated()}>CueForge Bridge</option>
+          </select></label>
+          {!bridgeClient.isAssociated() && <button type="button" className="button ghost" disabled={bridgeBusy || user.isDemo} onClick={connectBridge}>{bridgeBusy ? <LoaderCircle className="spin" size={16} /> : <Cable size={16} />}Connecter le bridge</button>}
+        </div>
+        {audioMode === 'browser' && (audioOutputSupported ? <>
           <div className="audio-output-controls">
             <label><span>Périphérique</span><select value={selectedAudioOutputId} disabled={audioOutputBusy} onChange={(event) => changeAudioOutput(event.target.value)}>
               {selectedAudioOutputId && !audioOutputs.some((device) => device.deviceId === selectedAudioOutputId) && <option value={selectedAudioOutputId}>{audioEngine.getAudioOutputSelection().label}</option>}
@@ -268,7 +397,17 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
           </div>
           <p className="audio-output-note">Le choix est enregistré sur cet appareil. La sortie système est utilisée si le périphérique enregistré n’est plus disponible.</p>
           {audioOutputError && <p className="audio-output-error">{audioOutputError}</p>}
-        </> : <p className="audio-output-unavailable">Ce navigateur ne permet pas à CueForge de choisir la sortie du moteur Web Audio. La sortie système reste utilisée.</p>}
+        </> : <p className="audio-output-unavailable">Ce navigateur ne permet pas à CueForge de choisir la sortie du moteur Web Audio. La sortie système reste utilisée.</p>)}
+        {audioMode === 'bridge' && <>
+          <div className="bridge-output-grid">
+            <label><span>Régie principale</span><select value={bridgeMainOutputId} disabled={bridgeBusy} onChange={(event) => changeBridgeOutput('main', event.target.value)}>{bridgeOutputs.map((device) => <option key={device.id} value={device.id}>{device.name}</option>)}</select></label>
+            <label><span>Préécoute</span><select value={bridgePreviewOutputId} disabled={bridgeBusy} onChange={(event) => changeBridgeOutput('preview', event.target.value)}>{bridgeOutputs.map((device) => <option key={device.id} value={device.id}>{device.name}</option>)}</select></label>
+          </div>
+          <div className="settings-actions"><button type="button" className="button ghost" disabled={bridgeBusy} onClick={refreshBridge}><RefreshCcw size={16} />Actualiser</button><button type="button" className="button ghost" disabled={bridgeBusy || !selectedProjectId} onClick={syncBridge}><CloudDownload size={16} />Synchroniser le spectacle</button></div>
+        </>}
+        {bridgeMessage && <p className="audio-output-note">{bridgeMessage}</p>}
+        {bridgeError && <p className="audio-output-error">{bridgeError}</p>}
+        {bridgeDevices.length > 0 && <div className="bridge-device-list">{bridgeDevices.map((device) => <div key={device.id}><span><strong>{device.name}</strong><small>{device.platform === 'macos' ? 'macOS' : device.platform} · {device.lastSeenAt ? `vu ${new Date(device.lastSeenAt).toLocaleString('fr-FR')}` : 'jamais connecté'}</small></span><button type="button" className="icon-button" disabled={bridgeBusy} onClick={() => revokeBridge(device)} aria-label={`Dissocier ${device.name}`} title="Dissocier"><Trash2 size={15} /></button></div>)}</div>}
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><Smartphone size={16} /><div><strong>Télécommande</strong><span>Utilisez cette vue depuis un téléphone connecté au même spectacle.</span></div></div>
@@ -329,4 +468,9 @@ function audioOutputErrorMessage(error: unknown): string {
   if (error instanceof DOMException && error.name === 'NotFoundError') return 'Cette sortie audio n’est plus disponible.';
   if (error instanceof DOMException && error.name === 'AbortError') return 'Aucune sortie audio n’a été sélectionnée.';
   return error instanceof Error ? error.message : 'Impossible de sélectionner cette sortie audio.';
+}
+
+function bridgeErrorMessage(error: unknown): string {
+  if (error instanceof TypeError) return 'CueForge Bridge ne répond pas sur cette machine. Vérifiez qu’il est ouvert.';
+  return error instanceof Error ? error.message : 'CueForge Bridge est indisponible.';
 }

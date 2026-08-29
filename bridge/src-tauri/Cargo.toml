@@ -1,0 +1,35 @@
+[package]
+name = "cueforge-bridge"
+version = "0.1.0"
+description = "Pont audio local de CueForge"
+authors = ["CueForge"]
+edition = "2024"
+
+[lib]
+name = "cueforge_bridge_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "cueforge-bridge"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+axum = { version = "0.8", features = ["ws"] }
+cpal = "0.17"
+directories = "6"
+hostname = "0.4"
+keyring = { version = "3", features = ["apple-native"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+rodio = { version = "0.22", features = ["symphonia-all"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+tauri-plugin-deep-link = "2"
+thiserror = "2"
+tokio = { version = "1", features = ["fs", "macros", "net", "rt-multi-thread", "sync", "time"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+uuid = { version = "1", features = ["v4"] }
+url = "2"

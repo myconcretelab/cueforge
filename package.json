@@ -1,6 +1,6 @@
 {
   "name": "cueforge",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,6 +11,8 @@
     "build:client": "vite build",
     "build:docs": "vitepress build docs",
     "build:server": "tsc -p tsconfig.server.json",
+    "bridge:check": "cargo check --manifest-path bridge/src-tauri/Cargo.toml",
+    "bridge:build": "cd bridge/src-tauri && tauri build",
     "dev:docs": "vitepress dev docs --port 5174",
     "preview:docs": "vitepress preview docs --port 4174",
     "start": "node dist/server/index.js",
@@ -48,6 +50,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
+    "@tauri-apps/cli": "^2.11.4",
     "@types/node": "^24.3.0",
     "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.15.5",

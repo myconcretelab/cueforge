@@ -141,6 +141,36 @@ export const passwordResetTokens = pgTable('password_reset_tokens', {
   index('password_reset_tokens_expires_at_idx').on(table.expiresAt),
 ]);
 
+export const bridgeDevices = pgTable('bridge_devices', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  accountId: uuid('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  platform: text('platform').notNull(),
+  tokenHash: text('token_hash').notNull().unique(),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('bridge_devices_account_id_idx').on(table.accountId),
+  index('bridge_devices_token_hash_idx').on(table.tokenHash),
+]);
+
+export const bridgePairingTickets = pgTable('bridge_pairing_tickets', {
+  tokenHash: text('token_hash').primaryKey(),
+  accountId: uuid('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  claimedAt: timestamp('claimed_at', { withTimezone: true }),
+  claimedDeviceId: uuid('claimed_device_id').references(() => bridgeDevices.id, { onDelete: 'set null' }),
+  localToken: text('local_token'),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('bridge_pairing_tickets_account_id_idx').on(table.accountId),
+  index('bridge_pairing_tickets_expires_at_idx').on(table.expiresAt),
+]);
+
 export const projects = pgTable('projects', {
   id: uuid('id').primaryKey().defaultRandom(),
   accountId: uuid('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
@@ -242,6 +272,7 @@ export type Plan = typeof plans.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type Subscription = typeof subscriptions.$inferSelect;
 export type BillingPriceMapping = typeof billingPriceMappings.$inferSelect;
+export type BridgeDevice = typeof bridgeDevices.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type ProjectColor = typeof projectColors.$inferSelect;
 export type Playlist = typeof playlists.$inferSelect;

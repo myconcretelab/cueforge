@@ -59,6 +59,22 @@ describe('client API', () => {
     }));
   });
 
+  it('crée et interroge une association CueForge Bridge', async () => {
+    const fetcher = vi.fn(async (_url: string, init?: RequestInit) => init?.body
+      ? new Response(JSON.stringify({ status: 'pending' }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      : new Response(JSON.stringify({ ticket: 'ticket-test', expiresAt: '2030-01-01T00:05:00.000Z' }), { status: 201, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetcher);
+
+    await api.createBridgePairing();
+    await api.bridgePairingStatus('ticket-test');
+
+    expect(fetcher).toHaveBeenNthCalledWith(1, '/api/bridge/pairings', expect.objectContaining({ method: 'POST' }));
+    expect(fetcher).toHaveBeenNthCalledWith(2, '/api/bridge/pairings/status', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ ticket: 'ticket-test' }),
+    }));
+  });
+
   it('récupère et acquitte les notes de version', async () => {
     const fetcher = vi.fn(async (_url: string, init?: RequestInit) => init?.method === 'POST'
       ? new Response(null, { status: 204 })

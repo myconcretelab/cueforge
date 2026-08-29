@@ -5,6 +5,7 @@ import { createPasswordResetToken, hashPasswordResetToken, passwordResetLifetime
 import { parseByteRange } from '../src/server/services/range.js';
 import { evaluateStorageAllowance } from '../src/server/services/account-access.js';
 import { createDemoTone, demoExpiration, demoLifetimeMs, demoMaxFileBytes, demoMaxUploads } from '../src/server/services/demo.js';
+import { bearerToken, bridgePairingExpiration, bridgePairingLifetimeMs, createBridgeToken, hashBridgeToken } from '../src/server/services/bridge-auth.js';
 
 describe('password hashing', () => {
   it('accepte le bon mot de passe et refuse les autres', async () => {
@@ -37,6 +38,29 @@ describe('password reset', () => {
     expect(message.html).not.toContain('<script>');
     expect(message.html).toContain('&lt;script&gt;');
     expect(message.text).toContain('expire dans 30 minutes');
+  });
+});
+
+describe('CueForge Bridge tokens', () => {
+  it('crée des tickets aléatoires et ne conserve qu’une empreinte', () => {
+    const first = createBridgeToken();
+    const second = createBridgeToken();
+    expect(first).not.toBe(second);
+    expect(first.length).toBeGreaterThanOrEqual(32);
+    expect(hashBridgeToken(first)).not.toContain(first);
+    expect(hashBridgeToken(first)).toBe(hashBridgeToken(first));
+  });
+
+  it('limite une association à cinq minutes', () => {
+    const now = new Date('2030-01-01T12:00:00Z');
+    expect(bridgePairingExpiration(now).getTime()).toBe(now.getTime() + bridgePairingLifetimeMs);
+  });
+
+  it('extrait uniquement un jeton Bearer au format attendu', () => {
+    const token = createBridgeToken();
+    expect(bearerToken(`Bearer ${token}`)).toBe(token);
+    expect(bearerToken(token)).toBeUndefined();
+    expect(bearerToken('Basic abc')).toBeUndefined();
   });
 });
 

@@ -2,6 +2,15 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.16.0 — 29 août 2026
+
+- ajout du moteur natif facultatif CueForge Bridge pour macOS ;
+- association depuis les paramètres au moyen d’un lien natif à usage unique ;
+- cache audio propre au bridge et sélection indépendante des sorties principale et préécoute ;
+- maintien du moteur Web Audio complet lorsque le bridge n’est pas installé ou sélectionné.
+
+[Détails de la version 0.16.0](./0.16.0.md)
+
 ## Version 0.15.0 — 28 août 2026
 
 - ajout du choix du périphérique dans les paramètres ;

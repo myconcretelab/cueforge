@@ -53,7 +53,7 @@ export default defineConfig({
         text: 'Référence',
         items: [
           { text: 'Formats et limites', link: '/reference/formats-et-limites' },
-          { text: 'Sortie audio', link: '/reference/sortie-audio' },
+          { text: 'Moteur et sorties audio', link: '/reference/sortie-audio' },
           { text: 'Raccourcis et commandes', link: '/reference/raccourcis' },
         ],
       },

@@ -7,3 +7,5 @@ storage/*
 coverage/
 docs/.vitepress/.temp/
 *.log
+bridge/src-tauri/target/
+bridge/src-tauri/gen/schemas/

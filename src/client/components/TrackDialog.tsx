@@ -65,7 +65,7 @@ export function TrackDialog({ track, categories, projectColors, onAddProjectColo
         {!colorIsPreset && <button type="button" className="button ghost track-color-save" disabled={savingColor} onClick={saveColorToProject}>{savingColor ? <LoaderCircle className="spin" size={15} /> : <Plus size={15} />}Enregistrer cette couleur dans le spectacle</button>}
       </section>
       <label>Catégorie<select name="categoryId" defaultValue={track.categoryId ?? ''}><option value="">Sans catégorie</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
-      <WaveformEditor trackId={track.id} title={track.title} initialDurationMs={track.durationMs} startMs={startTimeMs} endMs={endTimeMs} onStartChange={setStartTimeMs} onEndChange={setEndTimeMs} />
+      <WaveformEditor track={track} startMs={startTimeMs} endMs={endTimeMs} onStartChange={setStartTimeMs} onEndChange={setEndTimeMs} />
       <label>Volume · {Math.min(100, Math.round(track.volume * 100))} %<input name="volume" type="range" min="0" max="100" defaultValue={Math.min(100, track.volume * 100)} /></label>
       <div className="field-row"><label>Fondu d’entrée (ms)<input name="fadeInMs" type="number" min="0" max="60000" defaultValue={track.fadeInMs} /></label><label>Fondu de sortie (ms)<input name="fadeOutMs" type="number" min="0" max="60000" defaultValue={track.fadeOutMs} /></label></div>
       <label className="check"><input name="loop" type="checkbox" defaultChecked={track.loop} /> Jouer en boucle</label>

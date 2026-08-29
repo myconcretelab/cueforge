@@ -1,4 +1,4 @@
-import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, PublicPlan, ReleaseInfo, SoundShowAnalysis, Track, User } from '../types';
+import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, BridgeDevice, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, PublicPlan, ReleaseInfo, SoundShowAnalysis, Track, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -44,6 +44,14 @@ export const api = {
   activateFreePlan: (planCode: string) =>
     request<void>('/api/billing/free-plan', { method: 'POST', body: JSON.stringify({ planCode }) }),
   createBillingPortal: () => request<{ url: string }>('/api/billing/portal', { method: 'POST' }),
+  createBridgePairing: () => request<{ ticket: string; expiresAt: string }>('/api/bridge/pairings', { method: 'POST' }),
+  bridgePairingStatus: (ticket: string) => request<
+    | { status: 'pending' }
+    | { status: 'paired'; deviceId: string; localToken: string }
+    | { status: 'consumed'; deviceId: string }
+  >('/api/bridge/pairings/status', { method: 'POST', body: JSON.stringify({ ticket }) }),
+  bridgeDevices: () => request<{ devices: BridgeDevice[] }>('/api/bridge/devices'),
+  revokeBridgeDevice: (id: string) => request<void>(`/api/bridge/devices/${id}`, { method: 'DELETE' }),
   adminOverview: () => request<{ overview: AdminOverview; recentAudit: AuditEntry[] }>('/api/admin/overview'),
   adminReleases: () => request<AdminReleaseInfo>('/api/admin/releases'),
   adminAccounts: (search = '') => request<{ accounts: AdminAccount[] }>(`/api/admin/accounts?search=${encodeURIComponent(search)}`),

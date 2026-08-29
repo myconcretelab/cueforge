@@ -11,6 +11,22 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.16.0',
+    date: '2026-08-29',
+    title: 'CueForge Bridge pour macOS',
+    summary: 'Un moteur audio natif facultatif ajoute un cache local et des sorties indépendantes sans retirer le mode Web Audio.',
+    important: true,
+    changes: [
+      'Le moteur Navigateur reste actif par défaut et conserve toutes les fonctions existantes.',
+      'Le bouton Connecter le bridge ouvre l’application macOS au moyen d’un lien natif à usage unique.',
+      'Le bridge conserve les fichiers audio compressés dans son propre cache et les lit sans passer par le cache du navigateur.',
+      'La régie principale et la préécoute disposent de sélections de sortie distinctes dans le bridge.',
+      'Les lectures, fondus, pauses, volumes, boucles, déplacements et arrêts sont pilotés depuis l’interface web.',
+      'Les bridges associés peuvent être consultés et révoqués depuis les paramètres CueForge.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.15.0',
     date: '2026-08-28',
     title: 'Sélection de la sortie audio',
