@@ -43,7 +43,8 @@ ssh "$WORDPRESS_ACCOUNT@$WORDPRESS_SSH_HOST" "
   php -r \"require 'wp-load.php'; delete_transient('cueforge_plans_api_response');\"
 "
 
-if ! curl --fail --silent --show-error "$WORDPRESS_SITE_URL" | grep --quiet 'CueForge Bridge pour macOS et Windows'; then
+wordpress_html=$(curl --fail --silent --show-error "$WORDPRESS_SITE_URL")
+if ! grep --fixed-strings --quiet 'CueForge Bridge pour macOS et Windows' <<< "$wordpress_html"; then
   fail "le site WordPress n’affiche pas l’information CueForge Bridge."
 fi
 
