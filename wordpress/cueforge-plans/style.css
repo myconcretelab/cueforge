@@ -1,0 +1,151 @@
+.cueforge-plans-block .pricing-grid {
+    width: min(100%, 1120px);
+    max-width: 1120px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: stretch;
+}
+
+.cueforge-plans-block .pricing-grid.is-single {
+    max-width: 520px;
+    grid-template-columns: 1fr;
+}
+
+.cueforge-plans-block .pricing-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+}
+
+.cueforge-plans-block .pricing-card.featured {
+    z-index: 1;
+    border: 2px solid #f97316;
+    background: radial-gradient(circle at 50% 0, rgba(249, 115, 22, .2), transparent 54%), #111113;
+    box-shadow: 0 0 0 5px rgba(249, 115, 22, .1), 0 24px 70px rgba(249, 115, 22, .22);
+    transform: translateY(-10px);
+}
+
+.cueforge-plans-block .plan-top {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    justify-content: center;
+    transform: translate(-50%, -50%);
+}
+
+.cueforge-plans-block .plan-top span {
+    padding: 7px 13px;
+    border: 1px solid #fb923c;
+    border-radius: 999px;
+    color: #09090b;
+    background: #fb923c;
+    box-shadow: 0 6px 22px rgba(249, 115, 22, .35);
+    font-size: .66rem;
+    font-weight: 850;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.cueforge-plans-block .pricing-card h3 {
+    margin: 18px auto 16px;
+}
+
+.cueforge-plans-block .pricing-card.featured h3 {
+    margin-top: 24px;
+}
+
+.cueforge-plans-block .plan-storage {
+    margin: 0 0 20px;
+    padding: 14px 10px;
+    display: grid;
+    gap: 2px;
+    border: 1px solid rgba(249, 115, 22, .25);
+    border-radius: 12px;
+    background: rgba(249, 115, 22, .07);
+}
+
+.cueforge-plans-block .plan-storage strong {
+    color: #fff7ed;
+    font-size: clamp(1.7rem, 3vw, 2.25rem);
+    line-height: 1;
+    letter-spacing: -.045em;
+}
+
+.cueforge-plans-block .plan-storage span {
+    color: #fdba74;
+    font-size: .68rem;
+    font-weight: 700;
+}
+
+.cueforge-plans-block .price {
+    min-height: 0;
+    margin: 0 0 22px;
+    padding: 22px 0;
+    justify-items: center;
+    gap: 7px;
+    border-top-color: rgba(249, 115, 22, .32);
+    border-bottom-color: rgba(249, 115, 22, .22);
+}
+
+.cueforge-plans-block .price strong {
+    color: #fff7ed;
+    font-size: clamp(2.35rem, 4vw, 3.55rem);
+    line-height: .95;
+    letter-spacing: -.065em;
+    text-shadow: 0 14px 45px rgba(249, 115, 22, .2);
+}
+
+.cueforge-plans-block .price > span {
+    color: #fdba74;
+    font-size: .76rem;
+    font-weight: 700;
+}
+
+.cueforge-plans-block .plan-copy {
+    max-width: 360px;
+    min-height: 0;
+    margin: 0 auto 24px;
+}
+
+.cueforge-plans-block .pricing-card .button {
+    flex: 0 0 auto;
+    margin-top: auto;
+}
+
+.cueforge-plans-block .pricing-card ul {
+    width: max-content;
+    max-width: 100%;
+    margin: 28px auto 0;
+    text-align: left;
+}
+
+.cueforge-plans-block .price strong small {
+    margin-left: 8px;
+    color: #a1a1aa;
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.editor-styles-wrapper .cueforge-plans-block {
+    padding: 24px;
+    color: #fafafa;
+    background: #09090b;
+}
+
+@media (max-width: 960px) {
+    .cueforge-plans-block .pricing-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 620px) {
+    .cueforge-plans-block .pricing-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cueforge-plans-block .pricing-card.featured {
+        transform: none;
+    }
+}

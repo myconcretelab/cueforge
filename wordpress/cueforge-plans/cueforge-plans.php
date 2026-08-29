@@ -2,7 +2,7 @@
 /**
  * Plugin Name: CueForge Plans
  * Description: Bloc dynamique affichant les forfaits publics de CueForge.
- * Version: 1.2.0
+ * Version: 1.3.0
  * Author: CueForge
  */
 
@@ -63,7 +63,7 @@ function cueforge_plans_render_block(): string
 {
     $data = cueforge_plans_api_data();
     $plans = isset($data['plans']) && is_array($data['plans']) ? $data['plans'] : [];
-    $signup_url = isset($data['signupUrl']) ? esc_url($data['signupUrl']) : 'https://app.cueforge.fr/demo';
+    $signup_url = isset($data['signupUrl']) ? (string) $data['signupUrl'] : 'https://app.cueforge.fr/?register=1';
 
     if ($plans === []) {
         return '<div ' . get_block_wrapper_attributes(['class' => 'cueforge-plans-block']) . '><p class="pricing-note">Les offres seront affichées prochainement.</p></div>';
@@ -78,18 +78,25 @@ function cueforge_plans_render_block(): string
                 $annual = cueforge_plans_price(array_key_exists('annualPriceCents', $plan) && $plan['annualPriceCents'] !== null ? (int) $plan['annualPriceCents'] : null);
                 $trial_days = isset($plan['trialDays']) ? (int) $plan['trialDays'] : 0;
                 $featured = !empty($plan['featured']);
+                $free = !empty($plan['free']);
                 $bridge_included = !empty($plan['bridgeIncluded']);
+                $plan_url = add_query_arg('plan', sanitize_key((string) ($plan['code'] ?? '')), $signup_url);
                 ?>
                 <article class="pricing-card <?php echo $featured ? 'featured' : ''; ?>" data-reveal>
-                    <div class="plan-top">
-                        <div class="plan-label"><?php echo esc_html(strtoupper((string) ($plan['code'] ?? 'offre'))); ?></div>
-                        <?php if ($featured) : ?><span>Mis en avant</span><?php endif; ?>
-                    </div>
+                    <?php if ($featured) : ?><div class="plan-top"><span>Mis en avant</span></div><?php endif; ?>
                     <h3><?php echo esc_html((string) ($plan['name'] ?? 'CueForge')); ?></h3>
+                    <div class="plan-storage">
+                        <strong><?php echo esc_html(cueforge_plans_storage((int) ($plan['storageQuotaBytes'] ?? 0))); ?></strong>
+                        <span>de stockage audio</span>
+                    </div>
                     <div class="price">
-                        <?php if ($monthly !== null) : ?>
+                        <?php if ($free) : ?>
+                            <strong>Gratuit</strong>
+                        <?php elseif ($monthly !== null) : ?>
                             <strong><?php echo esc_html($monthly); ?><small>/mois</small></strong>
                             <?php if ($annual !== null) : ?><span>ou <?php echo esc_html($annual); ?> par an</span><?php endif; ?>
+                        <?php elseif ($annual !== null) : ?>
+                            <strong><?php echo esc_html($annual); ?><small>/an</small></strong>
                         <?php elseif ($trial_days > 0) : ?>
                             <strong>Essai <?php echo esc_html((string) $trial_days); ?> jours</strong>
                             <span>puis abonnement mensuel ou annuel</span>
@@ -98,10 +105,8 @@ function cueforge_plans_render_block(): string
                         <?php endif; ?>
                     </div>
                     <p class="plan-copy"><?php echo esc_html((string) ($plan['description'] ?? '')); ?></p>
-                    <p class="plan-purpose">Ce tarif sert essentiellement à couvrir l’hébergement, la maintenance et le développement continu de CueForge.</p>
-                    <a class="button button-primary wide" href="<?php echo $signup_url; ?>">Essayer sans compte <span aria-hidden="true">↗</span></a>
+                    <a class="button button-primary wide" href="<?php echo esc_url($plan_url); ?>"><?php echo $free ? 'Démarrer maintenant' : 'Choisir ce forfait'; ?> <span aria-hidden="true">↗</span></a>
                     <ul>
-                        <li><i>✓</i> <?php echo esc_html(cueforge_plans_storage((int) ($plan['storageQuotaBytes'] ?? 0))); ?> de stockage audio</li>
                         <?php if ($trial_days > 0) : ?><li><i>✓</i> Essai de <?php echo esc_html((string) $trial_days); ?> jours</li><?php endif; ?>
                         <li><i>✓</i> Toutes les fonctions de régie</li>
                         <li><i>✓</i> PWA et mode hors ligne</li>
@@ -133,7 +138,7 @@ function cueforge_plans_register_block(): void
         'cueforge-plans',
         plugins_url('style.css', __FILE__),
         [],
-        '1.1.1'
+        '1.3.0'
     );
     register_block_type('cueforge/plans', [
         'api_version' => 2,
