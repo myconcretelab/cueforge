@@ -8,6 +8,10 @@ Le grand sélecteur **Sortie audio**, placé à côté du volume **Son suivant**
 
 Le contrôle devient rouge et affiche un symbole d’alerte si le périphérique enregistré n’est plus présent ou si le Bridge local ne répond pas. La liste est actualisée lorsque les périphériques de la machine changent et après une modification effectuée dans les paramètres.
 
+Une LED placée dans le contrôle indique l’état du Bridge : rouge lorsqu’il ne répond pas, orange lorsqu’il est détecté mais non associé, bleue lorsqu’il est associé sans être le moteur actif et verte lorsqu’il pilote l’audio. Elle reste grise pendant la détection ou avec un forfait qui n’inclut pas le Bridge.
+
+Le premier petit bouton associe, ouvre, active ou désactive le Bridge selon son état. Le second relance la détection. Pour les forfaits qui incluent le Bridge, la présence du serveur local est également vérifiée toutes les cinq secondes.
+
 ## Moteur navigateur
 
 ## Sélection

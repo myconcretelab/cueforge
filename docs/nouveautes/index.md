@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 0.20.0 — 29 août 2026
+
+- détection et état du Bridge directement dans la barre de régie ;
+- boutons rapides d’association, d’activation et d’actualisation ;
+- actualisation automatique de la présence du Bridge.
+
+[Détails de la version 0.20.0](./0.20.0.md)
+
 ## Version 0.19.1 — 29 août 2026
 
 - correction de la transmission de la clé locale au navigateur après l’ouverture du Bridge ;

@@ -11,6 +11,20 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '0.20.0',
+    date: '2026-08-29',
+    title: 'Connexion rapide au Bridge',
+    summary: 'La barre de régie détecte CueForge Bridge et permet de l’associer ou de l’activer sans ouvrir les paramètres.',
+    important: false,
+    changes: [
+      'Une LED indique si le Bridge est fermé, détecté, prêt ou actif.',
+      'Un bouton adapte son action pour associer, ouvrir, activer ou désactiver le Bridge.',
+      'Un second bouton relance immédiatement la détection locale.',
+      'La détection est actualisée automatiquement toutes les cinq secondes pour les forfaits disposant du Bridge.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '0.19.1',
     date: '2026-08-29',
     title: 'Correction de l’association du Bridge',

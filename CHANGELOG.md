@@ -2,6 +2,19 @@
 
 Toutes les évolutions notables de CueForge sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [0.20.0] - 2026-08-29
+
+### Ajouté
+
+- détection automatique de CueForge Bridge depuis la barre de régie ;
+- LED d’état pour distinguer Bridge fermé, détecté, prêt et actif ;
+- commandes compactes pour associer, ouvrir, activer, désactiver ou actualiser le Bridge ;
+- logique de connexion partagée entre la barre de régie et les paramètres.
+
+### Modifié
+
+- passage de l’application à la version `0.20.0`.
+
 ## [0.19.1] - 2026-08-29
 
 ### Corrigé

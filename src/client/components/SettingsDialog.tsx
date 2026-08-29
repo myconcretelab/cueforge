@@ -3,6 +3,7 @@ import { BookOpen, Cable, CloudDownload, CreditCard, FileArchive, FolderPlus, Gi
 import { api } from '../lib/api';
 import { audioEngine, type AudioOutputDevice } from '../lib/audio-engine';
 import { bridgeClient, type BridgeOutput } from '../lib/bridge-client';
+import { associateLocalBridge } from '../lib/bridge-connection';
 import type { AccountSummary, BridgeDevice, KeyAction, Project, ProjectColor, PublicPlan, User } from '../types';
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
   hasUnseenReleases: boolean;
   automaticUpdates: boolean;
   onAutomaticUpdatesChange: (enabled: boolean) => void;
+  onBridgeAvailabilityChange: (available: boolean) => void;
   onChooseProject: (id: string) => void;
   onCreateProject: () => void;
   onReorderProjects: (projectIds: string[]) => Promise<void>;
@@ -55,7 +57,7 @@ function formatPrice(cents: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 }
 
-export function SettingsDialog({ user, projects, projectColors, selectedProjectId, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, onAutomaticUpdatesChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
+export function SettingsDialog({ user, projects, projectColors, selectedProjectId, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, onAutomaticUpdatesChange, onBridgeAvailabilityChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
   const [newColor, setNewColor] = useState('#f97316');
   const [draggedProjectId, setDraggedProjectId] = useState<string>();
@@ -102,6 +104,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
 
   useEffect(() => {
     if (!account) return;
+    onBridgeAvailabilityChange(account.bridgeAvailable);
     if (!account.bridgeAvailable) {
       if (bridgeClient.isAssociated()) bridgeClient.stopAll(0);
       bridgeClient.forgetAssociation();
@@ -111,7 +114,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
       return;
     }
     api.bridgeDevices().then((result) => setBridgeDevices(result.devices)).catch(() => setBridgeDevices([]));
-  }, [account]);
+  }, [account, onBridgeAvailabilityChange]);
 
   useEffect(() => {
     refreshAudioOutputs().catch(() => undefined);
@@ -259,31 +262,14 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
     if (!bridgeAvailable) return;
     setBridgeBusy(true);
     setBridgeError('');
-    setBridgeMessage('Ouverture de CueForge Bridge…');
     try {
-      const pairing = await api.createBridgePairing();
-      const link = new URL('cueforge-bridge://pair');
-      link.searchParams.set('ticket', pairing.ticket);
-      if (window.location.origin !== 'https://app.cueforge.fr') link.searchParams.set('server', window.location.origin);
-      window.location.href = link.toString();
-      const expiresAt = new Date(pairing.expiresAt).getTime();
-      while (Date.now() < expiresAt) {
-        await new Promise((resolve) => window.setTimeout(resolve, 750));
-        const status = await api.bridgePairingStatus(pairing.ticket);
-        if (status.status === 'pending') continue;
-        if (status.status === 'paired') {
-          bridgeClient.saveAssociation(status.deviceId, status.localToken);
-          audioEngine.setPlaybackMode('bridge');
-          setAudioMode('bridge');
-          setBridgeMessage('CueForge Bridge est associé et devient le moteur audio actif.');
-          const devices = await api.bridgeDevices();
-          setBridgeDevices(devices.devices);
-          await refreshBridge();
-          return;
-        }
-        throw new Error('Cette association a déjà été récupérée. Relancez la connexion.');
-      }
-      throw new Error('Le lien d’association a expiré. Relancez la connexion.');
+      await associateLocalBridge(setBridgeMessage);
+      audioEngine.setPlaybackMode('bridge');
+      setAudioMode('bridge');
+      setBridgeMessage('CueForge Bridge est associé et devient le moteur audio actif.');
+      const devices = await api.bridgeDevices();
+      setBridgeDevices(devices.devices);
+      await refreshBridge();
     } catch (error) {
       setBridgeError(bridgeErrorMessage(error));
     } finally {
