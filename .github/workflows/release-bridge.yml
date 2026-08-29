@@ -38,6 +38,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: bridge/package-lock.json
       - name: Préparer Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -47,7 +48,7 @@ jobs:
         with:
           workspaces: bridge/src-tauri -> target
       - name: Installer les dépendances
-        run: npm ci --include=dev --include=optional
+        run: npm ci --prefix bridge --include=dev --include=optional
       - name: Tester le bridge
         run: cargo test --manifest-path bridge/src-tauri/Cargo.toml --target ${{ matrix.target }}
       - name: Compiler et publier le bridge
@@ -56,6 +57,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: bridge/src-tauri
+          tauriScript: ${{ github.workspace }}/bridge/node_modules/.bin/tauri
           tagName: bridge-v__VERSION__
           releaseName: CueForge Bridge v__VERSION__
           releaseBody: |

@@ -17,12 +17,15 @@ CueForge Bridge est le moteur audio natif facultatif de CueForge. L’applicatio
 Rust et les outils de développement macOS sont requis.
 
 ```sh
-npm install
+npm --prefix bridge ci
 npm run bridge:check
+npm run bridge:test
 npm run bridge:build
 ```
 
 L’application et l’image disque sont produites sous `bridge/src-tauri/target/release/bundle/`. La configuration macOS applique une signature ad hoc, sans certificat Apple Developer et sans notarisation.
+
+Le fichier `bridge/package.json` et son lockfile contiennent uniquement l’outillage de compilation du bridge. L’installation npm située à la racine ne contient pas Tauri.
 
 ## Publication GitHub
 
