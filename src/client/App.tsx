@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, GripVertical, History, ListMusic, ListPlus, LoaderCircle, Menu, Move, Pause, Play, Plus, Radio,
-  RefreshCcw, Repeat2, RotateCcw, Search, Settings, Settings2, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
+  LogIn, RefreshCcw, Repeat2, RotateCcw, Search, Settings, Settings2, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
@@ -84,6 +84,7 @@ export default function App() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [soundShowImportOpen, setSoundShowImportOpen] = useState(false);
   const [freesoundOpen, setFreesoundOpen] = useState(false);
+  const [freesoundAutoSearch, setFreesoundAutoSearch] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsInitialSection, setSettingsInitialSection] = useState<'billing'>();
   const [accountSummary, setAccountSummary] = useState<AccountSummary>();
@@ -720,7 +721,7 @@ export default function App() {
   useEffect(() => {
     if (!detail) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
+      if ((event.target instanceof HTMLInputElement && event.target.type !== 'range') || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
       const keyAction = event.key === 'Escape' ? detail.project.escapeKeyAction ?? 'stop-all'
         : event.key === 'Backspace' ? detail.project.backspaceKeyAction ?? 'stop-all'
           : event.key === ' ' ? detail.project.spaceKeyAction ?? 'stop-all-immediate' : undefined;
@@ -1130,7 +1131,7 @@ export default function App() {
     await api.logout();
     await deleteOfflineAudio().catch(() => false);
     for (const key of Object.keys(localStorage)) {
-      if (key.startsWith('sonoriva-') || key.startsWith('sonoriva:')) localStorage.removeItem(key);
+      if ((key.startsWith('sonoriva-') || key.startsWith('sonoriva:')) && !key.startsWith('sonoriva-track-columns')) localStorage.removeItem(key);
     }
     setUser(null); setDetail(undefined); setProjects([]);
   }
@@ -1146,6 +1147,11 @@ export default function App() {
   async function createAccountFromDemo() {
     await logout();
     window.location.href = '/?register=1';
+  }
+
+  async function leaveDemoForLogin() {
+    await logout();
+    window.history.replaceState({}, '', '/');
   }
 
   function openAudioOutputUpgrade() {
@@ -1216,7 +1222,7 @@ export default function App() {
     {sidebarOpen && <button className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Fermer le menu" />}
 
     <main className="workspace">
-      {user.isDemo && <aside className="demo-banner" aria-label="Démonstration temporaire"><div><strong>Démo temporaire</strong><span>Vos données sont supprimées après 24 h d’inactivité · 15 fichiers importés · 5 Mo maximum par fichier</span></div><button className="demo-reset" onClick={() => resetDemo().catch((cause) => setError(cause instanceof Error ? cause.message : 'Réinitialisation impossible.'))}><RefreshCcw size={15} />Réinitialiser</button><button className="button primary" onClick={() => createAccountFromDemo().catch((cause) => setError(cause instanceof Error ? cause.message : 'Création de compte impossible.'))}>Créer mon espace</button></aside>}
+      {user.isDemo && <aside className="demo-banner" aria-label="Démonstration temporaire"><div><strong>Démo temporaire</strong><span>Vos données sont supprimées après 24 h d’inactivité · 15 fichiers importés · 5 Mo maximum par fichier</span></div><button className="demo-reset" onClick={() => resetDemo().catch((cause) => setError(cause instanceof Error ? cause.message : 'Réinitialisation impossible.'))}><RefreshCcw size={15} />Réinitialiser</button><button className="button demo-login" onClick={() => leaveDemoForLogin().catch((cause) => setError(cause instanceof Error ? cause.message : 'Retour à la connexion impossible.'))}><LogIn size={15} />Se connecter à mon compte</button><button className="button primary" onClick={() => createAccountFromDemo().catch((cause) => setError(cause instanceof Error ? cause.message : 'Création de compte impossible.'))}>Créer mon espace</button></aside>}
       {!remote && (audioOutputUpgradeMode
         ? <AudioOutputUpgradeConsole mode={audioOutputUpgradeMode} onAction={openAudioOutputUpgrade} />
         : <AudioOutputConsole bridgeAvailable={bridgeAvailable} onError={setError} onRoutingChange={updateRoutedBridgeOutputs} />)}
@@ -1272,7 +1278,7 @@ export default function App() {
       </section>}
 
       <section className="dashboard" aria-label="Tableau de bord des morceaux">
-        <div className="search"><Search size={18} /><input aria-label="Rechercher un son" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un son…" />{!remote && <button type="button" className="search-freesound" onClick={() => setFreesoundOpen(true)} aria-label={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Ouvrir la recherche Freesound'} title={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Rechercher sur Freesound'}><Waves size={17} /></button>}<kbd>⌘ K</kbd></div>
+        <div className="search"><Search size={18} /><input aria-label="Rechercher un son" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un son…" />{!remote && <button type="button" className="search-freesound" onClick={() => { setFreesoundAutoSearch(true); setFreesoundOpen(true); }} aria-label={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Ouvrir la recherche Freesound'} title={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Rechercher sur Freesound'}><Waves size={17} /></button>}<kbd>⌘ K</kbd></div>
         <div className="dashboard-actions">
           {!remote && <button className={`dashboard-button ${preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'is-loaded' : ''}`} onClick={() => preloadCategory()} disabled={!tracksToPreload.length || Boolean(preloadProgress) || preloadedInCategory === tracksToPreload.length}
             aria-label={preloadProgress ? `Mise hors ligne ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'}>
@@ -1330,10 +1336,10 @@ export default function App() {
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
-    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} initialSection={settingsInitialSection} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onAccountChange={handleAccountChange} onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined); }} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} initialSection={settingsInitialSection} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onAccountChange={handleAccountChange} onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined); }} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundAutoSearch(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
     {whatsNewOpen && releaseInfo && <WhatsNewDialog releases={releasesForDialog} currentVersion={releaseInfo.currentVersion} onClose={closeWhatsNew} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
-    {freesoundOpen && detail && <FreesoundDialog initialQuery={search} projectId={detail.project.id} categories={detail.categories} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} bridgeOutputs={routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId} onImported={refreshProject} onClose={() => setFreesoundOpen(false)} />}
+    {freesoundOpen && detail && <FreesoundDialog initialQuery={search} autoSearch={freesoundAutoSearch} projectId={detail.project.id} categories={detail.categories} projectColors={detail.colors} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} bridgeOutputs={routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId} onImported={refreshProject} onClose={() => { setFreesoundOpen(false); setFreesoundAutoSearch(false); }} />}
     {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} projectColors={detail.colors} onAddProjectColor={createProjectColor} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
     {(fileDropActive || dropUploadProgress) && <div className={`file-drop-overlay ${dropUploadProgress ? 'is-uploading' : ''}`} role="status" aria-live="polite">
       <div className="file-drop-card">
@@ -1465,7 +1471,7 @@ function PlaybackVolumeControl({ playback, title }: { playback: ActivePlayback; 
   }, [id, volume, volumeFrom, volumeTransitionDurationMs, volumeTransitionStartedAtMs]);
 
   const percentage = Math.round(displayVolume * 100);
-  return <label className="player-card-volume"><Volume2 size={14} /><input type="range" min="0" max="100" value={percentage} disabled={playback.fadingOut} onChange={(event) => {
+  return <label className="player-card-volume"><Volume2 size={14} /><input type="range" min="0" max="100" value={percentage} disabled={playback.fadingOut} onPointerUp={(event) => event.currentTarget.blur()} onPointerCancel={(event) => event.currentTarget.blur()} onChange={(event) => {
     const nextVolume = Number(event.target.value) / 100;
     setDisplayVolume(nextVolume);
     audioEngine.setInstanceVolume(playback.id, nextVolume);

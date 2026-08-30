@@ -28,5 +28,15 @@ describe('préécoute Freesound par sortie', () => {
     expect(source).toContain('setFreesoundOpen(true)');
     expect(source).toContain('value={search} onChange={(event) => setSearch(event.target.value)}');
     expect(source).toContain('initialQuery={search}');
+    expect(source).toContain('setFreesoundAutoSearch(true)');
+    expect(source).toContain('autoSearch={freesoundAutoSearch}');
+  });
+
+  it('lance la recherche transmise et propose les couleurs du spectacle à l’import', () => {
+    const source = readFileSync(new URL('../src/client/components/FreesoundDialog.tsx', import.meta.url), 'utf8');
+    expect(source).toContain('autoSearchStartedRef');
+    expect(source).toContain('searchSounds().catch');
+    expect(source).toContain('projectColors.map');
+    expect(source).toContain('color: importColor');
   });
 });

@@ -4,12 +4,14 @@ import { api } from '../lib/api';
 import { audioEngine } from '../lib/audio-engine';
 import { bridgeClient } from '../lib/bridge-client';
 import type { RoutedBridgeOutput } from '../lib/bridge-output-routing';
-import type { Category, FreesoundLicenseFilter, FreesoundSearchResult, FreesoundSound } from '../types';
+import type { Category, FreesoundLicenseFilter, FreesoundSearchResult, FreesoundSound, ProjectColor } from '../types';
 
 interface Props {
   initialQuery?: string;
+  autoSearch?: boolean;
   projectId: string;
   categories: Category[];
+  projectColors: ProjectColor[];
   defaultCategoryId?: string;
   nextPosition: number;
   bridgeOutputs: RoutedBridgeOutput[];
@@ -20,7 +22,7 @@ interface Props {
 
 type PlayerState = 'idle' | 'loading' | 'playing' | 'paused';
 
-export function FreesoundDialog({ initialQuery = '', projectId, categories, defaultCategoryId, nextPosition, bridgeOutputs, mainBridgeOutputId, onImported, onClose }: Props) {
+export function FreesoundDialog({ initialQuery = '', autoSearch = false, projectId, categories, projectColors, defaultCategoryId, nextPosition, bridgeOutputs, mainBridgeOutputId, onImported, onClose }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [license, setLicense] = useState<FreesoundLicenseFilter>('compatible');
   const [minDuration, setMinDuration] = useState('');
@@ -37,6 +39,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
   const [soundToImport, setSoundToImport] = useState<FreesoundSound>();
   const [importTitle, setImportTitle] = useState('');
   const [importCategoryId, setImportCategoryId] = useState(defaultCategoryId ?? '');
+  const [importColor, setImportColor] = useState(() => categories.find((category) => category.id === defaultCategoryId)?.color ?? projectColors[0]?.color ?? '#22d3b6');
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
   const [importedIds, setImportedIds] = useState<Set<number>>(new Set());
@@ -44,6 +47,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
   const bridgePreviewIdRef = useRef<string | undefined>(undefined);
   const previewSequenceRef = useRef(0);
   const searchRef = useRef<AbortController | undefined>(undefined);
+  const autoSearchStartedRef = useRef(false);
 
   const stopPreview = useCallback(() => {
     previewSequenceRef.current += 1;
@@ -89,7 +93,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
     };
   }, [stopPreview]);
 
-  async function searchSounds(page = 1) {
+  const searchSounds = useCallback(async (page = 1) => {
     const normalized = query.trim();
     if (normalized.length < 2) {
       setError('Saisissez au moins deux caractères.');
@@ -119,7 +123,13 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
     } finally {
       if (searchRef.current === controller) setLoading(false);
     }
-  }
+  }, [license, maxDuration, minDuration, query]);
+
+  useEffect(() => {
+    if (!autoSearch || autoSearchStartedRef.current || initialQuery.trim().length < 2) return;
+    autoSearchStartedRef.current = true;
+    searchSounds().catch(() => undefined);
+  }, [autoSearch, initialQuery, searchSounds]);
 
   function togglePreview(sound: FreesoundSound, output?: RoutedBridgeOutput) {
     if (bridgeClient.isEnabled()) {
@@ -233,6 +243,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
     setSoundToImport(sound);
     setImportTitle(withoutAudioExtension(sound.name));
     setImportCategoryId(defaultCategoryId ?? '');
+    setImportColor(categories.find((category) => category.id === defaultCategoryId)?.color ?? projectColors[0]?.color ?? '#22d3b6');
     setImportError('');
   }
 
@@ -257,6 +268,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
         sourceId: `freesound:${soundToImport.id}`,
         description: soundToImport.tags.length ? `Tags Freesound : ${soundToImport.tags.join(', ')}` : 'Importé depuis Freesound.',
         copyrightText: `« ${soundToImport.name} » par ${soundToImport.username} — ${soundToImport.license.label} — ${soundToImport.pageUrl}`,
+        color: importColor,
         loop: false,
       });
     } catch (cause) {
@@ -358,6 +370,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
               {preparingImport && <div className="freesound-import-morph">
                 <div className="freesound-import-morph-inner">
                   <label>Catégorie de destination<select value={importCategoryId} onChange={(event) => setImportCategoryId(event.target.value)}><option value="">Sans catégorie</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+                  <label className="freesound-import-color">Couleur du morceau<span><input type="color" value={importColor} onChange={(event) => setImportColor(event.target.value)} aria-label="Couleur personnalisée du morceau" />{projectColors.map((projectColor) => <button key={projectColor.id} type="button" className={projectColor.color.toLowerCase() === importColor.toLowerCase() ? 'is-selected' : ''} style={{ '--swatch-color': projectColor.color } as React.CSSProperties} onClick={() => setImportColor(projectColor.color)} aria-label={`Choisir la couleur ${projectColor.color}`} title={projectColor.color} />)}</span></label>
                   <div className="freesound-import-source"><ShieldCheck size={16} /><span><strong>{sound.license.label}</strong> · {sound.username}<small>La source et la licence seront enregistrées avec le morceau.</small></span></div>
                   {importError && <div className="form-error">{importError}</div>}
                   <footer><button className="button ghost" onClick={() => setSoundToImport(undefined)} disabled={importing}>Annuler</button><button className="button primary" onClick={() => importSound().catch(() => undefined)} disabled={importing || !importTitle.trim()}>{importing ? <LoaderCircle className="spin" size={17} /> : <Download size={17} />}{importing ? 'Téléchargement…' : 'Importer et stocker'}</button></footer>
