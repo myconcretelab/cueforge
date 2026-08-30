@@ -142,9 +142,21 @@ class AudioEngine {
     this.notifyRouting();
   }
 
-  async applyAudioOutput(element: HTMLMediaElement): Promise<void> {
+  async applyAudioOutput(element: HTMLMediaElement, preferredOutputLabel?: string): Promise<void> {
     if (typeof element.setSinkId !== 'function') return;
-    await element.setSinkId(this.outputSelection.deviceId);
+    if (!preferredOutputLabel) {
+      await element.setSinkId(this.outputSelection.deviceId);
+      return;
+    }
+    const requested = normalizeOutputLabel(preferredOutputLabel);
+    const devices = await this.listAudioOutputDevices();
+    const selected = devices.find((device) => normalizeOutputLabel(device.label) === requested)
+      ?? devices.find((device) => {
+        const label = normalizeOutputLabel(device.label);
+        return label.includes(requested) || requested.includes(label);
+      });
+    if (!selected || !selected.deviceId) throw new Error(`La sortie « ${preferredOutputLabel} » n’est pas accessible au navigateur.`);
+    await element.setSinkId(selected.deviceId);
   }
 
   subscribe(listener: Listener): () => void {
@@ -653,6 +665,10 @@ function persistAudioOutputSelection(selection: AudioOutputSelection): void {
   } catch {
     // La sélection reste active pour la session si le stockage est indisponible.
   }
+}
+
+function normalizeOutputLabel(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
 export const audioEngine = new AudioEngine();

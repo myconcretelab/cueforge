@@ -7,7 +7,6 @@ import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
 import { AudioOutputConsole } from './components/AudioOutputConsole';
 import { AudioOutputUpgradeConsole, type AudioOutputUpgradeMode } from './components/AudioOutputUpgradeConsole';
-import { BridgeOutputLegend } from './components/BridgeOutputLegend';
 import { AppUpdateBanner } from './components/AppUpdateBanner';
 import { FreesoundDialog } from './components/FreesoundDialog';
 import { PlaylistPad } from './components/PlaylistPad';
@@ -24,7 +23,7 @@ import { applyAppUpdate, subscribeToAppUpdate } from './lib/app-update';
 import { appNoticesEnabled, shouldApplyAppUpdate, shouldOpenReleaseNotes } from './lib/app-mode';
 import { audioEngine, playbackPositionAt, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
 import { bridgeClient } from './lib/bridge-client';
-import { playbackBridgeOutput, routableBridgeOutputs, supportsPerPlaybackOutput, type RoutedBridgeOutput } from './lib/bridge-output-routing';
+import type { RoutedBridgeOutput } from './lib/bridge-output-routing';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
@@ -123,7 +122,6 @@ export default function App() {
   const ignoredPlaylistPlaybackRef = useRef<string | undefined>(undefined);
   const playlistPlayedItemIdsRef = useRef(new Set<string>());
   const releaseAutoShownRef = useRef(false);
-  const bridgeOutputRefreshRef = useRef(0);
   const remote = new URLSearchParams(window.location.search).get('remote') === '1';
   const unseenReleases = useMemo(() => releaseInfo?.releases.filter((release) => releaseInfo.unseenVersions.includes(release.version)) ?? [], [releaseInfo]);
   const releasesForDialog = unseenReleases.length > 0 ? unseenReleases : releaseInfo?.releases ?? [];
@@ -238,33 +236,10 @@ export default function App() {
     }).catch(() => undefined);
   }, [user]);
 
-  const refreshRoutedBridgeOutputs = useCallback(async () => {
-    const sequence = ++bridgeOutputRefreshRef.current;
-    if (bridgeAvailable !== true || !bridgeClient.isEnabled()) {
-      setRoutedBridgeOutputs([]);
-      setMainBridgeOutputId(undefined);
-      return;
-    }
-    try {
-      const [status, result] = await Promise.all([bridgeClient.discover(), bridgeClient.outputs()]);
-      if (sequence !== bridgeOutputRefreshRef.current) return;
-      const outputs = routableBridgeOutputs(result.outputs, supportsPerPlaybackOutput(status));
-      setRoutedBridgeOutputs(outputs);
-      setMainBridgeOutputId(playbackBridgeOutput(outputs, result.mainOutputId)?.id);
-    } catch {
-      if (sequence === bridgeOutputRefreshRef.current) {
-        setRoutedBridgeOutputs([]);
-        setMainBridgeOutputId(undefined);
-      }
-    }
-  }, [bridgeAvailable]);
-
-  useEffect(() => audioEngine.subscribeRouting(() => { refreshRoutedBridgeOutputs().catch(() => undefined); }), [refreshRoutedBridgeOutputs]);
-  useEffect(() => {
-    if (bridgeAvailable !== true) return;
-    const timer = window.setInterval(() => refreshRoutedBridgeOutputs().catch(() => undefined), 5_000);
-    return () => window.clearInterval(timer);
-  }, [bridgeAvailable, refreshRoutedBridgeOutputs]);
+  const updateRoutedBridgeOutputs = useCallback((outputs: RoutedBridgeOutput[], mainOutputId: string | undefined) => {
+    setRoutedBridgeOutputs(outputs);
+    setMainBridgeOutputId(mainOutputId);
+  }, []);
 
   const refreshProject = useCallback(async () => {
     if (!selectedProjectId) return;
@@ -1242,14 +1217,13 @@ export default function App() {
 
     <main className="workspace">
       {user.isDemo && <aside className="demo-banner" aria-label="Démonstration temporaire"><div><strong>Démo temporaire</strong><span>Vos données sont supprimées après 24 h d’inactivité · 15 fichiers importés · 5 Mo maximum par fichier</span></div><button className="demo-reset" onClick={() => resetDemo().catch((cause) => setError(cause instanceof Error ? cause.message : 'Réinitialisation impossible.'))}><RefreshCcw size={15} />Réinitialiser</button><button className="button primary" onClick={() => createAccountFromDemo().catch((cause) => setError(cause instanceof Error ? cause.message : 'Création de compte impossible.'))}>Créer mon espace</button></aside>}
-      {!remote && <BridgeOutputLegend outputs={routedBridgeOutputs} mainOutputId={mainBridgeOutputId} />}
+      {!remote && (audioOutputUpgradeMode
+        ? <AudioOutputUpgradeConsole mode={audioOutputUpgradeMode} onAction={openAudioOutputUpgrade} />
+        : <AudioOutputConsole bridgeAvailable={bridgeAvailable} onError={setError} onRoutingChange={updateRoutedBridgeOutputs} />)}
       <header className="topbar">
         <button className="icon-button menu-button" onClick={() => setSidebarOpen(true)}><Menu /></button>
         <div className="topbar-title"><p className="eyebrow">{remote ? 'Télécommande' : 'Régie principale'}<span className={`connection-status ${connected ? 'online' : ''}`} role="img" aria-label={connected ? 'Connexion temps réel active' : 'Connexion temps réel interrompue'} title={connected ? 'Connexion temps réel active' : 'Connexion temps réel interrompue'}>{connected ? <Wifi size={14} /> : <WifiOff size={14} />}</span></p><h1>{detail?.project.name ?? 'Chargement…'}</h1></div>
         <div className="topbar-console">
-          {!remote && (audioOutputUpgradeMode
-            ? <AudioOutputUpgradeConsole mode={audioOutputUpgradeMode} onAction={openAudioOutputUpgrade} />
-            : <AudioOutputConsole bridgeAvailable={bridgeAvailable} onError={setError} />)}
           <section className="console-module next-volume" title="Ce multiplicateur s'applique au prochain son, puis revient à 100 %.">
             <span><Volume2 size={14} />Son suivant</span>
             <div className="next-volume-control"><input type="range" min="0" max="100" value={nextTrackVolume} aria-label="Volume du son suivant" onChange={(event) => { const value = Number(event.target.value); setNextTrackVolume(value); localStorage.setItem('sonoriva-next-volume', String(value)); }} /><strong>{nextTrackVolume} %</strong><button type="button" className={`console-volume-lock ${keepNextTrackVolume ? 'active' : ''}`} role="switch" aria-checked={keepNextTrackVolume} aria-label="Conserver le volume pour les sons suivants" title={keepNextTrackVolume ? 'Volume conservé après chaque lancement' : 'Réinitialiser à 100 % après le prochain lancement'} onClick={() => { const next = !keepNextTrackVolume; setKeepNextTrackVolume(next); localStorage.setItem('sonoriva-keep-next-volume', String(next)); localStorage.setItem('sonoriva-next-volume', String(nextTrackVolume)); }}><i /></button></div>
@@ -1360,7 +1334,7 @@ export default function App() {
     {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} initialSection={settingsInitialSection} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onAccountChange={handleAccountChange} onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined); }} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
     {whatsNewOpen && releaseInfo && <WhatsNewDialog releases={releasesForDialog} currentVersion={releaseInfo.currentVersion} onClose={closeWhatsNew} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
-    {freesoundOpen && detail && <FreesoundDialog initialQuery={search} projectId={detail.project.id} categories={detail.categories} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} onImported={refreshProject} onClose={() => setFreesoundOpen(false)} />}
+    {freesoundOpen && detail && <FreesoundDialog initialQuery={search} projectId={detail.project.id} categories={detail.categories} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} bridgeOutputs={routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId} onImported={refreshProject} onClose={() => setFreesoundOpen(false)} />}
     {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} projectColors={detail.colors} onAddProjectColor={createProjectColor} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
     {(fileDropActive || dropUploadProgress) && <div className={`file-drop-overlay ${dropUploadProgress ? 'is-uploading' : ''}`} role="status" aria-live="polite">
       <div className="file-drop-card">

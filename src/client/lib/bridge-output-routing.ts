@@ -6,23 +6,27 @@ export interface RoutedBridgeOutput extends BridgeOutput {
   color: string;
 }
 
+export function bridgePhysicalOutputs(outputs: BridgeOutput[]): RoutedBridgeOutput[] {
+  const seen = new Set<string>();
+  return outputs.filter((output) => {
+    if (output.id === 'default' || seen.has(output.id)) return false;
+    seen.add(output.id);
+    return true;
+  }).map((output, index) => ({
+    ...output,
+    color: outputColors[index % outputColors.length]!,
+  }));
+}
+
 export function supportsPerPlaybackOutput(status: BridgeStatus): boolean {
   return status.capabilities?.includes('perPlaybackOutput') ?? false;
 }
 
 export function routableBridgeOutputs(outputs: BridgeOutput[], supported: boolean): RoutedBridgeOutput[] {
   if (!supported) return [];
-  const seen = new Set<string>();
-  const physicalOutputs = outputs.filter((output) => {
-    if (output.id === 'default' || seen.has(output.id)) return false;
-    seen.add(output.id);
-    return true;
-  });
+  const physicalOutputs = bridgePhysicalOutputs(outputs);
   if (physicalOutputs.length < 2) return [];
-  return physicalOutputs.map((output, index) => ({
-    ...output,
-    color: outputColors[index % outputColors.length]!,
-  }));
+  return physicalOutputs;
 }
 
 export function playbackBridgeOutput(outputs: RoutedBridgeOutput[], outputId: string | undefined): RoutedBridgeOutput | undefined {

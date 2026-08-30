@@ -1,5 +1,3 @@
-import { Speaker } from 'lucide-react';
-
 export type AudioOutputUpgradeMode = 'demo' | 'free' | 'trial' | 'restricted';
 
 function audioOutputUpgradeContent(mode: AudioOutputUpgradeMode): { action: string; message: string } {
@@ -29,11 +27,9 @@ function audioOutputUpgradeContent(mode: AudioOutputUpgradeMode): { action: stri
 
 export function AudioOutputUpgradeConsole({ mode, onAction }: { mode: AudioOutputUpgradeMode; onAction: () => void }) {
   const content = audioOutputUpgradeContent(mode);
-  return <section className="console-module console-audio-upgrade" title={content.message}>
-    <span><Speaker size={14} />Sorties audio</span>
-    <div>
-      <small>{content.message}</small>
-      <button type="button" onClick={onAction}>{content.action}</button>
-    </div>
+  return <section className="bridge-output-strip bridge-output-upgrade" title={content.message}>
+    <strong>Sorties audio</strong>
+    <div><small>{content.message}</small></div>
+    <button type="button" onClick={onAction}>{content.action}</button>
   </section>;
 }

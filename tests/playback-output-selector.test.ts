@@ -1,7 +1,6 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { BridgeOutputLegend } from '../src/client/components/BridgeOutputLegend.js';
 import { PlaybackOutputSelector } from '../src/client/components/PlaybackOutputSelector.js';
 import { TrackPad } from '../src/client/components/TrackPad.js';
 import type { RoutedBridgeOutput } from '../src/client/lib/bridge-output-routing.js';
@@ -48,20 +47,5 @@ describe('sélecteur de sortie d’une lecture', () => {
     expect(markup).toContain('aria-label="Jouer Ouverture sur Jean Luc"');
     expect(markup).toContain('aria-label="Jouer Ouverture sur Scène gauche"');
     expect(markup).toContain('aria-label="Jouer Ouverture sur Scène droite"');
-  });
-
-  it('affiche le tableau de bord des sorties au-dessus du header', () => {
-    const markup = renderToStaticMarkup(createElement(BridgeOutputLegend, { outputs, mainOutputId: 'speakers' }));
-    expect(markup).toContain('class="bridge-output-strip"');
-    expect(markup).toContain('aria-label="Tableau des sorties audio"');
-    expect(markup).toContain('Haut-parleurs · sortie principale');
-    expect(markup).toContain('Principale');
-    expect(markup).toContain('Jean Luc');
-    expect(markup).toContain('--output-color:#22c55e');
-    expect(markup).toContain('--output-color:#3b82f6');
-  });
-
-  it('masque le tableau de bord lorsqu’une seule sortie physique est disponible', () => {
-    expect(renderToStaticMarkup(createElement(BridgeOutputLegend, { outputs: outputs.slice(0, 1), mainOutputId: 'speakers' }))).toBe('');
   });
 });

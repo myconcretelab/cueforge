@@ -1,137 +1,81 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Cable, LoaderCircle, Power, RefreshCcw, Speaker, TriangleAlert } from 'lucide-react';
+import { Cable, LoaderCircle, Power, RefreshCcw } from 'lucide-react';
 import { audioEngine } from '../lib/audio-engine';
-import { bridgeClient, type AudioPlaybackMode } from '../lib/bridge-client';
+import { bridgeClient } from '../lib/bridge-client';
 import { associateLocalBridge, bridgeConnectionView, openLocalBridge } from '../lib/bridge-connection';
+import { bridgePhysicalOutputs, playbackBridgeOutput, routableBridgeOutputs, supportsPerPlaybackOutput, type RoutedBridgeOutput } from '../lib/bridge-output-routing';
 
 interface Props {
   bridgeAvailable: boolean | undefined;
   onError: (message: string) => void;
+  onRoutingChange: (outputs: RoutedBridgeOutput[], mainOutputId: string | undefined) => void;
 }
 
-interface OutputOption {
-  id: string;
-  label: string;
-}
-
-interface OutputState {
-  mode: AudioPlaybackMode;
-  selectedId: string;
-  selectedLabel: string;
-  options: OutputOption[];
-  selectable: boolean;
-  unavailable: boolean;
-  error: string;
-}
-
-function initialState(): OutputState {
-  const selection = audioEngine.getAudioOutputSelection();
-  return {
-    mode: 'browser',
-    selectedId: selection.deviceId,
-    selectedLabel: selection.label,
-    options: [{ id: selection.deviceId, label: selection.label }],
-    selectable: audioEngine.supportsAudioOutputSelection(),
-    unavailable: false,
-    error: '',
-  };
-}
-
-export function AudioOutputConsole({ bridgeAvailable, onError }: Props) {
-  const [output, setOutput] = useState<OutputState>(initialState);
-  const [busy, setBusy] = useState(false);
+export function AudioOutputConsole({ bridgeAvailable, onError, onRoutingChange }: Props) {
+  const [outputs, setOutputs] = useState<RoutedBridgeOutput[]>([]);
+  const [mainOutputId, setMainOutputId] = useState<string>();
   const [bridgeBusy, setBridgeBusy] = useState(false);
+  const [outputBusy, setOutputBusy] = useState<string>();
   const [bridgeDetected, setBridgeDetected] = useState<boolean>();
   const refreshSequence = useRef(0);
 
+  const clearOutputs = useCallback(() => {
+    setOutputs([]);
+    setMainOutputId(undefined);
+    onRoutingChange([], undefined);
+  }, [onRoutingChange]);
+
   const refresh = useCallback(async () => {
     const sequence = ++refreshSequence.current;
-    const mode = audioEngine.getPlaybackMode();
-    try {
-      if (mode === 'bridge') {
-        if (!bridgeClient.isAssociated()) throw new Error('SonoRiva Bridge n’est pas associé.');
-        const result = await bridgeClient.outputs();
-        const selected = result.outputs.find((candidate) => candidate.id === result.mainOutputId);
-        if (sequence !== refreshSequence.current) return;
-        setOutput({
-          mode,
-          selectedId: result.mainOutputId,
-          selectedLabel: selected?.name ?? 'Sortie Bridge indisponible',
-          options: result.outputs.map((candidate) => ({ id: candidate.id, label: candidate.name })),
-          selectable: result.outputs.length > 0,
-          unavailable: !selected,
-          error: selected ? '' : 'La sortie principale du Bridge n’est plus disponible.',
-        });
-        return;
-      }
-
-      const selection = audioEngine.getAudioOutputSelection();
-      const supported = audioEngine.supportsAudioOutputSelection();
-      const devices = supported
-        ? await audioEngine.listAudioOutputDevices()
-        : [{ deviceId: '', label: 'Sortie système par défaut' }];
-      const selected = devices.find((candidate) => candidate.deviceId === selection.deviceId);
-      if (sequence !== refreshSequence.current) return;
-      setOutput({
-        mode,
-        selectedId: selection.deviceId,
-        selectedLabel: selected?.label ?? selection.label,
-        options: devices.map((candidate) => ({ id: candidate.deviceId, label: candidate.label })),
-        selectable: supported,
-        unavailable: Boolean(selection.deviceId && !selected),
-        error: selection.deviceId && !selected ? 'La sortie audio enregistrée n’est plus disponible.' : '',
-      });
-    } catch (cause) {
-      if (sequence !== refreshSequence.current) return;
-      const message = cause instanceof Error ? cause.message : 'La sortie audio est indisponible.';
-      setOutput({ mode, selectedId: '', selectedLabel: mode === 'bridge' ? 'Bridge indisponible' : 'Sortie indisponible', options: [], selectable: false, unavailable: true, error: message });
-    }
-  }, []);
-
-  const detectBridge = useCallback(async () => {
     if (bridgeAvailable !== true) {
       setBridgeDetected(undefined);
+      clearOutputs();
       return false;
     }
     try {
-      await bridgeClient.discover();
+      const status = await bridgeClient.discover();
+      if (sequence !== refreshSequence.current) return true;
       setBridgeDetected(true);
+      if (!bridgeClient.isAssociated()) {
+        clearOutputs();
+        return true;
+      }
+      const result = await bridgeClient.outputs();
+      if (sequence !== refreshSequence.current) return true;
+      const physicalOutputs = bridgePhysicalOutputs(result.outputs);
+      const selectedId = playbackBridgeOutput(physicalOutputs, result.mainOutputId)?.id;
+      setOutputs(physicalOutputs);
+      setMainOutputId(selectedId);
+      const routableOutputs = routableBridgeOutputs(result.outputs, supportsPerPlaybackOutput(status));
+      onRoutingChange(routableOutputs, playbackBridgeOutput(routableOutputs, result.mainOutputId)?.id);
       return true;
     } catch {
+      if (sequence !== refreshSequence.current) return false;
       setBridgeDetected(false);
+      clearOutputs();
       return false;
     }
-  }, [bridgeAvailable]);
+  }, [bridgeAvailable, clearOutputs, onRoutingChange]);
 
   useEffect(() => audioEngine.subscribeRouting(() => { refresh().catch(() => undefined); }), [refresh]);
 
   useEffect(() => {
-    detectBridge().catch(() => undefined);
     if (bridgeAvailable !== true) return;
-    const timer = window.setInterval(() => detectBridge().catch(() => undefined), 5_000);
+    const timer = window.setInterval(() => refresh().catch(() => undefined), 5_000);
     return () => window.clearInterval(timer);
-  }, [bridgeAvailable, detectBridge]);
-
-  useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices) return;
-    const onDeviceChange = () => refresh().catch(() => undefined);
-    navigator.mediaDevices.addEventListener('devicechange', onDeviceChange);
-    return () => navigator.mediaDevices.removeEventListener('devicechange', onDeviceChange);
-  }, [refresh]);
+  }, [bridgeAvailable, refresh]);
 
   async function changeOutput(deviceId: string) {
-    const selected = output.options.find((candidate) => candidate.id === deviceId);
-    setBusy(true);
+    if (outputBusy || deviceId === mainOutputId) return;
+    setOutputBusy(deviceId);
     try {
-      if (output.mode === 'bridge') await bridgeClient.setOutput('main', deviceId);
-      else await audioEngine.setAudioOutput(deviceId, selected?.label);
+      await bridgeClient.setOutput('main', deviceId);
       await refresh();
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'Impossible de sélectionner cette sortie audio.';
-      onError(message);
+      onError(cause instanceof Error ? cause.message : 'Impossible de sélectionner cette sortie audio.');
       await refresh();
     } finally {
-      setBusy(false);
+      setOutputBusy(undefined);
     }
   }
 
@@ -155,7 +99,7 @@ export function AudioOutputConsole({ bridgeAvailable, onError }: Props) {
         let detected = false;
         for (let attempt = 0; attempt < 20 && !detected; attempt += 1) {
           await new Promise((resolve) => window.setTimeout(resolve, 500));
-          detected = await detectBridge();
+          detected = await refresh();
         }
         if (!detected) throw new Error('SonoRiva Bridge ne répond pas sur cette machine.');
         audioEngine.setPlaybackMode('bridge');
@@ -164,10 +108,10 @@ export function AudioOutputConsole({ bridgeAvailable, onError }: Props) {
       } else {
         audioEngine.setPlaybackMode('browser');
       }
-      await Promise.all([detectBridge(), refresh()]);
+      await refresh();
     } catch (cause) {
       onError(cause instanceof Error ? cause.message : 'Impossible de connecter SonoRiva Bridge.');
-      await Promise.all([detectBridge(), refresh()]);
+      await refresh();
     } finally {
       setBridgeBusy(false);
     }
@@ -179,19 +123,20 @@ export function AudioOutputConsole({ bridgeAvailable, onError }: Props) {
     associated: bridgeClient.isAssociated(),
     mode: audioEngine.getPlaybackMode(),
   });
-  const title = output.error || `Sortie principale · ${output.mode === 'bridge' ? 'SonoRiva Bridge' : 'Web Audio'}`;
-  return <section className={`console-module console-audio-output ${output.unavailable ? 'is-unavailable' : ''}`} title={title}>
-    <span><Speaker size={14} />Sortie audio<i className={`bridge-status-led ${bridgeConnection.state}`} role="status" aria-label={bridgeConnection.label} title={bridgeConnection.label} /></span>
-    <div className="console-audio-output-control">
-      <select value={output.selectedId} disabled={busy || !output.selectable} aria-label="Sortie audio principale" onFocus={() => refresh().catch(() => undefined)} onChange={(event) => changeOutput(event.target.value)}>
-        {output.unavailable && <option value={output.selectedId}>{output.selectedLabel}</option>}
-        {output.options.map((candidate) => <option value={candidate.id} key={candidate.id || 'default'}>{candidate.label}</option>)}
-      </select>
-      <div className="bridge-console-actions">
-        {output.unavailable && <TriangleAlert size={17} aria-label={output.error} />}
-        <button type="button" className={bridgeConnection.state === 'active' ? 'active' : ''} disabled={bridgeBusy || bridgeConnection.action === 'none'} onClick={runBridgeAction} aria-label={bridgeConnection.actionLabel} title={bridgeConnection.actionLabel}>{bridgeBusy ? <LoaderCircle className="spin" size={14} /> : bridgeConnection.action === 'open' || bridgeConnection.action === 'deactivate' ? <Power size={14} /> : <Cable size={14} />}</button>
-        <button type="button" disabled={bridgeBusy || bridgeAvailable !== true} onClick={() => detectBridge()} aria-label="Actualiser l’état du Bridge" title="Actualiser l’état du Bridge"><RefreshCcw size={13} /></button>
-      </div>
+
+  return <section className={`bridge-output-strip bridge-output-console ${bridgeConnection.state}`} aria-label="Gestion des sorties audio">
+    <strong>Sorties audio</strong>
+    <div className="bridge-output-list">
+      {outputs.map((output) => <button type="button" className={output.id === mainOutputId ? 'is-main' : ''} style={{ '--output-color': output.color } as React.CSSProperties} key={output.id} disabled={Boolean(outputBusy)} onClick={() => changeOutput(output.id)} aria-pressed={output.id === mainOutputId} aria-label={output.id === mainOutputId ? `${output.name} · sortie principale` : `Définir ${output.name} comme sortie principale`} title={output.id === mainOutputId ? `${output.name} · sortie principale` : `Utiliser ${output.name} comme sortie principale`}>
+        {outputBusy === output.id ? <LoaderCircle className="spin" size={12} /> : <i />}
+        <b>{output.name}</b>{output.id === mainOutputId && <em>Principale</em>}
+      </button>)}
+      {outputs.length === 0 && <small>{bridgeConnection.label}</small>}
+    </div>
+    <div className="bridge-output-actions">
+      <i className={`bridge-status-led ${bridgeConnection.state}`} role="status" aria-label={bridgeConnection.label} title={bridgeConnection.label} />
+      <button type="button" className={bridgeConnection.state === 'active' ? 'active' : ''} disabled={bridgeBusy || bridgeConnection.action === 'none'} onClick={runBridgeAction} aria-label={bridgeConnection.actionLabel} title={bridgeConnection.actionLabel}>{bridgeBusy ? <LoaderCircle className="spin" size={14} /> : bridgeConnection.action === 'open' || bridgeConnection.action === 'deactivate' ? <Power size={14} /> : <Cable size={14} />}</button>
+      <button type="button" disabled={bridgeBusy || bridgeAvailable !== true} onClick={() => refresh()} aria-label="Actualiser l’état du Bridge" title="Actualiser l’état du Bridge"><RefreshCcw size={13} /></button>
     </div>
   </section>;
 }

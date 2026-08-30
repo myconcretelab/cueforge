@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { playbackBridgeOutput, routableBridgeOutputs, supportsPerPlaybackOutput } from '../src/client/lib/bridge-output-routing.js';
+import { bridgePhysicalOutputs, playbackBridgeOutput, routableBridgeOutputs, supportsPerPlaybackOutput } from '../src/client/lib/bridge-output-routing.js';
 import type { BridgeOutput, BridgeStatus } from '../src/client/lib/bridge-client.js';
 
 const outputs: BridgeOutput[] = [
@@ -24,6 +24,10 @@ describe('routage des sorties Bridge', () => {
   it('masque les commandes avec une seule sortie physique ou un Bridge incompatible', () => {
     expect(routableBridgeOutputs(outputs.slice(0, 2), true)).toEqual([]);
     expect(routableBridgeOutputs(outputs, false)).toEqual([]);
+  });
+
+  it('conserve une sortie unique dans la réglette de gestion', () => {
+    expect(bridgePhysicalOutputs(outputs.slice(0, 2)).map(({ id }) => id)).toEqual(['speakers']);
   });
 
   it('associe l’alias par défaut à la sortie physique par défaut', () => {

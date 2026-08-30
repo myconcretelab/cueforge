@@ -76,6 +76,15 @@ describe('audio player instance controls', () => {
       removeItem: (key: string) => storage.delete(key),
     });
     vi.stubGlobal('AudioContext', FakeAudioContext);
+    vi.stubGlobal('navigator', {
+      mediaDevices: {
+        enumerateDevices: vi.fn(async () => [
+          { kind: 'audiooutput', deviceId: 'default', label: 'Sortie système par défaut' },
+          { kind: 'audiooutput', deviceId: 'mac-speakers', label: 'Haut-parleurs MacBook Pro' },
+          { kind: 'audiooutput', deviceId: 'headphones', label: 'Écouteurs externes' },
+        ]),
+      },
+    });
     vi.stubGlobal('fetch', vi.fn(async () => new Response(new ArrayBuffer(8), { status: 200 })));
     audioEngine.resetHistory([track.id]);
     unsubscribe = audioEngine.subscribe((playbacks) => { latest = playbacks; });
@@ -147,6 +156,10 @@ describe('audio player instance controls', () => {
     const setSinkId = vi.fn(async () => undefined);
     await audioEngine.applyAudioOutput({ setSinkId } as unknown as HTMLMediaElement);
     expect(setSinkId).toHaveBeenCalledWith('studio-output');
+
+    setSinkId.mockClear();
+    await audioEngine.applyAudioOutput({ setSinkId } as unknown as HTMLMediaElement, 'Ecouteurs externes');
+    expect(setSinkId).toHaveBeenCalledWith('headphones');
 
     await audioEngine.setAudioOutput('');
     expect(FakeAudioContext.lastSinkId).toBe('');

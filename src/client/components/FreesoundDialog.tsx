@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CircleCheck, Download, ExternalLink, LoaderCircle, Pause, Play, Search, ShieldCheck, Square, Volume2, Waves, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { audioEngine } from '../lib/audio-engine';
+import type { RoutedBridgeOutput } from '../lib/bridge-output-routing';
 import type { Category, FreesoundLicenseFilter, FreesoundSearchResult, FreesoundSound } from '../types';
 
 interface Props {
@@ -10,13 +11,15 @@ interface Props {
   categories: Category[];
   defaultCategoryId?: string;
   nextPosition: number;
+  bridgeOutputs: RoutedBridgeOutput[];
+  mainBridgeOutputId?: string;
   onImported: () => Promise<void>;
   onClose: () => void;
 }
 
 type PlayerState = 'idle' | 'loading' | 'playing' | 'paused';
 
-export function FreesoundDialog({ initialQuery = '', projectId, categories, defaultCategoryId, nextPosition, onImported, onClose }: Props) {
+export function FreesoundDialog({ initialQuery = '', projectId, categories, defaultCategoryId, nextPosition, bridgeOutputs, mainBridgeOutputId, onImported, onClose }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [license, setLicense] = useState<FreesoundLicenseFilter>('compatible');
   const [minDuration, setMinDuration] = useState('');
@@ -25,6 +28,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentSound, setCurrentSound] = useState<FreesoundSound>();
+  const [currentOutputId, setCurrentOutputId] = useState<string>();
   const [playerState, setPlayerState] = useState<PlayerState>('idle');
   const [currentTime, setCurrentTime] = useState(0);
   const [playerDuration, setPlayerDuration] = useState(0);
@@ -47,6 +51,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
       audio.load();
     }
     setCurrentSound(undefined);
+    setCurrentOutputId(undefined);
     setPlayerState('idle');
     setCurrentTime(0);
     setPlayerDuration(0);
@@ -94,12 +99,23 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
     }
   }
 
-  function togglePreview(sound: FreesoundSound) {
+  function togglePreview(sound: FreesoundSound, output?: RoutedBridgeOutput) {
     const existing = audioRef.current;
     if (currentSound?.id === sound.id && existing) {
+      if (output?.id !== currentOutputId) {
+        setPlayerState('loading');
+        audioEngine.applyAudioOutput(existing, output?.name).then(() => {
+          setCurrentOutputId(output?.id);
+          return existing.play();
+        }).catch(() => {
+          setPlayerState('paused');
+          setError(output ? `La sortie « ${output.name} » n’est pas accessible pour cette préécoute.` : "La préécoute n'a pas pu démarrer sur la sortie audio sélectionnée.");
+        });
+        return;
+      }
       if (existing.paused) {
         setPlayerState('loading');
-        audioEngine.applyAudioOutput(existing).then(() => existing.play()).catch(() => {
+        audioEngine.applyAudioOutput(existing, output?.name).then(() => existing.play()).catch(() => {
           setPlayerState('paused');
           setError("La préécoute n'a pas pu démarrer sur la sortie audio sélectionnée.");
         });
@@ -115,6 +131,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
     audio.volume = volume;
     audioRef.current = audio;
     setCurrentSound(sound);
+    setCurrentOutputId(output?.id);
     setPlayerState('loading');
     setCurrentTime(0);
     setPlayerDuration(sound.durationSeconds);
@@ -138,9 +155,9 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
       setPlayerState('paused');
       setError("La préécoute Freesound n'est pas disponible.");
     });
-    audioEngine.applyAudioOutput(audio).then(() => audio.play()).catch(() => {
+    audioEngine.applyAudioOutput(audio, output?.name).then(() => audio.play()).catch(() => {
       if (audioRef.current === audio) setPlayerState('paused');
-      setError("La préécoute n'a pas pu démarrer sur la sortie audio sélectionnée.");
+      setError(output ? `La sortie « ${output.name} » n’est pas accessible pour cette préécoute.` : "La préécoute n'a pas pu démarrer sur la sortie audio sélectionnée.");
     });
   }
 
@@ -203,6 +220,8 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
   }
 
   const progress = playerDuration ? Math.min(1, currentTime / playerDuration) : 0;
+  const mainBridgeOutput = bridgeOutputs.find((output) => output.id === mainBridgeOutputId);
+  const alternateBridgeOutputs = mainBridgeOutput ? bridgeOutputs.filter((output) => output.id !== mainBridgeOutput.id) : [];
 
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && closeDialog()}>
     <section className="dialog freesound-dialog">
@@ -247,9 +266,14 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
             const preparingImport = soundToImport?.id === sound.id;
             return <article key={sound.id} className={`freesound-result${active ? ' is-active' : ''}${preparingImport ? ' is-importing' : ''}`}>
               <div className="freesound-result-summary">
-                <button className="freesound-play" onClick={() => togglePreview(sound)} aria-label={`${active && playerState === 'playing' ? 'Mettre en pause' : 'Écouter'} ${sound.name}`}>
-                  {active && playerState === 'loading' ? <LoaderCircle className="spin" size={19} /> : active && playerState === 'playing' ? <Pause size={19} fill="currentColor" /> : <Play size={19} fill="currentColor" />}
-                </button>
+                <div className="freesound-preview-actions">
+                  <button className="freesound-play" onClick={() => togglePreview(sound, mainBridgeOutput)} aria-label={`${active && playerState === 'playing' && currentOutputId === mainBridgeOutput?.id ? 'Mettre en pause' : 'Écouter'} ${sound.name}${mainBridgeOutput ? ` sur ${mainBridgeOutput.name}` : ''}`}>
+                    {active && playerState === 'loading' && currentOutputId === mainBridgeOutput?.id ? <LoaderCircle className="spin" size={19} /> : active && playerState === 'playing' && currentOutputId === mainBridgeOutput?.id ? <Pause size={19} fill="currentColor" /> : <Play size={19} fill="currentColor" />}
+                  </button>
+                  {alternateBridgeOutputs.map((output) => <button type="button" className="freesound-output-play" key={output.id} style={{ '--output-color': output.color } as React.CSSProperties} onClick={() => togglePreview(sound, output)} aria-label={`Écouter ${sound.name} sur ${output.name}`} title={output.name}>
+                    {active && playerState === 'loading' && currentOutputId === output.id ? <LoaderCircle className="spin" size={12} /> : active && playerState === 'playing' && currentOutputId === output.id ? <Pause size={12} fill="currentColor" /> : <Play size={12} fill="currentColor" />}
+                  </button>)}
+                </div>
                 <div className="freesound-result-main">
                   {preparingImport ? <label className="freesound-inline-title"><span>Nom du morceau</span><input value={importTitle} onChange={(event) => setImportTitle(event.target.value)} maxLength={160} autoFocus /></label> : <a href={sound.pageUrl} target="_blank" rel="noreferrer" title="Voir sur Freesound"><strong>{sound.name}</strong><ExternalLink size={12} /></a>}
                   <span>par {sound.username} · {formatDuration(sound.durationSeconds)}</span>
@@ -281,7 +305,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
       </>}
 
       {currentSound && <section className="freesound-player" aria-label="Lecteur Freesound">
-        <button className="freesound-player-toggle" onClick={() => togglePreview(currentSound)} aria-label={playerState === 'playing' ? 'Pause' : 'Lecture'}>
+        <button className="freesound-player-toggle" onClick={() => togglePreview(currentSound, bridgeOutputs.find((output) => output.id === currentOutputId))} aria-label={playerState === 'playing' ? 'Pause' : 'Lecture'}>
           {playerState === 'loading' ? <LoaderCircle className="spin" size={18} /> : playerState === 'playing' ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
         </button>
         <div className="freesound-player-main"><strong>{currentSound.name}</strong><span>{formatDuration(currentTime)} / {formatDuration(playerDuration)}</span><button className="freesound-player-progress" onClick={seek} aria-label="Avancer dans la préécoute"><i style={{ transform: `scaleX(${progress})` }} /></button></div>
