@@ -40,7 +40,7 @@ add_action('wp_enqueue_scripts', 'sonoriva_marketing_assets');
 function sonoriva_marketing_document_title(string $title): string
 {
     if (is_front_page()) {
-        return 'SonoRiva — Play sound. Play the scene.';
+        return 'SonoRiva — Régie son web, Freesound et multi-sorties audio';
     }
     return $title;
 }
@@ -49,10 +49,10 @@ add_filter('pre_get_document_title', 'sonoriva_marketing_document_title');
 function sonoriva_marketing_description(): void
 {
     if (is_front_page()) {
-        echo '<meta name="description" content="SonoRiva — Play sound. Play the scene. Préparez vos spectacles et déclenchez vos sons sans latence.">' . "\n";
+        echo '<meta name="description" content="SonoRiva réunit soundboard, recherche Freesound, multi-lecture, sorties audio, cues, catégories et import SoundShow dans une régie son web.">' . "\n";
         echo '<meta name="theme-color" content="#09090b">' . "\n";
-        echo '<meta property="og:title" content="SonoRiva — Play sound. Play the scene.">' . "\n";
-        echo '<meta property="og:description" content="La régie son web rapide, fiable et disponible hors connexion.">' . "\n";
+        echo '<meta property="og:title" content="SonoRiva — Tous vos sons, toutes vos sorties, un seul geste.">' . "\n";
+        echo '<meta property="og:description" content="La régie son web avec Freesound intégré, multi-lecture, sorties audio, cues et import SoundShow.">' . "\n";
         echo '<meta property="og:type" content="website">' . "\n";
     }
 }

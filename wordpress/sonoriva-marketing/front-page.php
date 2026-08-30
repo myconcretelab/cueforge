@@ -1,6 +1,6 @@
 <?php
 /**
- * SonoRiva landing page.
+ * SonoRiva product landing page.
  *
  * @package SonoRiva_Marketing
  */
@@ -8,92 +8,175 @@ get_header();
 $theme_uri = get_template_directory_uri();
 ?>
 <main id="main">
-    <section class="hero">
-        <img class="hero-art" src="<?php echo esc_url($theme_uri . '/assets/images/hero-sonoriva.jpg'); ?>" alt="" width="1536" height="1024" fetchpriority="high">
-        <div class="hero-grid" aria-hidden="true"></div>
-        <div class="shell hero-inner">
-            <div class="hero-copy" data-reveal>
-                <a class="announcement" href="#tarifs"><span></span> SonoRiva est disponible en ligne <b>Découvrir <i>→</i></b></a>
-                <p class="eyebrow">Régie son web pour la scène</p>
-                <h1>Play sound.<br><em>Play the scene.</em></h1>
-                <p class="hero-lede">Préparez vos spectacles, déclenchez vos médias instantanément et gardez le contrôle — même sans connexion.</p>
+    <section class="product-hero">
+        <div class="product-hero-glow" aria-hidden="true"></div>
+        <div class="shell product-hero-inner">
+            <div class="product-hero-copy" data-reveal>
+                <p class="eyebrow">Régie son pour le spectacle vivant</p>
+                <h1>Tous vos sons.<br><em>Toutes vos sorties.</em><br>Un seul geste.</h1>
+                <p class="product-hero-lede">Cherchez un bruitage sur Freesound, écoutez-le, ajoutez-le au spectacle et déclenchez-le sur la bonne sortie audio&nbsp;: SonoRiva réunit toute la chaîne dans la même interface.</p>
                 <div class="hero-actions">
-                    <a class="button button-primary" href="https://app.sonoriva.fr/demo">Essayer sans compte <span aria-hidden="true">↗</span></a>
-                    <a class="button button-ghost" href="#demo"><span class="play-dot" aria-hidden="true">▶</span> Voir l’interface</a>
+                    <a class="button button-primary" href="https://app.sonoriva.fr/demo">Tester la régie <span aria-hidden="true">↗</span></a>
+                    <a class="button button-ghost" href="#fonctionnalites">Voir les fonctionnalités <span aria-hidden="true">↓</span></a>
                 </div>
-                <div class="hero-notes"><span><i>✓</i> Essai gratuit</span><span><i>✓</i> Sans carte bancaire</span><span><i>✓</i> Installable en PWA</span></div>
+                <div class="product-hero-facts" aria-label="Fonctionnalités principales">
+                    <span><i></i> Multi-lecture</span>
+                    <span><i></i> Freesound intégré</span>
+                    <span><i></i> Import SoundShow</span>
+                    <span><i></i> Mode hors ligne</span>
+                </div>
             </div>
-        </div>
-        <div class="shell hero-proof" data-reveal>
-            <p>Une régie pensée pour</p>
-            <div><span>Théâtre</span><span>Improvisation</span><span>Danse</span><span>Événementiel</span><span>Podcast live</span></div>
+
+            <figure class="product-shot product-shot-hero" data-reveal>
+                <div class="product-shot-bar" aria-hidden="true">
+                    <span><i></i><i></i><i></i></span>
+                    <strong>Découverte de SonoRiva</strong>
+                    <em>Démo réelle</em>
+                </div>
+                <div class="product-shot-crop product-shot-crop-dashboard">
+                    <img src="<?php echo esc_url($theme_uri . '/assets/images/app-dashboard.png'); ?>" alt="Interface réelle de SonoRiva avec les catégories Lancements, Transitions et Final, la recherche et les cartes de sons" width="1600" height="1050" fetchpriority="high">
+                </div>
+                <div class="shot-callout callout-categories"><span>01</span><b>Catégories</b></div>
+                <div class="shot-callout callout-search"><span>02</span><b>Recherche + Freesound</b></div>
+                <div class="shot-callout callout-sounds"><span>03</span><b>Sons prêts à jouer</b></div>
+            </figure>
+            <p class="real-capture-note" data-reveal><span></span> Capture réalisée dans la démo en ligne de SonoRiva</p>
         </div>
     </section>
 
-    <section class="product-section" id="demo">
-        <div class="shell">
-            <div class="section-heading centered" data-reveal>
-                <p class="eyebrow">Le spectacle d’abord</p>
-                <h2>Une interface qui disparaît<br>quand le rideau se lève.</h2>
-                <p>Tout est visible, accessible et prêt à jouer. Pas de menus techniques au moment où chaque seconde compte.</p>
-            </div>
-            <div class="product-window" data-reveal>
-                <div class="window-topbar"><div class="window-dots"><i></i><i></i><i></i></div><div class="window-brand"><img src="<?php echo esc_url($theme_uri . '/assets/images/sonoriva-mark.svg'); ?>" alt="" width="24" height="24"> SonoRiva</div><div class="window-status"><span></span> Prêt hors ligne</div></div>
-                <div class="app-layout">
-                    <aside class="app-sidebar">
-                        <strong>NUIT DES ROIS</strong>
-                        <button class="active"><i style="--cat:#22d3b6"></i>Tous les sons <span>24</span></button>
-                        <button><i style="--cat:#8b5cf6"></i>Ambiances <span>7</span></button>
-                        <button><i style="--cat:#06b6d4"></i>Transitions <span>6</span></button>
-                        <button><i style="--cat:#22c55e"></i>Musiques <span>8</span></button>
-                        <button><i style="--cat:#ec4899"></i>Final <span>3</span></button>
-                        <div class="sidebar-bottom"><span>●</span> Télécommande connectée</div>
-                    </aside>
-                    <div class="app-main">
-                        <div class="app-console">
-                            <div><small>PROCHAIN SON</small><strong>100<sup>%</sup></strong></div>
-                            <div><small>CHRONOMÈTRE</small><strong class="mono">00:42:18</strong></div>
-                            <div><small>HEURE</small><strong class="mono">20:47:06</strong></div>
-                            <button><span>＋</span> Importer</button>
-                        </div>
-                        <div class="track-grid">
-                            <article class="track-card playing" style="--track:#22d3b6"><div class="wave-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="track-state">EN LECTURE</span><h3>Ouverture</h3><footer><span>02:38</span><b>■</b></footer></article>
-                            <article class="track-card" style="--track:#8b5cf6"><span class="track-number">2</span><div class="wave-line"></div><h3>Forêt — nuit</h3><footer><span>08:14</span><b>▶</b></footer></article>
-                            <article class="track-card" style="--track:#8b5cf6"><span class="track-number">3</span><div class="wave-line alt"></div><h3>Orage lointain</h3><footer><span>03:20</span><b>▶</b></footer></article>
-                            <article class="track-card" style="--track:#06b6d4"><span class="track-number">4</span><div class="wave-line short"></div><h3>Changement I</h3><footer><span>00:14</span><b>▶</b></footer></article>
-                            <article class="track-card" style="--track:#22c55e"><span class="track-number">5</span><div class="wave-line alt"></div><h3>Bal masqué</h3><footer><span>04:09</span><b>▶</b></footer></article>
-                            <article class="track-card" style="--track:#ec4899"><span class="track-number">6</span><div class="wave-line"></div><h3>Applaudissements</h3><footer><span>01:32</span><b>▶</b></footer></article>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="product-caption" data-reveal><span><i class="status-pulse"></i> Lecture locale, sans latence réseau</span><span>MP3 · WAV · OGG · FLAC · AAC</span></div>
+    <section class="outcome-strip" aria-label="Ce que SonoRiva permet de faire">
+        <div class="shell outcome-grid">
+            <article data-reveal><span>01</span><div><strong>Trouver</strong><p>Recherche Freesound sans quitter la régie.</p></div></article>
+            <article data-reveal><span>02</span><div><strong>Préécouter</strong><p>Écoute immédiate sur la sortie choisie.</p></div></article>
+            <article data-reveal><span>03</span><div><strong>Organiser</strong><p>Catégories, couleurs, colonnes et ordre libre.</p></div></article>
+            <article data-reveal><span>04</span><div><strong>Déclencher</strong><p>Plusieurs lectures, plusieurs sorties audio.</p></div></article>
         </div>
     </section>
 
-    <section class="feature-section section" id="fonctionnalites">
+    <section class="feature-stories section" id="fonctionnalites">
         <div class="shell">
             <div class="section-heading split" data-reveal>
-                <div><p class="eyebrow">Conçu pour le direct</p><h2>Fiable en répétition.<br><em>Imperturbable en scène.</em></h2></div>
-                <p>SonoRiva transforme votre navigateur en régie complète, sans sacrifier la rapidité ni la précision d’un outil professionnel.</p>
+                <div><p class="eyebrow">Du besoin au son</p><h2>Moins de fenêtres.<br><em>Plus de jeu.</em></h2></div>
+                <p>Les fonctions principales sont directement accessibles depuis le soundboard. Chaque écran ci-dessous correspond à l’interface actuelle de l’application.</p>
             </div>
-            <div class="feature-grid">
-                <article class="feature-card feature-wide" data-reveal>
-                    <div class="feature-icon accent"><span>▶</span></div>
-                    <div><p class="card-kicker">Déclenchement immédiat</p><h3>Un geste. Le bon son.</h3><p>Clic, raccourci clavier ou télécommande : chaque action est instantanée et personnalisable par spectacle.</p></div>
-                    <div class="cue-visual" aria-hidden="true"><span>1</span><i></i><span>2</span><i></i><span class="current">3<b>PLAY</b></span><i></i><span>4</span></div>
+
+            <article class="feature-story feature-story-freesound">
+                <div class="feature-story-copy" data-reveal>
+                    <span class="story-number">01 / Freesound</span>
+                    <h3>Cherchez, écoutez, ajoutez. Sans téléchargement intermédiaire.</h3>
+                    <p>La recherche Freesound est intégrée au champ de recherche de SonoRiva. Un même écran regroupe les résultats, la préécoute et l’ajout au spectacle.</p>
+                    <ul class="concrete-list">
+                        <li><span>01</span><div><strong>Rechercher précisément</strong><p>Texte, licence compatible et durée minimale ou maximale.</p></div></li>
+                        <li><span>02</span><div><strong>Écouter tout de suite</strong><p>Lecture, pause, progression et volume sans quitter les résultats.</p></div></li>
+                        <li><span>03</span><div><strong>Ajouter au bon endroit</strong><p>Nom, catégorie et couleur sont choisis avant l’import.</p></div></li>
+                    </ul>
+                </div>
+                <figure class="product-shot feature-shot" data-reveal>
+                    <div class="product-shot-bar" aria-hidden="true"><span><i></i><i></i><i></i></span><strong>Recherche «&nbsp;orage&nbsp;»</strong><em>Capture réelle</em></div>
+                    <div class="product-shot-crop product-shot-crop-freesound"><img src="<?php echo esc_url($theme_uri . '/assets/images/app-freesound.png'); ?>" alt="Fenêtre réelle de recherche Freesound intégrée à SonoRiva avec filtres de licence, résultats, boutons d’écoute et d’ajout" width="1600" height="1050" loading="lazy"></div>
+                </figure>
+            </article>
+
+            <article class="feature-story feature-story-routing">
+                <div class="feature-story-copy" data-reveal>
+                    <span class="story-number">02 / Multi-sorties</span>
+                    <h3>Le même son sur la façade. Un autre dans les retours.</h3>
+                    <p>Avec SonoRiva Bridge, chaque sortie audio reçoit un nom et une couleur. La sortie principale reste accessible par le grand bouton, les autres apparaissent sous forme de boutons de lecture supplémentaires.</p>
+                    <div class="routing-facts">
+                        <span><b>1 clic</b> sur la sortie principale</span>
+                        <span><b>Multi-play</b> sur les sorties alternatives</span>
+                        <span><b>Simultané</b> avec plusieurs sons actifs</span>
+                    </div>
+                </div>
+                <div class="routing-demo" data-reveal aria-label="Aperçu fidèle des contrôles multi-sorties de SonoRiva">
+                    <div class="routing-demo-label"><span>Aperçu fidèle de l’interface Bridge</span><em>3 sorties détectées</em></div>
+                    <div class="output-strip-demo">
+                        <strong>Sorties audio</strong>
+                        <button class="is-main" style="--output:#22d3b6"><i></i><span>Façade</span><em>Principale</em></button>
+                        <button style="--output:#8b5cf6"><i></i><span>Retours scène</span></button>
+                        <button style="--output:#06b6d4"><i></i><span>Casque régie</span></button>
+                    </div>
+                    <div class="routing-board-demo">
+                        <article style="--track:#22d3b6">
+                            <div class="multi-play-row"><button class="main-play" aria-label="Lecture principale">▶</button><button style="--output:#8b5cf6" aria-label="Lire dans les retours">▶</button><button style="--output:#06b6d4" aria-label="Lire dans le casque">▶</button></div>
+                            <strong>Ambiance salle</strong><span>12:48 · Boucle</span>
+                        </article>
+                        <article style="--track:#8b5cf6">
+                            <div class="multi-play-row"><button class="main-play" aria-label="Lecture principale">▶</button><button style="--output:#8b5cf6" aria-label="Lire dans les retours">▶</button><button style="--output:#06b6d4" aria-label="Lire dans le casque">▶</button></div>
+                            <strong>Entrée comédien</strong><span>00:18 · Cue 12</span>
+                        </article>
+                        <article class="is-playing" style="--track:#06b6d4">
+                            <div class="multi-play-row"><button class="main-play" aria-label="Lecture principale">▮▮</button><button style="--output:#8b5cf6" aria-label="Lire dans les retours">▶</button><button style="--output:#06b6d4" aria-label="Lire dans le casque">▶</button></div>
+                            <strong>Annonce plateau</strong><span>En lecture · Casque régie</span>
+                        </article>
+                    </div>
+                    <div class="freesound-route-demo"><span>Dans Freesound, les mêmes boutons apparaissent à côté de la préécoute.</span><div><button style="--output:#22d3b6">▶</button><button style="--output:#8b5cf6">▶</button><button style="--output:#06b6d4">▶</button></div></div>
+                </div>
+            </article>
+
+            <article class="feature-story feature-story-organize">
+                <div class="organize-visual" data-reveal>
+                    <figure class="product-shot feature-shot">
+                        <div class="product-shot-bar" aria-hidden="true"><span><i></i><i></i><i></i></span><strong>Soundboard</strong><em>Capture réelle</em></div>
+                        <div class="product-shot-crop product-shot-crop-organize"><img src="<?php echo esc_url($theme_uri . '/assets/images/app-dashboard.png'); ?>" alt="Soundboard réel de SonoRiva montrant les catégories, le réglage des colonnes, la réorganisation et les cartes de sons colorées" width="1600" height="1050" loading="lazy"></div>
+                    </figure>
+                </div>
+                <div class="feature-story-copy" data-reveal>
+                    <span class="story-number">03 / Organisation</span>
+                    <h3>La disposition s’adapte au spectacle, pas l’inverse.</h3>
+                    <p>Le soundboard se réorganise directement par glisser-déposer. Les catégories structurent le spectacle et les couleurs rendent chaque famille de cues immédiatement identifiable.</p>
+                    <ul class="check-list">
+                        <li>De 2 à 12 colonnes sur ordinateur</li>
+                        <li>De 1 à 3 colonnes sur mobile</li>
+                        <li>Ordre libre des sons, playlists et catégories</li>
+                        <li>Largeur des catégories réglable</li>
+                        <li>Recherche dans tout le spectacle</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="feature-story feature-story-cues">
+                <div class="feature-story-copy" data-reveal>
+                    <span class="story-number">04 / Cues et réglages</span>
+                    <h3>Chaque son démarre et s’arrête exactement au bon endroit.</h3>
+                    <p>La forme d’onde permet de définir visuellement le début et la fin. Le même écran regroupe les réglages qui distinguent un fichier brut d’un cue prêt à jouer.</p>
+                    <div class="cue-tags" aria-label="Réglages disponibles"><span>Début / fin</span><span>Volume</span><span>Fondus</span><span>Boucle</span><span>Couleur</span><span>Catégorie</span></div>
+                </div>
+                <figure class="product-shot feature-shot" data-reveal>
+                    <div class="product-shot-bar" aria-hidden="true"><span><i></i><i></i><i></i></span><strong>Réglages du son</strong><em>Capture réelle</em></div>
+                    <div class="product-shot-crop product-shot-crop-settings"><img src="<?php echo esc_url($theme_uri . '/assets/images/app-track-settings.png'); ?>" alt="Fenêtre réelle de réglage d’un son avec couleur, catégorie, forme d’onde, points de début et fin, volume, fondus et boucle" width="1600" height="1050" loading="lazy"></div>
+                </figure>
+            </article>
+        </div>
+    </section>
+
+    <section class="capabilities-section section">
+        <div class="shell">
+            <div class="section-heading centered" data-reveal><p class="eyebrow">Et aussi, concrètement</p><h2>Tout ce qu’il faut autour du bouton Play.</h2></div>
+            <div class="capability-grid">
+                <article class="capability-card capability-playlist" data-reveal>
+                    <span class="capability-icon">≡</span><p class="card-kicker">Playlists</p><h3>Enchaînez plusieurs sons.</h3><p>Glissez les sons dans une playlist, changez leur ordre et choisissez lecture automatique, boucle, aléatoire, blanc ou fondu enchaîné.</p>
+                    <div class="mini-playlist" aria-hidden="true"><span><i>1</i>Accueil public</span><span><i>2</i>Annonce ouverture</span><span><i>3</i>Jingle</span></div>
                 </article>
-                <article class="feature-card" data-reveal>
-                    <div class="feature-icon violet"><span>⌁</span></div><p class="card-kicker">Toujours disponible</p><h3>Votre spectacle fonctionne hors connexion.</h3><p>Téléchargez un projet sur l’appareil. Les sons restent prêts, même si le Wi-Fi vous abandonne.</p><div class="offline-chip"><i></i> Projet disponible hors ligne</div>
+                <article class="capability-card capability-import" data-reveal>
+                    <span class="capability-icon">.SSP</span><p class="card-kicker">Import SoundShow</p><h3>Reprenez un spectacle existant.</h3><p>SonoRiva analyse le projet <code>.ssp</code>, retrouve les médias locaux et les sources Freesound compatibles, puis recrée catégories, couleurs, boucles, points de lecture et fondus.</p>
+                    <div class="import-flow" aria-hidden="true"><b>.SSP</b><i>→</i><span><em>6</em> catégories</span><span><em>42</em> sons</span><span><em>3</em> sources</span></div>
                 </article>
-                <article class="feature-card" data-reveal>
-                    <div class="feature-icon cyan"><span>⌁</span></div><p class="card-kicker">Pilotage à distance</p><h3>Une télécommande dans chaque poche.</h3><p>Contrôlez la régie depuis un téléphone connecté au même spectacle, en temps réel.</p><div class="remote-visual"><div><small>RÉGIE</small><b>En ligne</b></div><i>······</i><div><small>TÉLÉCOMMANDE</small><b>Connectée</b></div></div>
+                <article class="capability-card" data-reveal>
+                    <span class="capability-icon">⇣</span><p class="card-kicker">Hors ligne</p><h3>Chargez les sons sur l’appareil.</h3><p>Une catégorie peut être rendue disponible hors ligne. Les médias sont alors lus localement dans le navigateur.</p>
+                    <div class="status-chip"><i></i> Catégorie disponible hors ligne</div>
                 </article>
-                <article class="feature-card" data-reveal>
-                    <div class="feature-icon green"><span>⇥</span></div><p class="card-kicker">Migration facile</p><h3>Vos projets SoundShow vous suivent.</h3><p>Importez un fichier <code>.ssp</code> avec ses catégories, couleurs, boucles et points de lecture.</p><div class="import-visual"><span>.SSP</span><i>→</i><b><img src="<?php echo esc_url($theme_uri . '/assets/images/sonoriva-mark.svg'); ?>" alt="" width="30" height="30"> Projet prêt</b></div>
+                <article class="capability-card" data-reveal>
+                    <span class="capability-icon">↗</span><p class="card-kicker">Télécommande</p><h3>Pilotez la régie depuis un autre écran.</h3><p>Le mode télécommande envoie les commandes de lecture à la régie principale connectée au même spectacle.</p>
+                    <div class="remote-link"><span>Régie <i></i></span><b>••••••</b><span><i></i> Télécommande</span></div>
                 </article>
-                <article class="feature-card" data-reveal>
-                    <div class="feature-icon pink"><span>≋</span></div><p class="card-kicker">Édition précise</p><h3>Le son commence exactement où vous voulez.</h3><p>Zoomez sur la forme d’onde, placez vos points d’entrée et de sortie, puis réglez les fondus.</p><div class="editor-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span></span></div>
+                <article class="capability-card" data-reveal>
+                    <span class="capability-icon">⌁</span><p class="card-kicker">Actions de lecture</p><h3>Un geste peut avoir plusieurs sens.</h3><p>Démarrer, remplacer, arrêter, faire un fondu d’entrée ou un fondu enchaîné&nbsp;: les clics gauche et droit sont configurables.</p>
+                    <div class="mouse-actions-demo"><span><kbd>G</kbd>Démarrer</span><span><kbd>D</kbd>Fondu enchaîné</span></div>
+                </article>
+                <article class="capability-card" data-reveal>
+                    <span class="capability-icon">◷</span><p class="card-kicker">Repères de régie</p><h3>Le temps reste visible.</h3><p>Horloge, chronomètre, historique de progression et volume du prochain son restent accessibles au-dessus du soundboard.</p>
+                    <div class="time-demo"><span><small>CHRONO</small>00:42:18</span><span><small>HEURE</small>20:47:06</span></div>
                 </article>
             </div>
         </div>
@@ -101,49 +184,38 @@ $theme_uri = get_template_directory_uri();
 
     <section class="usecases-section section" id="pour-qui">
         <div class="shell">
-            <div class="section-heading centered" data-reveal><p class="eyebrow">Un outil, plusieurs scènes</p><h2>Vous créez l’instant.<br>SonoRiva tient le tempo.</h2></div>
+            <div class="section-heading centered" data-reveal><p class="eyebrow">Une régie, plusieurs plateaux</p><h2>Pour les spectacles où le son doit partir maintenant.</h2></div>
             <div class="usecase-grid">
-                <article data-reveal><span>01</span><h3>Théâtre & improvisation</h3><p>Ambiances, bruitages et musiques au bout des doigts, même quand le spectacle change en direct.</p><i>→</i></article>
-                <article data-reveal><span>02</span><h3>Danse & performance</h3><p>Des enchaînements fluides, des fondus maîtrisés et une lecture fiable pour accompagner chaque mouvement.</p><i>→</i></article>
-                <article data-reveal><span>03</span><h3>Événements & live</h3><p>Jingles, lancements et transitions organisés par séquences pour garder une longueur d’avance.</p><i>→</i></article>
+                <article data-reveal><span>01</span><h3>Théâtre & improvisation</h3><p>Bruitages, ambiances, musiques et changements improvisés réunis par spectacle.</p><i>→</i></article>
+                <article data-reveal><span>02</span><h3>Danse & performance</h3><p>Points de lecture, fondus, playlists et sorties dédiées pour accompagner le plateau.</p><i>→</i></article>
+                <article data-reveal><span>03</span><h3>Événementiel & live</h3><p>Jingles, annonces, lancements et transitions accessibles par couleur et catégorie.</p><i>→</i></article>
             </div>
-        </div>
-    </section>
-
-    <section class="workflow-section section">
-        <div class="shell workflow-grid">
-            <div class="workflow-copy" data-reveal><p class="eyebrow">Simple par nature</p><h2>De vos fichiers<br>à la scène en trois temps.</h2><p>Pas de manuel de cent pages. SonoRiva reprend les gestes évidents d’une régie et les rend plus rapides.</p><a class="inline-link" href="https://app.sonoriva.fr">Créer mon premier spectacle <span>→</span></a></div>
-            <ol class="workflow-steps">
-                <li data-reveal><span>01</span><div><h3>Créez votre spectacle</h3><p>Organisez votre espace par projet, catégorie et couleur.</p></div></li>
-                <li data-reveal><span>02</span><div><h3>Déposez vos médias</h3><p>Importez vos fichiers ou retrouvez un son compatible sur Freesound.</p></div></li>
-                <li data-reveal><span>03</span><div><h3>Jouez en confiance</h3><p>Préchargez hors ligne, branchez votre sortie audio et lancez le show.</p></div></li>
-            </ol>
         </div>
     </section>
 
     <section class="pricing-section section" id="tarifs">
         <div class="shell">
-            <div class="section-heading centered" data-reveal><p class="eyebrow">Un tarif simple et transparent</p><h2>Faire vivre SonoRiva,<br>sans faire grimper la note.</h2><p>L’abonnement sert essentiellement à couvrir les frais d’hébergement, de maintenance et de développement continu.</p></div>
+            <div class="section-heading centered" data-reveal><p class="eyebrow">Offres</p><h2>Commencez dans le navigateur.<br>Passez au multi-sorties avec Bridge.</h2><p>Les offres disponibles et leurs limites sont chargées directement depuis SonoRiva.</p></div>
             <?php echo do_blocks('<!-- wp:sonoriva/plans /-->'); ?>
         </div>
     </section>
 
     <section class="faq-section section" id="faq">
         <div class="shell faq-grid">
-            <div data-reveal><p class="eyebrow">Questions fréquentes</p><h2>Avant de monter<br>le son.</h2><p>Une question qui n’est pas traitée ici peut être envoyée directement à l’équipe SonoRiva.</p><a class="inline-link" href="mailto:contact@sebastienj.com">Poser une question <span>↗</span></a></div>
+            <div data-reveal><p class="eyebrow">Questions fréquentes</p><h2>Les détails<br>avant le show.</h2><p>Une question qui n’est pas traitée ici peut être envoyée directement à l’équipe SonoRiva.</p><a class="inline-link" href="mailto:contact@sebastienj.com">Poser une question <span>↗</span></a></div>
             <div class="faq-list" data-reveal>
-                <details open><summary>SonoRiva fonctionne-t-il vraiment sans Internet ?<span>＋</span></summary><p>Oui. Vous pouvez rendre un projet disponible hors ligne depuis l’application. Les médias sont alors lus localement par le navigateur.</p></details>
-                <details><summary>Quels formats audio sont acceptés ?<span>＋</span></summary><p>SonoRiva prend en charge MP3, WAV, OGG, FLAC, M4A et AAC, avec des fichiers allant jusqu’à 250 Mo.</p></details>
-                <details><summary>Puis-je importer mes anciens spectacles ?<span>＋</span></summary><p>Oui. L’import SoundShow récupère les catégories, couleurs, boucles, points d’entrée et de sortie depuis un projet <code>.ssp</code>.</p></details>
-                <details><summary>Faut-il installer un logiciel ?<span>＋</span></summary><p>Non. SonoRiva fonctionne dans un navigateur moderne et peut être installé comme une application PWA sur votre ordinateur ou téléphone.</p></details>
-                <details><summary>Que se passe-t-il à la fin de l’essai ?<span>＋</span></summary><p>L’espace passe en lecture seule jusqu’à l’activation d’un abonnement. Les projets et les sons restent accessibles.</p></details>
+                <details open><summary>Peut-on jouer plusieurs sons en même temps&nbsp;?<span>＋</span></summary><p>Oui. SonoRiva gère plusieurs lectures simultanées. Avec SonoRiva Bridge, chaque lecture peut aussi être dirigée vers une sortie audio distincte.</p></details>
+                <details><summary>Comment fonctionne la recherche Freesound&nbsp;?<span>＋</span></summary><p>La recherche est accessible depuis le soundboard. Elle permet de filtrer par licence et durée, d’écouter les résultats, puis de choisir le nom, la catégorie et la couleur avant l’ajout. Les sons CC BY conservent leur attribution.</p></details>
+                <details><summary>Que récupère l’import SoundShow&nbsp;?<span>＋</span></summary><p>L’import lit un projet <code>.ssp</code> et reprend les catégories, couleurs, boucles, points d’entrée et de sortie, fondus et médias disponibles. Les sources Freesound compatibles sont également reconnues.</p></details>
+                <details><summary>SonoRiva fonctionne-t-il sans Internet&nbsp;?<span>＋</span></summary><p>Oui. Une catégorie peut être rendue disponible hors ligne. Les médias concernés sont ensuite lus localement par le navigateur.</p></details>
+                <details><summary>Quels formats audio sont acceptés&nbsp;?<span>＋</span></summary><p>SonoRiva prend en charge MP3, WAV, OGG, FLAC, M4A et AAC, avec des fichiers allant jusqu’à 250&nbsp;Mo.</p></details>
             </div>
         </div>
     </section>
 
     <section class="final-cta">
         <div class="cta-glow" aria-hidden="true"></div>
-        <div class="shell final-cta-inner" data-reveal><p class="eyebrow">Votre prochain spectacle commence ici</p><h2>Prêt quand vous l’êtes.</h2><p>Créez votre régie, importez quelques sons et sentez immédiatement la différence.</p><div><a class="button button-light" href="https://app.sonoriva.fr">Ouvrir SonoRiva <span>↗</span></a><a class="button button-dark" href="https://app.sonoriva.fr/docs/">Lire la documentation</a></div></div>
+        <div class="shell final-cta-inner" data-reveal><p class="eyebrow">La démo utilise la vraie application</p><h2>Essayez les gestes.</h2><p>Ouvrez le soundboard, jouez les sons fournis, changez de catégorie et lancez une recherche Freesound.</p><div><a class="button button-light" href="https://app.sonoriva.fr/demo">Ouvrir la démo <span>↗</span></a><a class="button button-dark" href="https://app.sonoriva.fr/docs/">Lire la documentation</a></div></div>
     </section>
 </main>
 <?php get_footer(); ?>
