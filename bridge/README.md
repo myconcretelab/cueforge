@@ -1,6 +1,6 @@
 # SonoRiva Bridge
 
-SonoRiva Bridge 1.0.0 est le moteur audio natif facultatif de SonoRiva. L’application web reste autonome et utilise Web Audio lorsque le bridge n’est pas sélectionné.
+SonoRiva Bridge 1.0.1 est le moteur audio natif facultatif de SonoRiva. L’application web reste autonome et utilise Web Audio lorsque le bridge n’est pas sélectionné.
 
 ## Composants
 
@@ -11,7 +11,7 @@ SonoRiva Bridge 1.0.0 est le moteur audio natif facultatif de SonoRiva. L’appl
 - canal WebSocket local pour l’état des lectures ;
 - cache de fichiers compressés dans le dossier de cache de l’utilisateur ;
 - nombre de fichiers et taille totale du cache affichés dans la fenêtre ;
-- jeton d’appareil et clé locale dans le trousseau macOS ou le Gestionnaire d’identification Windows ;
+- jeton d’appareil et clé locale dans le fichier privé `credentials.json` ;
 - association par URL `sonoriva-bridge://pair` et ticket SonoRiva temporaire.
 - mise à jour automatique signée depuis la dernière publication GitHub.
 
@@ -30,7 +30,7 @@ L’application et son paquet sont produits sous `bridge/src-tauri/target/releas
 
 Le fichier `bridge/package.json` et son lockfile contiennent uniquement l’outillage de compilation du bridge. L’installation npm située à la racine ne contient pas Tauri.
 
-Au démarrage, le Bridge consulte `latest.json` dans la dernière publication GitHub. Une nouvelle version est téléchargée et vérifiée avec la clé publique intégrée. Elle est installée et le Bridge redémarre uniquement si aucune lecture audio n’a commencé pendant le téléchargement. Sinon, l’installation est différée jusqu’à un prochain démarrage.
+Au démarrage, le Bridge consulte `latest.json` dans la dernière publication GitHub. Une nouvelle version est téléchargée et vérifiée avec la clé publique intégrée. Elle est installée et le Bridge redémarre uniquement si aucune lecture audio n’a commencé pendant le téléchargement. Sinon, l’installation est différée jusqu’à un prochain démarrage. Les jetons d’association sont enregistrés dans `credentials.json`, dans le dossier local de données du Bridge. Sous macOS et Linux, ce fichier utilise les permissions `0600`. La version 1.0.1 importe une association existante depuis le gestionnaire d’identifiants du système lorsque ce fichier n’existe pas encore.
 
 ## Publication GitHub
 

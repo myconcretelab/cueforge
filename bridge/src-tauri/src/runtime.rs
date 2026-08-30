@@ -32,8 +32,7 @@ impl Runtime {
     pub fn load() -> Result<Arc<Self>, String> {
         let store = ConfigStore::new()?;
         let config = store.load();
-        let device_token = store.read_device_token();
-        let local_token = store.read_local_token();
+        let (device_token, local_token) = store.load_tokens();
         Ok(Arc::new(Self {
             config: RwLock::new(config),
             device_token: RwLock::new(device_token),
@@ -53,6 +52,22 @@ impl Runtime {
             && config.device_id.is_some()
             && self.device_token.read().await.is_some()
             && self.local_token.read().await.is_some()
+    }
+
+    pub async fn migrate_legacy_tokens(&self) -> Result<bool, String> {
+        if self.device_token.read().await.is_some() && self.local_token.read().await.is_some() {
+            return Ok(false);
+        }
+        let store = self.store.clone();
+        let migrated = tokio::task::spawn_blocking(move || store.migrate_legacy_tokens())
+            .await
+            .map_err(|error| error.to_string())??;
+        let Some((device_token, local_token)) = migrated else {
+            return Ok(false);
+        };
+        *self.device_token.write().await = Some(device_token);
+        *self.local_token.write().await = Some(local_token);
+        Ok(true)
     }
 
     pub async fn claim_pairing(&self, ticket: &str, server_url: &str) -> Result<(), String> {

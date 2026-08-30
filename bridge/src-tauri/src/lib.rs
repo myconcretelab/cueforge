@@ -35,6 +35,14 @@ pub fn run() {
                 }
             });
 
+            let migration_runtime = runtime.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                if let Err(error) = migration_runtime.migrate_legacy_tokens().await {
+                    eprintln!("Migration de l’association SonoRiva impossible: {error}");
+                }
+            });
+
             let update_handle = app.handle().clone();
             let update_runtime = runtime.clone();
             tauri::async_runtime::spawn(async move {

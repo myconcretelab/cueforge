@@ -33,7 +33,7 @@ import { consumeBridgePairingStatus } from '../services/bridge-pairing.js';
 const ticketSchema = z.object({ ticket: z.string().min(32).max(200) });
 const deviceIdSchema = z.object({ id: z.string().uuid() });
 const pairingAlreadyClaimed = Symbol('pairing-already-claimed');
-const bridgeDownloadUrl = 'https://github.com/myconcretelab/sonoriva/releases/tag/bridge-v1.0.0';
+const bridgeDownloadUrl = 'https://github.com/myconcretelab/sonoriva/releases/tag/bridge-v1.0.1';
 
 function accountHasBridgeAccess(context: Awaited<ReturnType<typeof accountForUser>>): boolean {
   return Boolean(context && accountCanUseBridge({
