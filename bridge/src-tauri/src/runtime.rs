@@ -10,6 +10,8 @@ use crate::{
     models::{BridgeTrack, ProjectManifest},
 };
 
+const MAX_REMOTE_PREVIEW_BYTES: u64 = 50 * 1024 * 1024;
+
 pub struct Runtime {
     pub config: RwLock<BridgeConfig>,
     pub device_token: RwLock<Option<String>>,
@@ -188,6 +190,81 @@ impl Runtime {
         Ok(path)
     }
 
+    pub async fn ensure_remote_preview(
+        &self,
+        preview_id: u64,
+        preview_url: &str,
+    ) -> Result<PathBuf, String> {
+        validate_remote_preview_url(preview_url)?;
+        let path = self
+            .store
+            .cache_dir
+            .join(format!("freesound-{preview_id}.preview"));
+        if let Ok(mut entries) = fs::read_dir(&self.store.cache_dir).await {
+            while let Ok(Some(entry)) = entries.next_entry().await {
+                let candidate = entry.path();
+                if candidate != path
+                    && candidate.extension().and_then(|value| value.to_str()) == Some("preview")
+                {
+                    let _ = fs::remove_file(candidate).await;
+                }
+            }
+        }
+        if fs::try_exists(&path)
+            .await
+            .map_err(|error| error.to_string())?
+        {
+            return Ok(path);
+        }
+        let mut response = self
+            .client
+            .get(preview_url)
+            .send()
+            .await
+            .map_err(|error| error.to_string())?;
+        validate_remote_preview_url(response.url().as_str())?;
+        if !response.status().is_success() {
+            return Err(format!(
+                "Préécoute Freesound indisponible ({}).",
+                response.status()
+            ));
+        }
+        if response
+            .content_length()
+            .is_some_and(|size| size > MAX_REMOTE_PREVIEW_BYTES)
+        {
+            return Err("La préécoute Freesound dépasse 50 Mo.".to_string());
+        }
+        let temporary = self
+            .store
+            .cache_dir
+            .join(format!("freesound-{preview_id}.part"));
+        let mut file = fs::File::create(&temporary)
+            .await
+            .map_err(|error| error.to_string())?;
+        let mut received = 0_u64;
+        while let Some(chunk) = response.chunk().await.map_err(|error| error.to_string())? {
+            received += chunk.len() as u64;
+            if received > MAX_REMOTE_PREVIEW_BYTES {
+                let _ = fs::remove_file(&temporary).await;
+                return Err("La préécoute Freesound dépasse 50 Mo.".to_string());
+            }
+            file.write_all(&chunk)
+                .await
+                .map_err(|error| error.to_string())?;
+        }
+        file.flush().await.map_err(|error| error.to_string())?;
+        drop(file);
+        if received == 0 {
+            let _ = fs::remove_file(&temporary).await;
+            return Err("La préécoute Freesound est vide.".to_string());
+        }
+        fs::rename(&temporary, &path)
+            .await
+            .map_err(|error| error.to_string())?;
+        Ok(path)
+    }
+
     pub async fn sync_project(&self, project_id: &str) -> Result<usize, String> {
         validate_track_id(project_id)?;
         let config = self.config.read().await.clone();
@@ -250,7 +327,7 @@ impl Runtime {
         {
             if matches!(
                 entry.path().extension().and_then(|value| value.to_str()),
-                Some("audio" | "part")
+                Some("audio" | "preview" | "part")
             ) {
                 fs::remove_file(entry.path())
                     .await
@@ -304,14 +381,34 @@ fn validate_track_id(value: &str) -> Result<(), String> {
     }
 }
 
+fn validate_remote_preview_url(value: &str) -> Result<(), String> {
+    let url = url::Url::parse(value).map_err(|_| "Adresse de préécoute invalide.".to_string())?;
+    if url.scheme() == "https"
+        && url
+            .host_str()
+            .is_some_and(|host| host == "freesound.org" || host.ends_with(".freesound.org"))
+    {
+        Ok(())
+    } else {
+        Err("Seules les préécoutes HTTPS de Freesound sont autorisées.".to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::validate_track_id;
+    use super::{validate_remote_preview_url, validate_track_id};
 
     #[test]
     fn accepts_uuid_identifiers_and_rejects_paths() {
         assert!(validate_track_id("11111111-1111-4111-8111-111111111111").is_ok());
         assert!(validate_track_id("../../Library/secret").is_err());
         assert!(validate_track_id("track/name").is_err());
+    }
+
+    #[test]
+    fn accepts_only_freesound_preview_urls() {
+        assert!(validate_remote_preview_url("https://cdn.freesound.org/previews/1/1.mp3").is_ok());
+        assert!(validate_remote_preview_url("http://cdn.freesound.org/previews/1/1.mp3").is_err());
+        assert!(validate_remote_preview_url("https://example.com/audio.mp3").is_err());
     }
 }

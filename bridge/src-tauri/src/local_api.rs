@@ -52,10 +52,18 @@ struct OutputInput {
 #[serde(rename_all = "camelCase")]
 struct PlayInput {
     track: BridgeTrack,
+    remote_preview: Option<RemotePreviewInput>,
     fade_in_ms: Option<u64>,
     volume_multiplier: Option<f32>,
     channel: Option<String>,
     output_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RemotePreviewInput {
+    id: u64,
+    url: String,
 }
 
 #[derive(Deserialize)]
@@ -145,7 +153,7 @@ async fn status(State(state): State<Arc<Runtime>>) -> Json<serde_json::Value> {
         "deviceId": config.device_id,
         "cachedTracks": cached_tracks,
         "cachedBytes": cached_bytes,
-        "capabilities": ["perPlaybackOutput"],
+        "capabilities": ["perPlaybackOutput", "remotePreview"],
     }))
 }
 
@@ -217,7 +225,13 @@ async fn play(
     Json(input): Json<PlayInput>,
 ) -> ApiResult<Json<serde_json::Value>> {
     authorize(&headers, &state, false).await?;
-    let path = state.ensure_track(&input.track).await?;
+    let path = if let Some(preview) = &input.remote_preview {
+        state
+            .ensure_remote_preview(preview.id, &preview.url)
+            .await?
+    } else {
+        state.ensure_track(&input.track).await?
+    };
     let channel = input.channel.as_deref().unwrap_or("main");
     let config = state.config.read().await;
     let output_id = input.output_id.clone().unwrap_or_else(|| {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CircleCheck, Download, ExternalLink, LoaderCircle, Pause, Play, Search, ShieldCheck, Square, Volume2, Waves, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { audioEngine } from '../lib/audio-engine';
+import { bridgeClient } from '../lib/bridge-client';
 import type { RoutedBridgeOutput } from '../lib/bridge-output-routing';
 import type { Category, FreesoundLicenseFilter, FreesoundSearchResult, FreesoundSound } from '../types';
 
@@ -40,9 +41,16 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
   const [importError, setImportError] = useState('');
   const [importedIds, setImportedIds] = useState<Set<number>>(new Set());
   const audioRef = useRef<HTMLAudioElement | undefined>(undefined);
+  const bridgePreviewIdRef = useRef<string | undefined>(undefined);
+  const previewSequenceRef = useRef(0);
   const searchRef = useRef<AbortController | undefined>(undefined);
 
   const stopPreview = useCallback(() => {
+    previewSequenceRef.current += 1;
+    if (bridgePreviewIdRef.current) {
+      bridgeClient.stop(bridgePreviewIdRef.current, 0);
+      bridgePreviewIdRef.current = undefined;
+    }
     const audio = audioRef.current;
     audioRef.current = undefined;
     if (audio) {
@@ -56,6 +64,20 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
     setCurrentTime(0);
     setPlayerDuration(0);
   }, []);
+
+  useEffect(() => bridgeClient.subscribe((playbacks) => {
+    const playbackId = bridgePreviewIdRef.current;
+    if (!playbackId) return;
+    const playback = playbacks.find((candidate) => candidate.id === playbackId);
+    if (!playback) {
+      bridgePreviewIdRef.current = undefined;
+      setPlayerState('paused');
+      return;
+    }
+    setCurrentTime(playback.positionMs / 1_000);
+    setPlayerDuration(playback.durationMs / 1_000);
+    setPlayerState(playback.paused ? 'paused' : 'playing');
+  }), []);
 
   useEffect(() => {
     const stop = () => stopPreview();
@@ -100,6 +122,13 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
   }
 
   function togglePreview(sound: FreesoundSound, output?: RoutedBridgeOutput) {
+    if (bridgeClient.isEnabled()) {
+      toggleBridgePreview(sound, output).catch((cause) => {
+        setPlayerState('paused');
+        setError(cause instanceof Error ? cause.message : 'La préécoute Freesound ne peut pas démarrer dans le Bridge.');
+      });
+      return;
+    }
     const existing = audioRef.current;
     if (currentSound?.id === sound.id && existing) {
       if (output?.id !== currentOutputId) {
@@ -161,6 +190,40 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
     });
   }
 
+  async function toggleBridgePreview(sound: FreesoundSound, output?: RoutedBridgeOutput) {
+    const existingId = bridgePreviewIdRef.current;
+    if (currentSound?.id === sound.id && existingId) {
+      if (output?.id !== currentOutputId && output) {
+        setPlayerState('loading');
+        await bridgeClient.setPlaybackOutput(existingId, output.id);
+        setCurrentOutputId(output.id);
+        return;
+      }
+      bridgeClient.togglePause(existingId);
+      return;
+    }
+    if (currentSound?.id === sound.id && playerState === 'loading') return;
+    stopPreview();
+    const sequence = previewSequenceRef.current;
+    setError('');
+    setCurrentSound(sound);
+    setCurrentOutputId(output?.id);
+    setPlayerState('loading');
+    setCurrentTime(0);
+    setPlayerDuration(sound.durationSeconds);
+    const status = await bridgeClient.discover();
+    if (!status.capabilities?.includes('remotePreview')) {
+      throw new Error('La préécoute Freesound nécessite SonoRiva Bridge 1.0.2 ou une version ultérieure.');
+    }
+    const playbackId = await bridgeClient.playRemotePreview({ id: sound.id, name: sound.name, url: sound.previewUrl, durationMs: Math.round(sound.durationSeconds * 1_000), volume }, output?.id);
+    if (sequence !== previewSequenceRef.current) {
+      bridgeClient.stop(playbackId, 0);
+      return;
+    }
+    bridgePreviewIdRef.current = playbackId;
+    setPlayerState('playing');
+  }
+
   function closeDialog() {
     stopPreview();
     onClose();
@@ -209,14 +272,20 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
 
   function updateVolume(value: number) {
     setVolume(value);
+    if (bridgePreviewIdRef.current) bridgeClient.setVolume(bridgePreviewIdRef.current, value);
     if (audioRef.current) audioRef.current.volume = value;
   }
 
   function seek(event: React.MouseEvent<HTMLButtonElement>) {
-    const audio = audioRef.current;
-    if (!audio || !playerDuration) return;
+    if (!playerDuration) return;
     const bounds = event.currentTarget.getBoundingClientRect();
-    audio.currentTime = Math.max(0, Math.min(playerDuration, ((event.clientX - bounds.left) / bounds.width) * playerDuration));
+    const progress = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+    if (bridgePreviewIdRef.current) {
+      bridgeClient.seek(bridgePreviewIdRef.current, progress);
+      return;
+    }
+    const audio = audioRef.current;
+    if (audio) audio.currentTime = progress * playerDuration;
   }
 
   const progress = playerDuration ? Math.min(1, currentTime / playerDuration) : 0;

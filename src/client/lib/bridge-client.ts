@@ -126,6 +126,38 @@ class BridgeClient {
     return result.playbackId;
   }
 
+  async playRemotePreview(input: { id: number; name: string; url: string; durationMs: number; volume: number }, outputId?: string): Promise<string> {
+    const track = {
+      id: `freesound-${input.id}`,
+      projectId: '',
+      categoryId: null,
+      title: input.name,
+      originalFilename: input.name,
+      mimeType: 'audio/mpeg',
+      sizeBytes: 0,
+      durationMs: input.durationMs,
+      startTimeMs: 0,
+      endTimeMs: null,
+      volume: input.volume,
+      loop: false,
+      fadeInMs: 0,
+      fadeOutMs: 0,
+      color: null,
+      description: null,
+      copyrightText: null,
+      sourceUrl: input.url,
+      sourceId: `freesound:${input.id}`,
+      position: 0,
+      createdAt: new Date().toISOString(),
+    } satisfies Track;
+    const result = await this.request<{ playbackId: string }>('/v1/play', {
+      method: 'POST',
+      body: JSON.stringify({ track, fadeInMs: 0, volumeMultiplier: 1, channel: 'preview', outputId, remotePreview: { id: input.id, url: input.url } }),
+    });
+    await this.refreshPlaybacks();
+    return result.playbackId;
+  }
+
   togglePause(id: string): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/pause`, 'POST'); }
   setVolume(id: string, volume: number): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/volume`, 'PUT', { volume }); }
   setLoop(id: string, loop: boolean): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/loop`, 'PUT', { loop }); }

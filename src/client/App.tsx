@@ -1272,9 +1272,8 @@ export default function App() {
       </section>}
 
       <section className="dashboard" aria-label="Tableau de bord des morceaux">
-        <label className="search"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un son…" /><kbd>⌘ K</kbd></label>
+        <div className="search"><Search size={18} /><input aria-label="Rechercher un son" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un son…" />{!remote && <button type="button" className="search-freesound" onClick={() => setFreesoundOpen(true)} aria-label={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Ouvrir la recherche Freesound'} title={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Rechercher sur Freesound'}><Waves size={17} /></button>}<kbd>⌘ K</kbd></div>
         <div className="dashboard-actions">
-          {!remote && <button className="dashboard-button freesound-launch" onClick={() => setFreesoundOpen(true)} aria-label="Rechercher sur Freesound" title="Rechercher sur Freesound"><Waves size={18} /></button>}
           {!remote && <button className={`dashboard-button ${preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'is-loaded' : ''}`} onClick={() => preloadCategory()} disabled={!tracksToPreload.length || Boolean(preloadProgress) || preloadedInCategory === tracksToPreload.length}
             aria-label={preloadProgress ? `Mise hors ligne ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'}>
             {preloadProgress ? <LoaderCircle className="spin" size={18} /> : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? <CircleCheck size={18} /> : <Download size={18} />}
