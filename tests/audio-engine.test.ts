@@ -80,7 +80,7 @@ describe('audio player instance controls', () => {
       mediaDevices: {
         enumerateDevices: vi.fn(async () => [
           { kind: 'audiooutput', deviceId: 'default', label: 'Sortie système par défaut' },
-          { kind: 'audiooutput', deviceId: 'mac-speakers', label: 'Haut-parleurs MacBook Pro' },
+          { kind: 'audiooutput', deviceId: 'mac-speakers', label: 'MacBook Pro Speakers (Built-in)' },
           { kind: 'audiooutput', deviceId: 'headphones', label: 'Écouteurs externes' },
         ]),
       },
@@ -160,6 +160,14 @@ describe('audio player instance controls', () => {
     setSinkId.mockClear();
     await audioEngine.applyAudioOutput({ setSinkId } as unknown as HTMLMediaElement, 'Ecouteurs externes');
     expect(setSinkId).toHaveBeenCalledWith('headphones');
+
+    setSinkId.mockClear();
+    await audioEngine.applyAudioOutput({ setSinkId } as unknown as HTMLMediaElement, 'Haut-parleurs MacBook Pro');
+    expect(setSinkId).toHaveBeenCalledWith('mac-speakers');
+
+    setSinkId.mockClear();
+    await audioEngine.applyAudioOutput({ setSinkId } as unknown as HTMLMediaElement, 'Haut-parleurs MacBook Pro', true);
+    expect(setSinkId).toHaveBeenCalledWith('');
 
     await audioEngine.setAudioOutput('');
     expect(FakeAudioContext.lastSinkId).toBe('');

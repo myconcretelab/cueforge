@@ -142,19 +142,18 @@ class AudioEngine {
     this.notifyRouting();
   }
 
-  async applyAudioOutput(element: HTMLMediaElement, preferredOutputLabel?: string): Promise<void> {
+  async applyAudioOutput(element: HTMLMediaElement, preferredOutputLabel?: string, systemDefault = false): Promise<void> {
     if (typeof element.setSinkId !== 'function') return;
     if (!preferredOutputLabel) {
       await element.setSinkId(this.outputSelection.deviceId);
       return;
     }
-    const requested = normalizeOutputLabel(preferredOutputLabel);
+    if (systemDefault) {
+      await element.setSinkId('');
+      return;
+    }
     const devices = await this.listAudioOutputDevices();
-    const selected = devices.find((device) => normalizeOutputLabel(device.label) === requested)
-      ?? devices.find((device) => {
-        const label = normalizeOutputLabel(device.label);
-        return label.includes(requested) || requested.includes(label);
-      });
+    const selected = devices.find((device) => outputLabelsMatch(device.label, preferredOutputLabel));
     if (!selected || !selected.deviceId) throw new Error(`La sortie « ${preferredOutputLabel} » n’est pas accessible au navigateur.`);
     await element.setSinkId(selected.deviceId);
   }
@@ -668,7 +667,19 @@ function persistAudioOutputSelection(selection: AudioOutputSelection): void {
 }
 
 function normalizeOutputLabel(value: string): string {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase()
+    .replace(/\bhaut[ -]parleurs?\b/g, ' speakers ')
+    .replace(/\becouteurs?\b/g, ' headphones ')
+    .replace(/\bexterne?s?\b/g, ' external ')
+    .replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function outputLabelsMatch(candidate: string, requested: string): boolean {
+  const candidateTokens = new Set(normalizeOutputLabel(candidate).split(' ').filter((token) => token && !['built', 'in', 'audio', 'output', 'sortie'].includes(token)));
+  const requestedTokens = new Set(normalizeOutputLabel(requested).split(' ').filter((token) => token && !['built', 'in', 'audio', 'output', 'sortie'].includes(token)));
+  if (candidateTokens.size === 0 || requestedTokens.size === 0) return false;
+  return [...requestedTokens].every((token) => candidateTokens.has(token))
+    || [...candidateTokens].every((token) => requestedTokens.has(token));
 }
 
 export const audioEngine = new AudioEngine();

@@ -104,7 +104,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
     if (currentSound?.id === sound.id && existing) {
       if (output?.id !== currentOutputId) {
         setPlayerState('loading');
-        audioEngine.applyAudioOutput(existing, output?.name).then(() => {
+        audioEngine.applyAudioOutput(existing, output?.name, output?.isDefault).then(() => {
           setCurrentOutputId(output?.id);
           return existing.play();
         }).catch(() => {
@@ -115,7 +115,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
       }
       if (existing.paused) {
         setPlayerState('loading');
-        audioEngine.applyAudioOutput(existing, output?.name).then(() => existing.play()).catch(() => {
+        audioEngine.applyAudioOutput(existing, output?.name, output?.isDefault).then(() => existing.play()).catch(() => {
           setPlayerState('paused');
           setError("La préécoute n'a pas pu démarrer sur la sortie audio sélectionnée.");
         });
@@ -155,7 +155,7 @@ export function FreesoundDialog({ initialQuery = '', projectId, categories, defa
       setPlayerState('paused');
       setError("La préécoute Freesound n'est pas disponible.");
     });
-    audioEngine.applyAudioOutput(audio, output?.name).then(() => audio.play()).catch(() => {
+    audioEngine.applyAudioOutput(audio, output?.name, output?.isDefault).then(() => audio.play()).catch(() => {
       if (audioRef.current === audio) setPlayerState('paused');
       setError(output ? `La sortie « ${output.name} » n’est pas accessible pour cette préécoute.` : "La préécoute n'a pas pu démarrer sur la sortie audio sélectionnée.");
     });
