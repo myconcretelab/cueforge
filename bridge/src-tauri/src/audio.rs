@@ -1,4 +1,14 @@
-use std::{collections::HashMap, fs::File, path::Path, path::PathBuf, sync::Arc, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    fs::File,
+    path::Path,
+    path::PathBuf,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
+};
 
 use cpal::traits::{DeviceTrait, HostTrait};
 use rodio::{Decoder, DeviceSinkBuilder, MixerDeviceSink, Player, Source};
@@ -23,9 +33,14 @@ struct Playback {
 }
 
 pub struct AudioEngine {
-    outputs: HashMap<String, MixerDeviceSink>,
+    outputs: HashMap<String, AudioOutputStream>,
     active: HashMap<String, Playback>,
     sequence: u64,
+}
+
+struct AudioOutputStream {
+    sink: MixerDeviceSink,
+    failed: Arc<AtomicBool>,
 }
 
 impl AudioEngine {
@@ -67,27 +82,84 @@ impl AudioEngine {
         Ok(outputs)
     }
 
-    fn output(&mut self, output_id: &str) -> Result<&MixerDeviceSink, String> {
+    fn output(&mut self, output_id: &str) -> Result<&AudioOutputStream, String> {
+        if self
+            .outputs
+            .get(output_id)
+            .is_some_and(|output| output.failed.load(Ordering::Acquire))
+        {
+            self.remove_output(output_id);
+        }
         if !self.outputs.contains_key(output_id) {
-            let sink = if output_id == "default" {
-                DeviceSinkBuilder::open_default_sink().map_err(|error| error.to_string())?
+            let host = cpal::default_host();
+            let device = if output_id == "default" {
+                host.default_output_device()
+                    .ok_or_else(|| "Aucune sortie audio par défaut n’est disponible.".to_string())?
             } else {
-                let host = cpal::default_host();
                 let mut devices = host.output_devices().map_err(|error| error.to_string())?;
-                let device = devices
+                devices
                     .find_map(|device| {
                         (device.id().ok()?.to_string() == output_id).then_some(device)
                     })
-                    .ok_or_else(|| "Cette sortie audio n’est plus disponible.".to_string())?;
-                DeviceSinkBuilder::from_device(device)
-                    .and_then(|builder| builder.open_stream())
-                    .map_err(|error| error.to_string())?
+                    .ok_or_else(|| "Cette sortie audio n’est plus disponible.".to_string())?
             };
-            self.outputs.insert(output_id.to_string(), sink);
+            let failed = Arc::new(AtomicBool::new(false));
+            let failed_for_callback = failed.clone();
+            let output_id_for_callback = output_id.to_string();
+            let sink = DeviceSinkBuilder::from_device(device)
+                .map(|builder| {
+                    builder.with_error_callback(move |error| {
+                        failed_for_callback.store(true, Ordering::Release);
+                        eprintln!("Flux audio interrompu sur {output_id_for_callback}: {error}");
+                    })
+                })
+                .and_then(|builder| builder.open_stream())
+                .map_err(|error| error.to_string())?;
+            self.outputs
+                .insert(output_id.to_string(), AudioOutputStream { sink, failed });
         }
         self.outputs
             .get(output_id)
             .ok_or_else(|| "Sortie audio inaccessible.".to_string())
+    }
+
+    fn remove_output(&mut self, output_id: &str) {
+        if let Some(mut output) = self.outputs.remove(output_id) {
+            output.sink.log_on_drop(false);
+        }
+        self.active.retain(|_, playback| {
+            if playback.output_id != output_id {
+                return true;
+            }
+            playback.player.stop();
+            false
+        });
+    }
+
+    fn refresh_output_if_idle(&mut self, output_id: &str, ignored_playback_id: Option<&str>) {
+        let is_in_use = self.active.values().any(|playback| {
+            playback.output_id == output_id
+                && ignored_playback_id != Some(playback.id.as_str())
+                && (playback.loop_playback || !playback.player.empty())
+        });
+        if !is_in_use {
+            self.remove_output(output_id);
+        }
+    }
+
+    fn release_unused_outputs(&mut self) {
+        let used_outputs = self
+            .active
+            .values()
+            .map(|playback| playback.output_id.as_str())
+            .collect::<HashSet<_>>();
+        self.outputs.retain(|output_id, output| {
+            let keep = used_outputs.contains(output_id.as_str());
+            if !keep {
+                output.sink.log_on_drop(false);
+            }
+            keep
+        });
     }
 
     pub fn play(
@@ -99,7 +171,8 @@ impl AudioEngine {
         fade_in_ms: u64,
         volume_multiplier: f32,
     ) -> Result<String, String> {
-        let mixer = self.output(output_id)?.mixer().clone();
+        self.refresh_output_if_idle(output_id, None);
+        let mixer = self.output(output_id)?.sink.mixer().clone();
         let duration_ms = track
             .end_time_ms
             .or(track.duration_ms)
@@ -137,8 +210,18 @@ impl AudioEngine {
     }
 
     pub fn snapshots(&mut self) -> Vec<PlaybackSnapshot> {
+        let failed_outputs = self
+            .outputs
+            .iter()
+            .filter(|(_, output)| output.failed.load(Ordering::Acquire))
+            .map(|(output_id, _)| output_id.clone())
+            .collect::<Vec<_>>();
+        for output_id in failed_outputs {
+            self.remove_output(&output_id);
+        }
         self.active
             .retain(|_, playback| playback.loop_playback || !playback.player.empty());
+        self.release_unused_outputs();
         let mut snapshots = self
             .active
             .values_mut()
@@ -240,6 +323,13 @@ impl AudioEngine {
     }
 
     pub fn set_output(&mut self, id: &str, output_id: &str) -> Result<(), String> {
+        if self
+            .active
+            .get(id)
+            .is_some_and(|playback| playback.output_id == output_id)
+        {
+            return Ok(());
+        }
         let (position_ms, paused, loop_playback, volume, track, path, previous_player) = {
             let playback = self
                 .active
@@ -260,7 +350,8 @@ impl AudioEngine {
                 playback.player.clone(),
             )
         };
-        let mixer = self.output(output_id)?.mixer().clone();
+        self.refresh_output_if_idle(output_id, Some(id));
+        let mixer = self.output(output_id)?.sink.mixer().clone();
         let player = Arc::new(Player::connect_new(&mixer));
         player.set_volume(volume);
         append_source(&player, &track, &path, position_ms, loop_playback)?;
