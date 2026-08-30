@@ -13,8 +13,8 @@ $theme_uri = get_template_directory_uri();
         <div class="shell product-hero-inner">
             <div class="product-hero-copy" data-reveal>
                 <p class="eyebrow">Régie son pour le spectacle vivant</p>
-                <h1>Tous vos sons.<br><em>Toutes vos sorties.</em><br>Un seul geste.</h1>
-                <p class="product-hero-lede">Cherchez un bruitage sur Freesound, écoutez-le, ajoutez-le au spectacle et déclenchez-le sur la bonne sortie audio&nbsp;: SonoRiva réunit toute la chaîne dans la même interface.</p>
+                <h1>La régie son.<br><em>Dans le cloud.</em><br>Prête pour la scène.</h1>
+                <p class="product-hero-lede">SonoRiva est un logiciel de régie son en ligne pour le théâtre et le spectacle vivant. Cherchez sur Freesound, organisez vos cues et déclenchez plusieurs sons sur les sorties audio de votre choix.</p>
                 <div class="hero-actions">
                     <a class="button button-primary" href="https://app.sonoriva.fr/demo">Tester la régie <span aria-hidden="true">↗</span></a>
                     <a class="button button-ghost" href="#fonctionnalites">Voir les fonctionnalités <span aria-hidden="true">↓</span></a>
@@ -179,6 +179,13 @@ $theme_uri = get_template_directory_uri();
                     <div class="time-demo"><span><small>CHRONO</small>00:42:18</span><span><small>HEURE</small>20:47:06</span></div>
                 </article>
             </div>
+        </div>
+    </section>
+
+    <section class="soundshow-promo">
+        <div class="shell soundshow-promo-grid">
+            <div data-reveal><p class="eyebrow">Vous utilisez SoundShow&nbsp;?</p><h2>Importez votre régie dans le cloud.</h2><p>SonoRiva analyse les projets <code>.ssp</code>, retrouve les médias locaux et recrée les catégories, couleurs, boucles, points de lecture et fondus compatibles.</p></div>
+            <div class="soundshow-promo-action" data-reveal><span><b>.SSP</b><i>→</i><b class="cloud-mark">☁</b></span><a class="button button-primary" href="<?php echo esc_url(home_url('/alternative-soundshow/')); ?>">Découvrir l’alternative cloud <span aria-hidden="true">→</span></a></div>
         </div>
     </section>
 

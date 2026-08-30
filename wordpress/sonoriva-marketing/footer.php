@@ -15,7 +15,7 @@
             <p>La régie son web conçue pour celles et ceux qui font vivre la scène.</p>
         </div>
         <div class="footer-links">
-            <div><strong>Produit</strong><a href="<?php echo esc_url(home_url('/#fonctionnalites')); ?>">Fonctionnalités</a><a href="<?php echo esc_url(home_url('/#tarifs')); ?>">Offres</a><a href="https://app.sonoriva.fr">Application</a></div>
+            <div><strong>Produit</strong><a href="<?php echo esc_url(home_url('/#fonctionnalites')); ?>">Fonctionnalités</a><a href="<?php echo esc_url(home_url('/alternative-soundshow/')); ?>">Alternative cloud à SoundShow</a><a href="<?php echo esc_url(home_url('/#tarifs')); ?>">Offres</a><a href="https://app.sonoriva.fr">Application</a></div>
             <div><strong>Ressources</strong><a href="https://app.sonoriva.fr/docs/">Documentation</a><a href="mailto:contact@sebastienj.com">Support</a><a href="<?php echo esc_url(home_url('/#faq')); ?>">Questions fréquentes</a></div>
             <div><strong>Légal</strong><a href="<?php echo esc_url(home_url('/confidentialite/')); ?>">Confidentialité</a><a href="<?php echo esc_url(home_url('/mentions-legales/')); ?>">Mentions légales</a></div>
         </div>

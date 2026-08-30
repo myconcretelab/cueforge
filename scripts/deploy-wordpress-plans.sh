@@ -48,7 +48,7 @@ ssh "$WORDPRESS_ACCOUNT@$WORDPRESS_SSH_HOST" "
   set -Eeuo pipefail
   find '$WORDPRESS_PLUGIN_ROOT' '$WORDPRESS_THEME_ROOT' -type f -name '*.php' -exec php -l {} \; >/dev/null
   cd '$WORDPRESS_ROOT'
-  php -r \"require 'wp-load.php'; require_once ABSPATH . 'wp-admin/includes/plugin.php'; activate_plugin('sonoriva-plans/sonoriva-plans.php'); switch_theme('sonoriva-marketing'); delete_transient('sonoriva_plans_api_response');\"
+  php -r \"require 'wp-load.php'; require_once ABSPATH . 'wp-admin/includes/plugin.php'; activate_plugin('sonoriva-plans/sonoriva-plans.php'); switch_theme('sonoriva-marketing'); update_option('blog_public', '1'); update_option('WPLANG', 'fr_FR'); update_option('blogname', 'SonoRiva'); update_option('blogdescription', 'Régie son cloud pour le spectacle vivant'); if (null === get_page_by_path('alternative-soundshow', OBJECT, 'page')) { wp_insert_post(array('post_title' => 'Alternative cloud à SoundShow', 'post_name' => 'alternative-soundshow', 'post_status' => 'publish', 'post_type' => 'page', 'post_content' => '')); } delete_transient('sonoriva_plans_api_response'); flush_rewrite_rules(false);\"
 "
 
 expected_card_count=$(curl --fail --silent --show-error "$SONORIVA_PLANS_API_URL" | php -r '
@@ -77,5 +77,21 @@ grep --fixed-strings --quiet 'SonoRiva Bridge pour macOS et Windows' <<< "$wordp
 grep --fixed-strings --quiet 'Démarrer maintenant' <<< "$wordpress_html" || fail "le forfait gratuit n’affiche pas son nouveau bouton."
 grep --fixed-strings --quiet 'Choisir ce forfait' <<< "$wordpress_html" || fail "les forfaits payants n’affichent pas leur nouveau bouton."
 grep --fixed-strings --quiet 'Essayer maintenant !' <<< "$wordpress_html" || fail "le header WordPress ne renvoie pas vers la démonstration."
+grep --fixed-strings --quiet '<html lang="fr-FR">' <<< "$wordpress_html" || fail "la langue du site WordPress n'est pas déclarée en français."
+grep --fixed-strings --quiet 'application/ld+json' <<< "$wordpress_html" || fail "les données structurées sont absentes de la page d'accueil."
+grep --fixed-strings --quiet 'Alternative SoundShow' <<< "$wordpress_html" || fail "le lien vers la page alternative SoundShow est absent."
+if grep --extended-regexp --quiet "<meta name=['\"]robots['\"][^>]*(noindex|nofollow)" <<< "$wordpress_html"; then
+  fail "la page d'accueil interdit encore son indexation."
+fi
+
+comparison_html=$(curl --fail --silent --show-error "$WORDPRESS_SITE_URL/alternative-soundshow/")
+grep --fixed-strings --quiet 'Alternative cloud à SoundShow' <<< "$comparison_html" || fail "la page alternative SoundShow n'est pas publiée."
+grep --fixed-strings --quiet 'Import SoundShow' <<< "$comparison_html" || fail "la page alternative SoundShow ne présente pas l'import."
+
+robots_txt=$(curl --fail --silent --show-error "$WORDPRESS_SITE_URL/robots.txt")
+grep --fixed-strings --quiet "Sitemap: $WORDPRESS_SITE_URL/wp-sitemap.xml" <<< "$robots_txt" || fail "robots.txt ne référence pas le sitemap WordPress."
+
+sitemap_xml=$(curl --fail --silent --show-error "$WORDPRESS_SITE_URL/wp-sitemap.xml")
+grep --fixed-strings --quiet "$WORDPRESS_SITE_URL/wp-sitemap-posts-page-1.xml" <<< "$sitemap_xml" || fail "l'index de sitemap WordPress ne contient pas les pages."
 
 printf 'Site WordPress SonoRiva déployé : %s\n' "$WORDPRESS_SITE_URL"
