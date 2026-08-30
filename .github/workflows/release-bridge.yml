@@ -75,7 +75,7 @@ jobs:
           tagName: bridge-v__VERSION__
           releaseName: SonoRiva Bridge v__VERSION__
           releaseBody: |
-            Trois paquets sont disponibles : macOS Apple Silicon (aarch64), macOS Intel (x64) et Windows x64.
+            Trois paquets sont disponibles : macOS 11 ou version ultérieure pour Apple Silicon (aarch64), macOS 11 ou version ultérieure pour Intel (x64), et Windows x64.
 
             Les paquets macOS utilisent une signature ad hoc sans certificat Apple Developer ni notarisation. L’installateur Windows n’est pas signé.
           releaseDraft: false

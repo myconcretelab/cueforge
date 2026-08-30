@@ -1,10 +1,10 @@
 # SonoRiva Bridge
 
-SonoRiva Bridge 1.0.2 est le moteur audio natif facultatif de SonoRiva. L’application web reste autonome et utilise Web Audio lorsque le bridge n’est pas sélectionné.
+SonoRiva Bridge 1.0.3 est le moteur audio natif facultatif de SonoRiva. L’application web reste autonome et utilise Web Audio lorsque le bridge n’est pas sélectionné.
 
 ## Composants
 
-- application de bureau Tauri 2 pour macOS et Windows x64 ;
+- application de bureau Tauri 2 pour macOS 11 ou version ultérieure et Windows x64 ;
 - moteur audio CPAL/Rodio avec une sortie ouverte par périphérique utilisé ;
 - routage individuel des lectures avec changement de périphérique à la même position ;
 - serveur HTTP local sur `127.0.0.1:43821` ;
