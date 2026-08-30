@@ -35,6 +35,21 @@ describe('sélecteur de sortie d’une lecture', () => {
     expect(markup).toContain('aria-label="Jouer Ouverture sur Jean Luc"');
   });
 
+  it('conserve un Play pour chaque sortie secondaire', () => {
+    const track = { id: 'track-1', title: 'Ouverture', durationMs: 60_000, startTimeMs: 0, endTimeMs: null, volume: 1, loop: false } as Track;
+    const ignore = () => undefined;
+    const extendedOutputs = [
+      ...outputs,
+      { id: 'stage-left', name: 'Scène gauche', isDefault: false, color: '#f59e0b' },
+      { id: 'stage-right', name: 'Scène droite', isDefault: false, color: '#ec4899' },
+    ];
+    const markup = renderToStaticMarkup(createElement(TrackPad, { track, color: '#22d3b6', active: false, playbacks: [], historyProgress: 0, loaded: false, reorderEnabled: false, playlistDropEnabled: false, dropTarget: false, bridgeOutputs: extendedOutputs, mainBridgeOutputId: 'speakers', onPrimary: ignore, onOutputPlay: ignore, onSecondary: ignore, onEdit: ignore, onDragStart: ignore, onDragOver: ignore, onDrop: ignore, onDragEnd: ignore }));
+    expect(markup.match(/aria-label="Jouer Ouverture sur/g)).toHaveLength(3);
+    expect(markup).toContain('aria-label="Jouer Ouverture sur Jean Luc"');
+    expect(markup).toContain('aria-label="Jouer Ouverture sur Scène gauche"');
+    expect(markup).toContain('aria-label="Jouer Ouverture sur Scène droite"');
+  });
+
   it('affiche le tableau de bord des sorties au-dessus du header', () => {
     const markup = renderToStaticMarkup(createElement(BridgeOutputLegend, { outputs, mainOutputId: 'speakers' }));
     expect(markup).toContain('class="bridge-output-strip"');

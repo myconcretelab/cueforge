@@ -316,7 +316,7 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .track-count span { color: #e4e4e7; font-size: .78rem; font-weight: 750; }
 .soundboard { flex: 1; padding: 2px clamp(18px, 3vw, 42px) 40px; }
 .track-grid { display: grid; grid-template-columns: repeat(var(--track-columns, 6), minmax(0, 1fr)); gap: 10px; }
-.track-pad { --track-color: #71717a; position: relative; min-width: 0; min-height: 148px; display: flex; flex-direction: column; border: 2px solid color-mix(in srgb, var(--track-color) 72%, var(--border)); border-radius: 12px; overflow: hidden; background: var(--surface); transition: border-color .2s, transform .2s, box-shadow .2s, opacity .2s; }
+.track-pad { --track-color: #71717a; position: relative; min-width: 0; min-height: 148px; container: track-pad / inline-size; display: flex; flex-direction: column; border: 2px solid color-mix(in srgb, var(--track-color) 72%, var(--border)); border-radius: 12px; overflow: hidden; background: var(--surface); transition: border-color .2s, transform .2s, box-shadow .2s, opacity .2s; }
 .track-pad > * { position: relative; z-index: 1; }
 .track-pad:hover { transform: translateY(-2px); border-color: var(--track-color); box-shadow: 0 16px 35px rgba(0,0,0,.22); }
 .track-pad.is-active { border-color: var(--track-color); background: color-mix(in srgb, var(--track-color) 6%, var(--surface)); box-shadow: 0 0 0 1px var(--track-color), 0 12px 40px color-mix(in srgb, var(--track-color) 16%, transparent); }
@@ -333,16 +333,32 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .playlist-pad .play-disc { border-radius: 10px; color: #fff; background: color-mix(in srgb, var(--track-color) 72%, #18181b); }
 .playlist-pad .track-trigger { padding-bottom: 5px; }
 .playlist-pad-options { min-height: 18px; margin-top: 8px; display: flex; align-items: center; gap: 5px; color: color-mix(in srgb, var(--track-color) 75%, #a1a1aa); }
-.track-edit { position: absolute; z-index: 2; top: 7px; right: 7px; }
+.track-edit { position: absolute; z-index: 5; top: 7px; right: 7px; }
 .track-loaded { position: absolute; z-index: 2; top: 13px; right: 44px; display: grid; color: color-mix(in srgb, var(--track-color) 80%, #fff); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--track-color) 35%, transparent)); }
 .track-trigger { flex: 1; min-width: 0; padding: 14px 12px 10px; display: flex; flex-direction: column; align-items: flex-start; border: 0; background: transparent; cursor: pointer; text-align: left; }
 .track-trigger:focus-visible { outline-offset: -4px; border-radius: 9px; }
 .play-disc { width: 36px; height: 36px; margin-bottom: 14px; display: grid; place-items: center; border-radius: 50%; color: #09090b; background: var(--track-color); box-shadow: 0 7px 24px color-mix(in srgb, var(--track-color) 20%, transparent); }
 .play-disc.has-output-route { box-shadow: 0 0 0 2px #09090b, 0 0 0 4px var(--main-output-color), 0 7px 24px color-mix(in srgb, var(--track-color) 20%, transparent); }
-.track-output-plays { position: absolute; z-index: 3; top: 24px; right: 66px; left: 61px; display: flex; align-items: flex-end; gap: 4px; overflow-x: auto; scrollbar-width: none; }
-.track-output-plays::-webkit-scrollbar { display: none; }
-.track-output-plays button { --output-color: #71717a; width: 26px; height: 26px; padding: 0; display: grid; place-items: center; flex: 0 0 26px; border: 1px solid color-mix(in srgb, var(--output-color) 58%, #27272a); border-radius: 50%; color: color-mix(in srgb, var(--output-color) 58%, #fff); background: color-mix(in srgb, var(--output-color) 18%, #101012); box-shadow: 0 0 8px color-mix(in srgb, var(--output-color) 18%, transparent); cursor: pointer; }
+.track-output-plays { position: absolute; z-index: 4; top: 24px; right: 42px; left: 61px; min-width: 0; display: flex; align-items: flex-end; gap: 4px; overflow: visible; }
+.track-output-plays button { --output-color: #71717a; width: 26px; min-width: 12px; max-width: 26px; height: auto; padding: 0; display: grid; place-items: center; flex: 1 1 26px; aspect-ratio: 1; border: 1px solid color-mix(in srgb, var(--output-color) 58%, #27272a); border-radius: 50%; color: color-mix(in srgb, var(--output-color) 58%, #fff); background: color-mix(in srgb, var(--output-color) 18%, #101012); box-shadow: 0 0 8px color-mix(in srgb, var(--output-color) 18%, transparent); cursor: pointer; }
+.track-output-plays button svg { width: min(11px, 52%); height: auto; }
 .track-output-plays button:hover { color: #fff; border-color: var(--output-color); background: color-mix(in srgb, var(--output-color) 32%, #101012); }
+@container track-pad (max-width: 165px) {
+  .track-trigger { padding-top: 12px; }
+  .play-disc { width: 32px; height: 32px; margin-bottom: 12px; }
+  .track-output-plays { top: 20px; right: 39px; left: 54px; gap: 3px; }
+  .track-output-plays button { min-width: 10px; max-width: 22px; flex-basis: 22px; }
+}
+@container track-pad (max-width: 125px) {
+  .track-edit { top: 3px; right: 3px; width: 24px; height: 24px; }
+  .track-trigger { padding: 10px 8px 8px; }
+  .play-disc { width: 28px; height: 28px; margin-bottom: 10px; }
+  .play-disc svg { width: 15px; height: 15px; }
+  .track-output-plays { top: 17px; right: 31px; left: 46px; gap: 2px; }
+  .track-output-plays button { min-width: 8px; max-width: 18px; flex-basis: 18px; }
+  .track-output-plays button svg { width: min(9px, 54%); }
+  .track-title { font-size: .72rem; }
+}
 .track-title { width: calc(100% - 2px); overflow: hidden; color: #fafafa; display: -webkit-box; font-size: .8rem; font-weight: 700; line-height: 1.3; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .track-progress { position: absolute; z-index: 3; right: 0; bottom: 29px; left: 0; height: 3px; overflow: hidden; background: transparent; pointer-events: none; }
 .track-progress.is-playing { background: color-mix(in srgb, var(--track-color) 14%, transparent); }
