@@ -176,8 +176,6 @@ function sonoriva_marketing_robots(array $robots): array
     $robots['index'] = true;
     $robots['follow'] = true;
     $robots['max-image-preview'] = 'large';
-    $robots['max-snippet'] = -1;
-    $robots['max-video-preview'] = -1;
     return $robots;
 }
 add_filter('wp_robots', 'sonoriva_marketing_robots', 999);
@@ -191,6 +189,16 @@ function sonoriva_marketing_robots_txt(string $output, bool $public): string
 }
 add_filter('robots_txt', 'sonoriva_marketing_robots_txt', 10, 2);
 add_filter('wp_sitemaps_enabled', '__return_true');
+
+function sonoriva_marketing_sitemap_status(bool $preempt, WP_Query $query): bool
+{
+    if (!get_query_var('sitemap')) {
+        return $preempt;
+    }
+    status_header(200);
+    return true;
+}
+add_filter('pre_handle_404', 'sonoriva_marketing_sitemap_status', 10, 2);
 
 function sonoriva_marketing_body_classes(array $classes): array
 {
