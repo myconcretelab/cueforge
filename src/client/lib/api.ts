@@ -1,4 +1,4 @@
-import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, BridgeDevice, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, PublicPlan, ReleaseInfo, SoundShowAnalysis, Track, User } from '../types';
+import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, BatchTrackUpdateInput, BridgeDevice, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, PublicPlan, ReleaseInfo, SoundShowAnalysis, Track, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -102,6 +102,9 @@ export const api = {
   uploadTrack: (form: FormData) => request<{ track: Track }>('/api/tracks/upload', { method: 'POST', body: form }),
   updateTrack: (id: string, input: Partial<Pick<Track, 'title' | 'categoryId' | 'volume' | 'loop' | 'fadeInMs' | 'fadeOutMs' | 'startTimeMs' | 'endTimeMs' | 'color' | 'tags'>>) =>
     request<{ track: Track }>(`/api/tracks/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+  batchUpdateTracks: (input: BatchTrackUpdateInput) => request<{ tracks: Track[] }>('/api/tracks/batch', {
+    method: 'PATCH', body: JSON.stringify(input),
+  }),
   reorderTrack: (id: string, input: { categoryId: string | null; beforeTrackId?: string | null }) =>
     request<{ tracks: Track[] }>(`/api/tracks/${id}/reorder`, { method: 'PATCH', body: JSON.stringify(input) }),
   deleteTrack: (id: string) => request<void>(`/api/tracks/${id}`, { method: 'DELETE' }),

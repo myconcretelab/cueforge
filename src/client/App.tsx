@@ -1,13 +1,14 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import {
   ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, GripVertical, History, ListMusic, ListPlus, LoaderCircle, Menu, Move, Pause, Play, Plus, Radio,
-  LogIn, RefreshCcw, Repeat2, RotateCcw, Search, Settings, Settings2, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
+  LogIn, RefreshCcw, Repeat2, RotateCcw, Scan, Search, Settings, Settings2, SlidersHorizontal, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
 import { AudioOutputConsole } from './components/AudioOutputConsole';
 import { AudioOutputUpgradeConsole, type AudioOutputUpgradeMode } from './components/AudioOutputUpgradeConsole';
 import { AppUpdateBanner } from './components/AppUpdateBanner';
+import { BatchTrackDialog } from './components/BatchTrackDialog';
 import { FreesoundDialog } from './components/FreesoundDialog';
 import { PlaylistPad } from './components/PlaylistPad';
 import { PlaylistPanel, type PlaylistOptions, type PlaylistQueueItem } from './components/PlaylistPanel';
@@ -27,6 +28,7 @@ import type { RoutedBridgeOutput } from './lib/bridge-output-routing';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
+import { intersectsSelection, type SelectionRectangle } from './lib/track-selection';
 import { trackMatchesSearch, type TrackSearchScope } from './lib/track-tags';
 import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ReleaseInfo, RemoteCommand, Track, User } from './types';
 
@@ -66,6 +68,10 @@ export default function App() {
   const [dropUploadProgress, setDropUploadProgress] = useState<{ done: number; total: number; filename: string }>();
   const [categoryWidth, setCategoryWidth] = useState(() => readNumber('sonoriva-category-width', 112));
   const [reorderMode, setReorderMode] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
+  const [selectionRectangle, setSelectionRectangle] = useState<SelectionRectangle>();
+  const [batchEditOpen, setBatchEditOpen] = useState(false);
   const [draggedTrackId, setDraggedTrackId] = useState<string>();
   const [dropTrackId, setDropTrackId] = useState<string>();
   const [dropCategoryId, setDropCategoryId] = useState<string>();
@@ -119,6 +125,9 @@ export default function App() {
   const categoryResize = useRef<{ x: number; width: number; latest: number } | undefined>(undefined);
   const fileDragDepth = useRef(0);
   const fileUploadBusy = useRef(false);
+  const marqueeStart = useRef<{ x: number; y: number; additive: boolean; selectedIds: Set<string> } | undefined>(undefined);
+  const marqueeMoved = useRef(false);
+  const suppressSelectionClick = useRef(false);
   const playlistRunRef = useRef(false);
   const playlistTransitioningRef = useRef(false);
   const playlistAdvanceTimerRef = useRef<number | undefined>(undefined);
@@ -415,6 +424,7 @@ export default function App() {
     ...visibleTracks.map((track) => ({ kind: 'track' as const, id: track.id, position: track.position, track })),
     ...visiblePlaylists.map((playlist) => ({ kind: 'playlist' as const, id: playlist.id, position: playlist.position, playlist })),
   ].sort((first, second) => first.position - second.position || (first.kind === second.kind ? first.id.localeCompare(second.id) : first.kind === 'track' ? -1 : 1)), [visiblePlaylists, visibleTracks]);
+  const selectedTracks = useMemo(() => (detail?.tracks ?? []).filter((track) => selectedTrackIds.has(track.id)), [detail?.tracks, selectedTrackIds]);
   const activeTrackIds = useMemo(() => new Set(activePlaybacks.map((playback) => playback.trackId)), [activePlaybacks]);
   const playbacksByTrack = useMemo(() => {
     const grouped = new Map<string, ActivePlayback[]>();
@@ -440,6 +450,21 @@ export default function App() {
   const displayedChronoMs = chronoElapsedMs + (chronoStartedAt === undefined ? 0 : Math.max(0, now - chronoStartedAt));
   const playlistPlayback = activePlaybacks.find((playback) => playback.id === playlistPlaybackId);
   const detailProjectId = detail?.project.id;
+
+  useEffect(() => {
+    const visibleIds = new Set(visibleTracks.map((track) => track.id));
+    setSelectedTrackIds((current) => {
+      const next = new Set([...current].filter((trackId) => visibleIds.has(trackId)));
+      return next.size === current.size ? current : next;
+    });
+  }, [visibleTracks]);
+
+  useEffect(() => {
+    setSelectionMode(false);
+    setSelectedTrackIds(new Set());
+    setSelectionRectangle(undefined);
+    setBatchEditOpen(false);
+  }, [selectedProjectId]);
 
   useEffect(() => {
     if (!detailProjectId) return;
@@ -724,6 +749,15 @@ export default function App() {
     if (!detail) return;
     const onKey = (event: KeyboardEvent) => {
       if ((event.target instanceof HTMLInputElement && event.target.type !== 'range') || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
+      if (selectionMode) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          setSelectionMode(false);
+          setSelectedTrackIds(new Set());
+          setSelectionRectangle(undefined);
+        }
+        return;
+      }
       const keyAction = event.key === 'Escape' ? detail.project.escapeKeyAction ?? 'stop-all'
         : event.key === 'Backspace' ? detail.project.backspaceKeyAction ?? 'stop-all'
           : event.key === ' ' ? detail.project.spaceKeyAction ?? 'stop-all-immediate' : undefined;
@@ -742,7 +776,7 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [detail, sendOrRun, visibleTracks]);
+  }, [detail, selectionMode, sendOrRun, visibleTracks]);
 
   async function createProject() {
     const name = window.prompt('Nom du nouveau spectacle');
@@ -1011,6 +1045,82 @@ export default function App() {
     if (detail) localStorage.setItem(categoryStorageKey(detail.project.id), categoryId);
   }
 
+  function toggleSelectionMode() {
+    const next = !selectionMode;
+    setSelectionMode(next);
+    setReorderMode(false);
+    setCategoryManageMode(false);
+    setColumnsOpen(false);
+    setHistoryOpen(false);
+    setSelectionRectangle(undefined);
+    if (!next) setSelectedTrackIds(new Set());
+  }
+
+  function toggleTrackSelection(trackId: string) {
+    if (suppressSelectionClick.current) return;
+    setSelectedTrackIds((current) => {
+      const next = new Set(current);
+      if (next.has(trackId)) next.delete(trackId); else next.add(trackId);
+      return next;
+    });
+  }
+
+  function beginMarqueeSelection(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!selectionMode || event.pointerType !== 'mouse' || event.button !== 0) return;
+    marqueeStart.current = {
+      x: event.clientX,
+      y: event.clientY,
+      additive: event.metaKey || event.ctrlKey || event.shiftKey,
+      selectedIds: new Set(selectedTrackIds),
+    };
+    marqueeMoved.current = false;
+  }
+
+  function moveMarqueeSelection(event: ReactPointerEvent<HTMLDivElement>) {
+    const start = marqueeStart.current;
+    if (!start) return;
+    if (!marqueeMoved.current && Math.hypot(event.clientX - start.x, event.clientY - start.y) < 5) return;
+    marqueeMoved.current = true;
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+    const rectangle = { startX: start.x, startY: start.y, currentX: event.clientX, currentY: event.clientY };
+    setSelectionRectangle(rectangle);
+    const intersectingIds = new Set<string>();
+    event.currentTarget.querySelectorAll<HTMLElement>('[data-track-id]').forEach((element) => {
+      const bounds = element.getBoundingClientRect();
+      if (intersectsSelection(bounds, rectangle)) {
+        const trackId = element.dataset.trackId;
+        if (trackId) intersectingIds.add(trackId);
+      }
+    });
+    setSelectedTrackIds(start.additive ? new Set([...start.selectedIds, ...intersectingIds]) : intersectingIds);
+  }
+
+  function endMarqueeSelection(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!marqueeStart.current) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (marqueeMoved.current) {
+      suppressSelectionClick.current = true;
+      window.setTimeout(() => { suppressSelectionClick.current = false; }, 0);
+    }
+    marqueeStart.current = undefined;
+    marqueeMoved.current = false;
+    setSelectionRectangle(undefined);
+  }
+
+  function applyBatchTrackChanges(updatedTracks: Track[]) {
+    const updatedById = new Map(updatedTracks.map((track) => [track.id, track]));
+    setDetail((current) => {
+      if (!current) return current;
+      const next = { ...current, tracks: current.tracks.map((track) => updatedById.get(track.id) ?? track) };
+      localStorage.setItem(`sonoriva-detail:${current.project.id}`, JSON.stringify(next));
+      return next;
+    });
+    setBatchEditOpen(false);
+    setSelectionMode(false);
+    setSelectedTrackIds(new Set());
+  }
+
   async function cacheOffline() {
     if (!detail || !('caches' in window)) return setOfflineStatus('Cache indisponible dans ce navigateur.');
     setOfflineStatus(`0/${detail.tracks.length}`);
@@ -1250,7 +1360,7 @@ export default function App() {
       </header>
 
       {detail && <section className="category-strip">
-        <div className="category-strip-heading"><span>{categoryManageMode ? 'Glissez les catégories pour les réordonner' : 'Catégories'}</span><div><button className={`icon-button subtle category-manage-toggle ${categoryManageMode ? 'active' : ''}`} onClick={() => { setCategoryManageMode((current) => !current); setReorderMode(false); setDraggedCategoryId(undefined); setDropCategoryOrderId(undefined); setDropCategoryAfter(false); }} aria-label={categoryManageMode ? 'Terminer la gestion des catégories' : 'Gérer les catégories'} title={categoryManageMode ? 'Terminer' : 'Réordonner ou supprimer'}><ArrowUpDown size={16} /></button><button className="icon-button subtle" onClick={createCategory} aria-label="Nouvelle catégorie"><Plus size={17} /></button></div></div>
+        <div className="category-strip-heading"><span>{categoryManageMode ? 'Glissez les catégories pour les réordonner' : 'Catégories'}</span><div><button className={`icon-button subtle category-manage-toggle ${categoryManageMode ? 'active' : ''}`} onClick={() => { setCategoryManageMode((current) => !current); setReorderMode(false); setSelectionMode(false); setSelectedTrackIds(new Set()); setDraggedCategoryId(undefined); setDropCategoryOrderId(undefined); setDropCategoryAfter(false); }} aria-label={categoryManageMode ? 'Terminer la gestion des catégories' : 'Gérer les catégories'} title={categoryManageMode ? 'Terminer' : 'Réordonner ou supprimer'}><ArrowUpDown size={16} /></button><button className="icon-button subtle" onClick={createCategory} aria-label="Nouvelle catégorie"><Plus size={17} /></button></div></div>
         <div className="category-tabs-row" style={{ '--category-tab-width': `${categoryWidth}px` } as React.CSSProperties}>
           <nav className="category-tabs" aria-label="Catégories de sons" onDragOver={(event) => { if (!categoryManageMode || !draggedCategoryId) return; event.preventDefault(); }} onDrop={(event) => { if (!categoryManageMode || !draggedCategoryId || event.target !== event.currentTarget) return; event.preventDefault(); reorderCategories(draggedCategoryId).catch(() => undefined); }}>
             <button className={`category-tab category-tab-all ${selectedCategoryId === 'all' || isSearching ? 'active' : ''}`} onClick={() => selectCategory('all')} style={{ '--category-color': '#a1a1aa' } as React.CSSProperties}><span>Tous les sons</span><em className="category-tab-count">{detail.tracks.length}</em></button>
@@ -1286,7 +1396,8 @@ export default function App() {
             aria-label={preloadProgress ? `Mise hors ligne ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'}>
             {preloadProgress ? <LoaderCircle className="spin" size={18} /> : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? <CircleCheck size={18} /> : <Download size={18} />}
           </button>}
-          {!remote && <button className={`dashboard-button ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setCategoryManageMode(false); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); setDraggedPlaylistId(undefined); setDropPlaylistId(undefined); setDropPlaylistTrackId(undefined); setDropPlaylistAfter(false); }} disabled={reordering}
+          {!remote && <button className={`dashboard-button selection-mode-button ${selectionMode ? 'active' : ''}`} onClick={toggleSelectionMode} aria-label={selectionMode ? 'Terminer la sélection multiple' : 'Sélectionner plusieurs morceaux'} title={selectionMode ? 'Terminer la sélection' : 'Sélection multiple'}><Scan size={18} />{selectedTrackIds.size > 0 && <em>{selectedTrackIds.size}</em>}</button>}
+          {!remote && <button className={`dashboard-button ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setSelectionMode(false); setSelectedTrackIds(new Set()); setCategoryManageMode(false); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropCategoryId(undefined); setDraggedPlaylistId(undefined); setDropPlaylistId(undefined); setDropPlaylistTrackId(undefined); setDropPlaylistAfter(false); }} disabled={reordering}
             aria-label={reordering ? 'Enregistrement de la réorganisation' : reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'} title={reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'}><span className="reorder-mode-icon" aria-hidden="true"><SquareDashed size={20} /><Move size={12} /></span></button>}
           <div className="dashboard-control">
             <button className={`dashboard-button ${columnsOpen ? 'active' : ''}`} onClick={() => { setColumnsOpen((current) => !current); setHistoryOpen(false); }} aria-label="Régler le nombre de colonnes" title="Nombre de colonnes"><Columns3 size={18} /></button>
@@ -1306,13 +1417,18 @@ export default function App() {
         </div>
       </section>
 
+      {selectionMode && <section className="selection-toolbar" aria-label="Outils de sélection multiple">
+        <div><Scan size={18} /><span><strong>{selectedTrackIds.size ? `${selectedTrackIds.size} morceau${selectedTrackIds.size !== 1 ? 'x' : ''} sélectionné${selectedTrackIds.size !== 1 ? 's' : ''}` : 'Sélection multiple'}</strong><small>Cliquez les cartes ou tracez un rectangle sur la grille.</small></span></div>
+        <span className="selection-toolbar-actions"><button className="button ghost" onClick={() => setSelectedTrackIds(new Set(visibleTracks.map((track) => track.id)))} disabled={!visibleTracks.length}>Tout sélectionner</button><button className="button ghost" onClick={() => setSelectedTrackIds(new Set())} disabled={!selectedTrackIds.size}>Effacer</button><button className="button primary" onClick={() => setBatchEditOpen(true)} disabled={!selectedTrackIds.size}><SlidersHorizontal size={16} />Modifier{selectedTrackIds.size ? ` (${selectedTrackIds.size})` : ''}</button></span>
+      </section>}
+
       <section className="soundboard">
         {remote && <div className="remote-banner"><Radio size={18} /><span>Mode télécommande — les sons seront joués sur la régie connectée.</span></div>}
-        {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleTracks.length === 0 && visiblePlaylists.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className="track-grid" style={{ '--track-columns': trackColumns } as React.CSSProperties}>
+        {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleTracks.length === 0 && visiblePlaylists.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className={`track-grid ${selectionMode ? 'selection-mode' : ''}`} style={{ '--track-columns': trackColumns } as React.CSSProperties} onPointerDown={beginMarqueeSelection} onPointerMove={moveMarqueeSelection} onPointerUp={endMarqueeSelection} onPointerCancel={endMarqueeSelection}>
           {visibleBoardItems.map((boardItem) => {
             if (boardItem.kind === 'playlist') {
               const playlist = boardItem.playlist;
-              return <PlaylistPad key={`playlist:${playlist.id}`} playlist={playlist} reorderEnabled={reorderMode} dropTarget={dropPlaylistId === playlist.id} dropAfter={dropPlaylistAfter} onLoad={() => loadPlaylist(playlist)}
+              return <PlaylistPad key={`playlist:${playlist.id}`} playlist={playlist} reorderEnabled={reorderMode} selectionDisabled={selectionMode} dropTarget={dropPlaylistId === playlist.id} dropAfter={dropPlaylistAfter} onLoad={() => loadPlaylist(playlist)}
                 onDragStart={(event) => { if (!reorderMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-sonoriva-playlist', playlist.id); setDraggedPlaylistId(playlist.id); }}
                 onDragOver={(event) => { if (!reorderMode || !draggedPlaylistId || draggedPlaylistId === playlist.id) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; const bounds = event.currentTarget.getBoundingClientRect(); setDropPlaylistId(playlist.id); setDropPlaylistTrackId(undefined); setDropPlaylistAfter(event.clientX > bounds.left + bounds.width / 2); }}
                 onDrop={(event) => { if (!draggedPlaylistId || draggedPlaylistId === playlist.id) return; event.preventDefault(); const bounds = event.currentTarget.getBoundingClientRect(); reorderPlaylist(draggedPlaylistId, 'playlist', playlist.id, event.clientX > bounds.left + bounds.width / 2).catch(() => undefined); }}
@@ -1321,11 +1437,12 @@ export default function App() {
             const track = boardItem.track;
             const category = detail.categories.find((item) => item.id === track.categoryId);
             const shortcutIndex = visibleTracks.findIndex((candidate) => candidate.id === track.id);
-            return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={sidebarTool === 'playlist' && !remote} dropTarget={dropTrackId === track.id} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={shortcutIndex < 9 ? shortcutIndex + 1 : undefined} bridgeOutputs={remote || reorderMode ? [] : routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId}
+            return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={!selectionMode && sidebarTool === 'playlist' && !remote} selectionMode={selectionMode} selected={selectedTrackIds.has(track.id)} dropTarget={dropTrackId === track.id} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={shortcutIndex < 9 ? shortcutIndex + 1 : undefined} bridgeOutputs={remote || reorderMode || selectionMode ? [] : routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId}
               onPrimary={() => runTrackAction(detail.project.leftClickAction ?? 'start', track)}
               onOutputPlay={(outputId) => playTrackOnOutput(track, outputId)}
               onSecondary={() => runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
               onEdit={() => { if (!reorderMode) setEditingTrack(track); }}
+              onSelect={() => toggleTrackSelection(track.id)}
               onDragStart={(event) => { if (reorderMode) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', track.id); setDraggedTrackId(track.id); } else if (sidebarTool === 'playlist') { event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('application/x-sonoriva-track', track.id); } }}
               onDragOver={(event) => { if (!reorderMode) return; if (draggedPlaylistId) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; const bounds = event.currentTarget.getBoundingClientRect(); setDropPlaylistTrackId(track.id); setDropPlaylistId(undefined); setDropPlaylistAfter(event.clientX > bounds.left + bounds.width / 2); return; } if (!draggedTrackId || draggedTrackId === track.id) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropTrackId(track.id); setDropCategoryId(undefined); }}
               onDrop={(event) => { event.preventDefault(); if (draggedPlaylistId) { const bounds = event.currentTarget.getBoundingClientRect(); reorderPlaylist(draggedPlaylistId, 'track', track.id, event.clientX > bounds.left + bounds.width / 2).catch(() => undefined); } else if (draggedTrackId && draggedTrackId !== track.id) reorderTrack(draggedTrackId, track.categoryId, track.id).catch(() => undefined); }}
@@ -1343,6 +1460,8 @@ export default function App() {
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {freesoundOpen && detail && <FreesoundDialog initialQuery={search} autoSearch={freesoundAutoSearch} projectId={detail.project.id} categories={detail.categories} projectColors={detail.colors} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} bridgeOutputs={routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId} onImported={refreshProject} onClose={() => { setFreesoundOpen(false); setFreesoundAutoSearch(false); }} />}
     {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} projectColors={detail.colors} onAddProjectColor={createProjectColor} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
+    {batchEditOpen && detail && selectedTracks.length > 0 && <BatchTrackDialog projectId={detail.project.id} tracks={selectedTracks} categories={detail.categories} projectColors={detail.colors} onClose={() => setBatchEditOpen(false)} onChanged={applyBatchTrackChanges} />}
+    {selectionRectangle && <div className="selection-marquee" style={{ left: Math.min(selectionRectangle.startX, selectionRectangle.currentX), top: Math.min(selectionRectangle.startY, selectionRectangle.currentY), width: Math.abs(selectionRectangle.currentX - selectionRectangle.startX), height: Math.abs(selectionRectangle.currentY - selectionRectangle.startY) }} aria-hidden="true" />}
     {(fileDropActive || dropUploadProgress) && <div className={`file-drop-overlay ${dropUploadProgress ? 'is-uploading' : ''}`} role="status" aria-live="polite">
       <div className="file-drop-card">
         {dropUploadProgress ? <LoaderCircle className="spin" size={38} /> : <Upload size={42} />}

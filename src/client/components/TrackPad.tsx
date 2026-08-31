@@ -12,6 +12,8 @@ interface Props {
   loaded: boolean;
   reorderEnabled: boolean;
   playlistDropEnabled: boolean;
+  selectionMode: boolean;
+  selected: boolean;
   dropTarget: boolean;
   playlistPositionTarget?: 'before' | 'after';
   shortcut?: number;
@@ -21,21 +23,23 @@ interface Props {
   onOutputPlay: (outputId: string) => void;
   onSecondary: () => void;
   onEdit: () => void;
+  onSelect: () => void;
   onDragStart: (event: React.DragEvent<HTMLElement>) => void;
   onDragOver: (event: React.DragEvent<HTMLElement>) => void;
   onDrop: (event: React.DragEvent<HTMLElement>) => void;
   onDragEnd: () => void;
 }
 
-export function TrackPad({ track, color, active, playbacks, historyProgress, loaded, reorderEnabled, playlistDropEnabled, dropTarget, playlistPositionTarget, shortcut, bridgeOutputs, mainBridgeOutputId, onPrimary, onOutputPlay, onSecondary, onEdit, onDragStart, onDragOver, onDrop, onDragEnd }: Props) {
+export function TrackPad({ track, color, active, playbacks, historyProgress, loaded, reorderEnabled, playlistDropEnabled, selectionMode, selected, dropTarget, playlistPositionTarget, shortcut, bridgeOutputs, mainBridgeOutputId, onPrimary, onOutputPlay, onSecondary, onEdit, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: Props) {
   const mainOutput = bridgeOutputs.find((output) => output.id === mainBridgeOutputId);
   const alternateOutputs = mainOutput ? bridgeOutputs.filter((output) => output.id !== mainOutput.id) : [];
-  return <article className={`track-pad ${active ? 'is-active' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${playlistDropEnabled ? 'playlist-drag-enabled' : ''} ${dropTarget ? 'is-drop-target' : ''} ${playlistPositionTarget ? `playlist-position-target drop-${playlistPositionTarget}` : ''}`}
-    style={{ '--track-color': color } as React.CSSProperties} draggable={reorderEnabled || playlistDropEnabled}
+  return <article className={`track-pad ${active ? 'is-active' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${playlistDropEnabled ? 'playlist-drag-enabled' : ''} ${selectionMode ? 'selection-enabled' : ''} ${selected ? 'is-selected' : ''} ${dropTarget ? 'is-drop-target' : ''} ${playlistPositionTarget ? `playlist-position-target drop-${playlistPositionTarget}` : ''}`}
+    style={{ '--track-color': color } as React.CSSProperties} draggable={!selectionMode && (reorderEnabled || playlistDropEnabled)} data-track-id={track.id} onClick={() => selectionMode && onSelect()}
     onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}>
+    {selectionMode && <span className="track-selection-indicator" aria-hidden="true">{selected && <CircleCheck size={18} />}</span>}
     {loaded && <span className="track-loaded" title="Disponible hors ligne" aria-label="Disponible hors ligne"><CircleCheck size={15} /></span>}
-    <button className="icon-button subtle track-edit" onClick={onEdit} aria-label={`Modifier ${track.title}`}><MoreHorizontal size={18} /></button>
-    <button className="track-trigger" onClick={() => !reorderEnabled && onPrimary()} onContextMenu={(event) => { event.preventDefault(); if (!reorderEnabled) onSecondary(); }}>
+    <button className="icon-button subtle track-edit" onClick={() => !selectionMode && onEdit()} aria-label={`Modifier ${track.title}`} tabIndex={selectionMode ? -1 : undefined}><MoreHorizontal size={18} /></button>
+    <button className="track-trigger" onClick={() => !selectionMode && !reorderEnabled && onPrimary()} onContextMenu={(event) => { event.preventDefault(); if (!selectionMode && !reorderEnabled) onSecondary(); }} aria-pressed={selectionMode ? selected : undefined}>
       <span className={`play-disc ${mainOutput ? 'has-output-route' : ''}`} style={mainOutput ? { '--main-output-color': mainOutput.color } as React.CSSProperties : undefined}>{active ? <AudioWaveform size={18} /> : <Play size={18} fill="currentColor" />}</span>
       <span className="track-title">{track.title}</span>
     </button>

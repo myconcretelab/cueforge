@@ -5,7 +5,7 @@ import { pipeline } from 'node:stream/promises';
 import { Readable, Transform } from 'node:stream';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { db } from '../db/index.js';
@@ -16,6 +16,7 @@ import { demoMaxFileBytes } from '../services/demo.js';
 import { ownsProject } from '../services/ownership.js';
 import { parseByteRange } from '../services/range.js';
 import { reorderTracks } from '../services/reorder.js';
+import { applyTrackTagChange } from '../services/track-batch.js';
 
 const acceptedMimeTypes = new Set([
   'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/vnd.wave', 'audio/ogg', 'audio/flac',
@@ -255,6 +256,60 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
       .header('Content-Range', `bytes ${start}-${end}/${info.size}`)
       .header('Content-Length', end - start + 1);
     return reply.send(createReadStream(filePath, { start, end }));
+  });
+
+  app.patch('/api/tracks/batch', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    const commonUpdatesSchema = z.object({
+      categoryId: z.string().uuid().nullable().optional(),
+      volume: z.number().min(0).max(1).optional(),
+      loop: z.boolean().optional(),
+      fadeInMs: z.number().int().min(0).max(60_000).optional(),
+      fadeOutMs: z.number().int().min(0).max(60_000).optional(),
+      color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+    }).strict().refine((updates) => Object.keys(updates).length > 0, { message: 'Aucune modification commune sélectionnée.' });
+    const input = z.object({
+      projectId: z.string().uuid(),
+      trackIds: z.array(z.string().uuid()).min(1).max(500)
+        .refine((trackIds) => new Set(trackIds).size === trackIds.length, { message: 'Un morceau ne peut être sélectionné qu’une fois.' }),
+      updates: commonUpdatesSchema.optional(),
+      tagChange: z.object({ mode: z.enum(['add', 'remove', 'replace']), tags: trackTagsSchema }).optional(),
+    }).refine((value) => value.updates || value.tagChange, { message: 'Sélectionnez au moins une modification.' }).parse(request.body);
+
+    if (!(await ownsProject(user.id, input.projectId))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    if (input.updates?.categoryId && !(await categoryBelongsToProject(input.updates.categoryId, input.projectId))) {
+      return reply.code(400).send({ error: 'Catégorie invalide pour ce projet.' });
+    }
+    const selectedTracks = await db.select().from(tracks)
+      .where(and(eq(tracks.projectId, input.projectId), inArray(tracks.id, input.trackIds)));
+    if (selectedTracks.length !== input.trackIds.length) {
+      return reply.code(400).send({ error: 'La sélection contient un morceau invalide.' });
+    }
+    const tagChange = input.tagChange;
+    const nextTags = tagChange ? new Map(selectedTracks.map((track) => [
+      track.id,
+      applyTrackTagChange(track.tags, tagChange),
+    ])) : undefined;
+    if (nextTags && [...nextTags.values()].some((tags) => tags.length > 30)) {
+      return reply.code(400).send({ error: 'Un morceau ne peut pas contenir plus de 30 tags.' });
+    }
+
+    await db.transaction(async (transaction) => {
+      if (input.updates) {
+        await transaction.update(tracks).set(input.updates)
+          .where(and(eq(tracks.projectId, input.projectId), inArray(tracks.id, input.trackIds)));
+      }
+      if (nextTags) {
+        for (const [trackId, tags] of nextTags) {
+          await transaction.update(tracks).set({ tags }).where(eq(tracks.id, trackId));
+        }
+      }
+    });
+    const updatedTracks = await db.select().from(tracks)
+      .where(and(eq(tracks.projectId, input.projectId), inArray(tracks.id, input.trackIds)))
+      .orderBy(asc(tracks.position), asc(tracks.createdAt));
+    return { tracks: updatedTracks };
   });
 
   app.patch('/api/tracks/:id', async (request, reply) => {

@@ -100,6 +100,24 @@ describe('client API', () => {
     }));
   });
 
+  it('transmet une édition groupée de morceaux', async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ tracks: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetcher);
+    const input = {
+      projectId: '11111111-1111-4111-8111-111111111111',
+      trackIds: ['22222222-2222-4222-8222-222222222222'],
+      updates: { color: '#22d3b6', loop: true },
+      tagChange: { mode: 'add' as const, tags: ['extérieur'] },
+    };
+
+    await api.batchUpdateTracks(input);
+
+    expect(fetcher).toHaveBeenCalledWith('/api/tracks/batch', expect.objectContaining({
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }));
+  });
+
   it('crée puis met à jour une playlist avec ses options', async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ playlist: { id: 'playlist-id' } }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     vi.stubGlobal('fetch', fetcher);

@@ -2,6 +2,19 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.2.0] - 2026-08-31
+
+### Ajouté
+
+- mode de sélection multiple des morceaux par clic, toucher ou rectangle tracé à la souris ;
+- barre contextuelle de gestion de la sélection visible ;
+- édition de lot de la catégorie, de la couleur, des tags, du volume, de la boucle et des fondus ;
+- opérations d’ajout, de retrait et de remplacement des tags sur plusieurs morceaux.
+
+### Modifié
+
+- passage de l’application à la version `1.2.0`.
+
 ## [1.1.0] - 2026-08-31
 
 ### Ajouté

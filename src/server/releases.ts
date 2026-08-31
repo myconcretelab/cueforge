@@ -11,6 +11,21 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.2.0',
+    date: '2026-08-31',
+    title: 'Sélection et édition de lot',
+    summary: 'Plusieurs morceaux peuvent être sélectionnés par clic ou par rectangle puis modifiés ensemble.',
+    important: false,
+    changes: [
+      'Un bouton du tableau de bord active la sélection multiple des morceaux.',
+      'Les cartes sont sélectionnables individuellement ou avec un rectangle tracé à la souris.',
+      'Une barre contextuelle permet de tout sélectionner, d’effacer la sélection ou d’ouvrir l’édition de lot.',
+      'La catégorie, la couleur, les tags, le volume, la boucle et les fondus peuvent être appliqués en une opération.',
+      'Les tags peuvent être ajoutés, retirés ou remplacés sur toute la sélection.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.1.0',
     date: '2026-08-31',
     title: 'Retrouver les sons par tags',

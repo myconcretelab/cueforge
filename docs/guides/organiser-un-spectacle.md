@@ -35,6 +35,19 @@ Le sélecteur de la barre de recherche propose deux modes : **Noms**, sélection
 
 Les tags fournis par Freesound sont enregistrés automatiquement avec les morceaux importés depuis ce service.
 
+## Sélection et édition de plusieurs morceaux
+
+Le bouton **Sélection multiple** du tableau de bord active la sélection des morceaux. Dans ce mode :
+
+- un clic ou un toucher sur une carte ajoute ou retire le morceau de la sélection ;
+- un glisser à la souris trace un rectangle et sélectionne les cartes qu’il touche ;
+- les touches Maj, Ctrl ou Cmd maintenues pendant le tracé ajoutent le rectangle à la sélection existante ;
+- **Tout sélectionner** sélectionne les morceaux visibles et **Effacer** vide la sélection.
+
+Le bouton **Modifier** ouvre l’édition de lot. Chaque champ doit être coché pour être appliqué aux morceaux sélectionnés. Les champs disponibles sont la catégorie, la couleur, les tags, le volume, la lecture en boucle et les fondus d’entrée et de sortie.
+
+Pour les tags, l’édition de lot propose trois opérations : ajouter les tags à chaque morceau, retirer les tags indiqués ou remplacer entièrement les tags existants. Une liste vide avec l’opération de remplacement supprime tous les tags.
+
 ## Playlists
 
 Une playlist contient une liste ordonnée de pistes. Les éléments sont ajoutés depuis la grille puis réordonnés dans le panneau de playlist.

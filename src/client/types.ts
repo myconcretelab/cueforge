@@ -211,6 +211,13 @@ export interface Track {
   createdAt: string;
 }
 
+export interface BatchTrackUpdateInput {
+  projectId: string;
+  trackIds: string[];
+  updates?: Partial<Pick<Track, 'categoryId' | 'volume' | 'loop' | 'fadeInMs' | 'fadeOutMs' | 'color'>>;
+  tagChange?: { mode: 'add' | 'remove' | 'replace'; tags: string[] };
+}
+
 export interface ProjectDetail {
   project: Project;
   colors: ProjectColor[];
