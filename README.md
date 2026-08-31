@@ -15,7 +15,7 @@ L’identité visuelle repose sur le monogramme **SR** et un accent aqua ; les i
 - recherche Freesound avec filtres de durée minimale et maximale, préécoute, renommage et import dans la catégorie choisie ;
 - import complet d’un projet SoundShow `.ssp` avec catégories, couleurs, boucles et points d’entrée/sortie ;
 - lecture polyphonique, navigation dans le morceau, boucles, volume limité à 100 % et fondus animés, avec commandes indépendantes et arrêt en fondu pour chaque instance en lecture ;
-- playlists persistantes réorganisables, avec ordre séquentiel ou aléatoire, boucle, démarrage automatique, silence réglable ou mix par fondu enchaîné entre les titres ;
+- playlists persistantes organisées en rangées séquentielles ou aléatoires, avec plusieurs morceaux simultanés par rangée, boucle, démarrage automatique, silence réglable ou mix par fondu enchaîné ;
 - progression de lecture, catégorie active, chronomètre et réglages d'affichage restaurés après actualisation ;
 - mise à disposition hors ligne des sons par catégorie, conservée après actualisation ;
 - import rapide de plusieurs fichiers par glisser-déposer sur toute la fenêtre vers la catégorie active ;

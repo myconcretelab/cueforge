@@ -50,14 +50,20 @@ Pour les tags, l’édition de lot propose trois opérations : ajouter les tags 
 
 ## Playlists
 
-Une playlist contient une liste ordonnée de pistes. Les éléments sont ajoutés depuis la grille puis réordonnés dans le panneau de playlist.
+Une playlist contient une suite ordonnée de rangées. Une rangée contient un ou plusieurs morceaux qui démarrent ensemble. La playlist passe à la rangée suivante lorsque le dernier morceau de la rangée courante est terminé.
+
+Les morceaux sont ajoutés depuis la grille. Un dépôt au centre d’une rangée ajoute le morceau à son groupe. Un dépôt dans la zone fine située entre deux rangées place le morceau seul à cet emplacement. Ce second dépôt permet également de retirer un morceau d’un groupe.
+
+La section **Paramètres → Playlists** fixe la limite des rangées entre deux et huit morceaux pour le spectacle. La limite ne peut pas être abaissée sous la taille d’une rangée déjà enregistrée ou ouverte.
 
 Les paramètres d’une playlist comprennent :
 
-- l’ordre séquentiel ou aléatoire ;
+- l’ordre séquentiel ou aléatoire des rangées ;
 - la répétition de la liste ;
-- le démarrage automatique de la piste suivante ;
-- un silence entre deux pistes ;
-- un fondu enchaîné entre deux pistes.
+- le démarrage automatique lors du chargement de la playlist ;
+- un silence entre deux rangées ;
+- un fondu enchaîné entre deux rangées.
+
+Pause, arrêt et passage au suivant s’appliquent à tous les lecteurs de la rangée courante. Lors d’un fondu enchaîné, les morceaux encore actifs de la rangée sortante sont arrêtés ensemble tandis que la rangée suivante démarre.
 
 Une playlist enregistrée appartient au spectacle sélectionné.

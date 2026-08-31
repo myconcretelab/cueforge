@@ -2,6 +2,21 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.5.0] - 2026-08-31
+
+### Ajouté
+
+- rangées de playlist capables de lancer plusieurs morceaux simultanément ;
+- regroupement par dépôt au centre d’une rangée et insertion verticale entre deux rangées ;
+- limite de deux à huit morceaux par rangée, configurable pour chaque spectacle ;
+- affichage du nombre de rangées et indication visuelle des groupes enregistrés.
+
+### Modifié
+
+- lecture, pause, arrêt, passage au suivant, boucle, aléatoire et fondu enchaîné appliqués aux rangées complètes ;
+- migration des playlists existantes en conservant un morceau par rangée ;
+- passage de l’application à la version `1.5.0`.
+
 ## [1.4.0] - 2026-08-31
 
 ### Ajouté

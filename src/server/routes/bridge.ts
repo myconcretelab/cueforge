@@ -237,7 +237,7 @@ export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
       db.select().from(categories).where(eq(categories.projectId, id)).orderBy(asc(categories.position)),
       db.select().from(tracks).where(eq(tracks.projectId, id)).orderBy(asc(tracks.position), asc(tracks.createdAt)),
       db.select().from(playlists).where(eq(playlists.projectId, id)).orderBy(asc(playlists.position), asc(playlists.createdAt)),
-      db.select({ playlistId: playlistItems.playlistId, trackId: playlistItems.trackId }).from(playlistItems)
+      db.select({ playlistId: playlistItems.playlistId, trackId: playlistItems.trackId, rowIndex: playlistItems.rowIndex }).from(playlistItems)
         .innerJoin(playlists, eq(playlistItems.playlistId, playlists.id))
         .where(eq(playlists.projectId, id)).orderBy(asc(playlistItems.position)),
     ]);
@@ -245,10 +245,10 @@ export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
       project,
       categories: projectCategories,
       tracks: projectTracks.map((track) => ({ ...track, audioPath: `/api/bridge/tracks/${track.id}/audio` })),
-      playlists: savedPlaylists.map((playlist) => ({
-        ...playlist,
-        trackIds: savedItems.filter((item) => item.playlistId === playlist.id).map((item) => item.trackId),
-      })),
+      playlists: savedPlaylists.map((playlist) => {
+        const items = savedItems.filter((item) => item.playlistId === playlist.id).map(({ trackId, rowIndex }) => ({ trackId, rowIndex }));
+        return { ...playlist, trackIds: items.map((item) => item.trackId), items };
+      }),
     };
   });
 

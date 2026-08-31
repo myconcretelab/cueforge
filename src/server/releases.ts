@@ -11,6 +11,22 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.5.0',
+    date: '2026-08-31',
+    title: 'Rangées de playlist simultanées',
+    summary: 'Une rangée de playlist peut contenir plusieurs morceaux lancés ensemble, sans perdre les zones d’insertion entre les étapes.',
+    important: false,
+    changes: [
+      'Déposer un morceau au centre d’une rangée l’ajoute au départ simultané.',
+      'Déposer un morceau dans l’espace entre deux rangées le replace seul à cet endroit.',
+      'La limite des groupes se règle de deux à huit morceaux dans les paramètres du spectacle.',
+      'La playlist passe à la rangée suivante lorsque le dernier morceau de la rangée courante se termine.',
+      'Pause, stop, suivant, aléatoire, boucle et fondu enchaîné agissent sur les rangées complètes.',
+      'Les playlists existantes conservent leur ordre avec un morceau par rangée.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.4.0',
     date: '2026-08-31',
     title: 'Clavier étendu et dernier lecteur',

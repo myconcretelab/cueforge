@@ -11,7 +11,7 @@ import { AppUpdateBanner } from './components/AppUpdateBanner';
 import { BatchTrackDialog } from './components/BatchTrackDialog';
 import { FreesoundDialog } from './components/FreesoundDialog';
 import { PlaylistPad } from './components/PlaylistPad';
-import { PlaylistPanel, type PlaylistOptions, type PlaylistQueueItem } from './components/PlaylistPanel';
+import { PlaylistPanel, type PlaylistOptions } from './components/PlaylistPanel';
 import { PlaybackOutputSelector } from './components/PlaybackOutputSelector';
 import { SoundShowImportDialog } from './components/SoundShowImportDialog';
 import { SettingsDialog } from './components/SettingsDialog';
@@ -28,6 +28,7 @@ import type { RoutedBridgeOutput } from './lib/bridge-output-routing';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { formatShortcut, projectShortcut, projectShortcutDefinitions, resolvePrimaryShortcut, shortcutFromKeyboardEvent, shortcutMainKey, shortcutMatchesKeyboardEvent, shortcutModifierKeys, trackIndexFromKeyboardEvent, trackShortcutLabel } from './lib/keyboard-shortcuts';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
+import { movePlaylistItem as repositionPlaylistItem, playlistEntries, playlistQueueItems, playlistRows as groupPlaylistItems, type PlaylistItemPlacement, type PlaylistQueueItem } from './lib/playlist-rows';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
 import { intersectsSelection, type SelectionRectangle } from './lib/track-selection';
 import { trackMatchesSearch, type TrackSearchScope } from './lib/track-tags';
@@ -112,7 +113,7 @@ export default function App() {
   const [playlistOptionsOpen, setPlaylistOptionsOpen] = useState(false);
   const [loadedPlaylistId, setLoadedPlaylistId] = useState<string>();
   const [playlistCurrentIndex, setPlaylistCurrentIndex] = useState(0);
-  const [playlistPlaybackId, setPlaylistPlaybackId] = useState<string>();
+  const [playlistPlaybackIds, setPlaylistPlaybackIds] = useState<string[]>([]);
   const [playlistSaving, setPlaylistSaving] = useState(false);
   const [socket, setSocket] = useState<Socket>();
   const [connected, setConnected] = useState(false);
@@ -135,8 +136,8 @@ export default function App() {
   const playlistRunRef = useRef(false);
   const playlistTransitioningRef = useRef(false);
   const playlistAdvanceTimerRef = useRef<number | undefined>(undefined);
-  const ignoredPlaylistPlaybackRef = useRef<string | undefined>(undefined);
-  const playlistPlayedItemIdsRef = useRef(new Set<string>());
+  const playlistRunGenerationRef = useRef(0);
+  const playlistPlayedRowIdsRef = useRef(new Set<string>());
   const releaseAutoShownRef = useRef(false);
   const secondaryOutputHeldRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -458,7 +459,14 @@ export default function App() {
   const resolvedMainBridgeOutputId = routedBridgeOutputs.some((output) => output.id === mainBridgeOutputId) ? mainBridgeOutputId : routedBridgeOutputs[0]?.id;
   const secondaryBridgeOutputId = routedBridgeOutputs.find((output) => output.id !== resolvedMainBridgeOutputId)?.id;
   const displayedChronoMs = chronoElapsedMs + (chronoStartedAt === undefined ? 0 : Math.max(0, now - chronoStartedAt));
-  const playlistPlayback = activePlaybacks.find((playback) => playback.id === playlistPlaybackId);
+  const playlistQueueRows = useMemo(() => groupPlaylistItems(playlistItems), [playlistItems]);
+  const playlistPlaybacks = activePlaybacks.filter((playback) => playlistPlaybackIds.includes(playback.id));
+  const playlistPlayback = playlistPlaybacks.reduce<ActivePlayback | undefined>((longest, playback) => {
+    const remaining = playback.durationMs - playback.elapsedMs - (playback.paused ? 0 : Math.max(0, performance.now() - playback.resumedAtMs));
+    if (!longest) return playback;
+    const longestRemaining = longest.durationMs - longest.elapsedMs - (longest.paused ? 0 : Math.max(0, performance.now() - longest.resumedAtMs));
+    return remaining > longestRemaining ? playback : longest;
+  }, undefined);
   const detailProjectId = detail?.project.id;
 
   useEffect(() => {
@@ -513,8 +521,9 @@ export default function App() {
     if (preparedCommand.type === 'stop-all' || preparedCommand.type === 'stop-all-immediate') {
       playlistRunRef.current = false;
       playlistTransitioningRef.current = false;
+      playlistRunGenerationRef.current += 1;
       clearPlaylistAdvanceTimer();
-      setPlaylistPlaybackId(undefined);
+      setPlaylistPlaybackIds([]);
       window.dispatchEvent(new Event('sonoriva:stop-temporary-audio'));
       audioEngine.stopAll(detail?.tracks ?? [], preparedCommand.type === 'stop-all-immediate' ? 0 : undefined);
     }
@@ -540,51 +549,64 @@ export default function App() {
     audioEngine.play(track, track.fadeInMs, volumeMultiplier, outputId).catch((cause) => setError(cause.message));
   }, [consumeNextTrackVolume, remote, routedBridgeOutputs]);
 
-  const startPlaylistTrack = useCallback(async (track: Track, index: number, itemId: string, fadeInMs = track.fadeInMs): Promise<string | undefined> => {
+  const startPlaylistRow = useCallback(async (row: (typeof playlistQueueRows)[number], index: number, fadeInMs?: number): Promise<string[]> => {
+    const tracks = row.items.flatMap((item) => {
+      const track = detail?.tracks.find((candidate) => candidate.id === item.trackId);
+      return track ? [track] : [];
+    });
+    if (tracks.length === 0) return [];
+    const generation = ++playlistRunGenerationRef.current;
     playlistRunRef.current = true;
-    playlistPlayedItemIdsRef.current.add(itemId);
+    playlistPlayedRowIdsRef.current.add(row.id);
     setPlaylistCurrentIndex(index);
     try {
-      const playbackId = await audioEngine.play({ ...track, loop: false }, fadeInMs);
-      setPlaylistPlaybackId(playbackId);
-      return playbackId;
+      await Promise.all(tracks.map((track) => audioEngine.preload(track)));
+      if (generation !== playlistRunGenerationRef.current) return [];
+      const results = await Promise.allSettled(tracks.map((track) => audioEngine.play({ ...track, loop: false }, fadeInMs ?? track.fadeInMs)));
+      const playbackIds = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
+      if (generation !== playlistRunGenerationRef.current) {
+        for (const playbackId of playbackIds) audioEngine.stopInstance(playbackId, 0);
+        return [];
+      }
+      if (playbackIds.length === 0) throw new Error('Aucun morceau de la rangée n’a pu démarrer.');
+      if (playbackIds.length < tracks.length) setError('Certains morceaux de la rangée n’ont pas pu démarrer.');
+      setPlaylistPlaybackIds(playbackIds);
+      return playbackIds;
     } catch (cause) {
-      playlistRunRef.current = false;
-      setError(cause instanceof Error ? cause.message : 'Lecture de la playlist impossible.');
-      return undefined;
+      if (generation === playlistRunGenerationRef.current) {
+        playlistRunRef.current = false;
+        setPlaylistPlaybackIds([]);
+        setError(cause instanceof Error ? cause.message : 'Lecture de la playlist impossible.');
+      }
+      return [];
     }
-  }, []);
+  }, [detail?.tracks]);
 
-  const playPlaylistAt = useCallback(async (index: number, fadeInMs?: number): Promise<string | undefined> => {
-    const item = playlistItems[index];
-    const track = detail?.tracks.find((candidate) => candidate.id === item?.trackId);
-    if (!item || !track) return;
-    return startPlaylistTrack(track, index, item.id, fadeInMs);
-  }, [detail?.tracks, playlistItems, startPlaylistTrack]);
+  const playPlaylistAt = useCallback(async (index: number, fadeInMs?: number): Promise<string[]> => {
+    const row = playlistQueueRows[index];
+    if (!row) return [];
+    return startPlaylistRow(row, index, fadeInMs);
+  }, [playlistQueueRows, startPlaylistRow]);
 
   const nextPlaylistIndex = useCallback((currentIndex: number): number | undefined => {
-    if (playlistItems.length === 0) return undefined;
+    if (playlistQueueRows.length === 0) return undefined;
     if (playlistOptions.random) {
-      let candidates = playlistItems.map((item, index) => ({ item, index })).filter(({ item }) => !playlistPlayedItemIdsRef.current.has(item.id));
+      let candidates = playlistQueueRows.map((row, index) => ({ row, index })).filter(({ row }) => !playlistPlayedRowIdsRef.current.has(row.id));
       if (candidates.length === 0) {
         if (!playlistOptions.loop) return undefined;
-        playlistPlayedItemIdsRef.current.clear();
-        candidates = playlistItems.map((item, index) => ({ item, index })).filter(({ index }) => playlistItems.length === 1 || index !== currentIndex);
+        playlistPlayedRowIdsRef.current.clear();
+        candidates = playlistQueueRows.map((row, index) => ({ row, index })).filter(({ index }) => playlistQueueRows.length === 1 || index !== currentIndex);
       }
       return candidates[Math.floor(Math.random() * candidates.length)]?.index;
     }
-    if (currentIndex + 1 < playlistItems.length) return currentIndex + 1;
+    if (currentIndex + 1 < playlistQueueRows.length) return currentIndex + 1;
     return playlistOptions.loop ? 0 : undefined;
-  }, [playlistItems, playlistOptions.loop, playlistOptions.random]);
+  }, [playlistOptions.loop, playlistOptions.random, playlistQueueRows]);
 
   useEffect(() => {
-    if (!playlistPlaybackId || activePlaybacks.some((playback) => playback.id === playlistPlaybackId)) return;
+    if (playlistPlaybackIds.length === 0 || playlistPlaybackIds.some((playbackId) => activePlaybacks.some((playback) => playback.id === playbackId))) return;
     if (playlistTransitioningRef.current) return;
-    if (ignoredPlaylistPlaybackRef.current === playlistPlaybackId) {
-      ignoredPlaylistPlaybackRef.current = undefined;
-      return;
-    }
-    setPlaylistPlaybackId(undefined);
+    setPlaylistPlaybackIds([]);
     if (!playlistRunRef.current) return;
     const nextIndex = nextPlaylistIndex(playlistCurrentIndex);
     if (nextIndex === undefined) {
@@ -599,33 +621,35 @@ export default function App() {
       return;
     }
     playPlaylistAt(nextIndex).catch(() => undefined);
-  }, [activePlaybacks, nextPlaylistIndex, playPlaylistAt, playlistCurrentIndex, playlistOptions.gapMs, playlistPlaybackId]);
+  }, [activePlaybacks, nextPlaylistIndex, playPlaylistAt, playlistCurrentIndex, playlistOptions.gapMs, playlistPlaybackIds]);
 
   useEffect(() => {
     if (!playlistPlayback || playlistPlayback.paused || playlistPlayback.fadingOut || playlistOptions.crossfadeMs <= 0 || playlistTransitioningRef.current) return;
     const nextIndex = nextPlaylistIndex(playlistCurrentIndex);
     if (nextIndex === undefined) return;
-    const nextItem = playlistItems[nextIndex];
-    const nextTrack = detail?.tracks.find((track) => track.id === nextItem?.trackId);
-    if (!nextItem || !nextTrack) return;
-    audioEngine.preload(nextTrack).catch(() => undefined);
+    const nextRow = playlistQueueRows[nextIndex];
+    if (!nextRow) return;
+    for (const item of nextRow.items) {
+      const nextTrack = detail?.tracks.find((track) => track.id === item.trackId);
+      if (nextTrack) audioEngine.preload(nextTrack).catch(() => undefined);
+    }
     const elapsedMs = playlistPlayback.elapsedMs + Math.max(0, performance.now() - playlistPlayback.resumedAtMs);
     const remainingMs = Math.max(0, playlistPlayback.durationMs - elapsedMs);
     const crossfadeMs = Math.min(playlistOptions.crossfadeMs, playlistPlayback.durationMs, remainingMs);
     const timer = window.setTimeout(() => {
       if (!playlistRunRef.current || playlistTransitioningRef.current) return;
       playlistTransitioningRef.current = true;
-      const outgoingPlaybackId = playlistPlayback.id;
-      playPlaylistAt(nextIndex, crossfadeMs).then((nextPlaybackId) => {
-        if (nextPlaybackId) audioEngine.stopInstance(outgoingPlaybackId, crossfadeMs);
+      const outgoingPlaybackIds = [...playlistPlaybackIds];
+      playPlaylistAt(nextIndex, crossfadeMs).then((nextPlaybackIds) => {
+        if (nextPlaybackIds.length > 0) for (const playbackId of outgoingPlaybackIds) audioEngine.stopInstance(playbackId, crossfadeMs);
         else {
-          audioEngine.stopInstance(outgoingPlaybackId, 0);
-          setPlaylistPlaybackId(undefined);
+          for (const playbackId of outgoingPlaybackIds) audioEngine.stopInstance(playbackId, 0);
+          setPlaylistPlaybackIds([]);
         }
       }).finally(() => { playlistTransitioningRef.current = false; });
     }, Math.max(0, remainingMs - crossfadeMs));
     return () => window.clearTimeout(timer);
-  }, [detail?.tracks, nextPlaylistIndex, playPlaylistAt, playlistCurrentIndex, playlistItems, playlistOptions.crossfadeMs, playlistPlayback]);
+  }, [detail?.tracks, nextPlaylistIndex, playPlaylistAt, playlistCurrentIndex, playlistOptions.crossfadeMs, playlistPlayback, playlistPlaybackIds, playlistQueueRows]);
 
   function clearPlaylistAdvanceTimer() {
     if (playlistAdvanceTimerRef.current === undefined) return;
@@ -636,83 +660,98 @@ export default function App() {
   function stopPlaylistPlayback() {
     playlistRunRef.current = false;
     playlistTransitioningRef.current = false;
+    playlistRunGenerationRef.current += 1;
     clearPlaylistAdvanceTimer();
-    if (playlistPlaybackId) {
-      ignoredPlaylistPlaybackRef.current = playlistPlaybackId;
-      audioEngine.stopInstance(playlistPlaybackId, 0);
-    }
-    setPlaylistPlaybackId(undefined);
+    for (const playbackId of playlistPlaybackIds) audioEngine.stopInstance(playbackId, 0);
+    setPlaylistPlaybackIds([]);
   }
 
   function playPausePlaylist() {
-    const playback = activePlaybacks.find((item) => item.id === playlistPlaybackId);
-    if (playback) {
-      audioEngine.togglePauseInstance(playback.id);
+    if (playlistPlaybacks.length > 0) {
+      for (const playback of playlistPlaybacks) audioEngine.togglePauseInstance(playback.id);
       return;
     }
     clearPlaylistAdvanceTimer();
-    playlistPlayedItemIdsRef.current.clear();
-    playPlaylistAt(Math.min(playlistCurrentIndex, Math.max(0, playlistItems.length - 1))).catch(() => undefined);
+    playlistPlayedRowIdsRef.current.clear();
+    playPlaylistAt(Math.min(playlistCurrentIndex, Math.max(0, playlistQueueRows.length - 1))).catch(() => undefined);
   }
 
-  function playPlaylistItem(index: number) {
+  function playPlaylistRow(index: number) {
     stopPlaylistPlayback();
-    playlistPlayedItemIdsRef.current.clear();
+    playlistPlayedRowIdsRef.current.clear();
     playPlaylistAt(index).catch(() => undefined);
   }
 
-  function skipPlaylistTrack() {
+  function skipPlaylistRow() {
     const nextIndex = nextPlaylistIndex(playlistCurrentIndex);
     if (nextIndex === undefined) return stopPlaylistPlayback();
     stopPlaylistPlayback();
     playPlaylistAt(nextIndex).catch(() => undefined);
   }
 
-  function addTrackToPlaylist(trackId: string) {
+  function addTrackToPlaylist(trackId: string, targetRowId?: string, placement: PlaylistItemPlacement = 'after') {
     if (!detail?.tracks.some((track) => track.id === trackId)) return;
-    setPlaylistItems((current) => [...current, { id: crypto.randomUUID(), trackId }]);
+    setPlaylistItems((current) => {
+      const rows = groupPlaylistItems(current).map((row) => ({ ...row, items: [...row.items] }));
+      const currentRowId = rows[playlistCurrentIndex]?.id;
+      const itemId = crypto.randomUUID();
+      if (!targetRowId) return [...current, { id: itemId, trackId, rowId: crypto.randomUUID() }];
+      const targetIndex = rows.findIndex((row) => row.id === targetRowId);
+      if (targetIndex < 0) return current;
+      if (placement === 'group') {
+        if (rows[targetIndex]!.items.length >= (detail.project.maxPlaylistGroupSize ?? 4)) {
+          setError(`Cette rangée est limitée à ${detail.project.maxPlaylistGroupSize ?? 4} morceaux.`);
+          return current;
+        }
+        rows[targetIndex]!.items.push({ id: itemId, trackId, rowId: targetRowId });
+      } else {
+        const rowId = crypto.randomUUID();
+        rows.splice(targetIndex + (placement === 'after' ? 1 : 0), 0, { id: rowId, items: [{ id: itemId, trackId, rowId }] });
+      }
+      if (currentRowId) setPlaylistCurrentIndex(Math.max(0, rows.findIndex((row) => row.id === currentRowId)));
+      return rows.flatMap((row) => row.items);
+    });
   }
 
   function addCategoryToPlaylist() {
     if (tracksToPreload.length === 0) return;
-    setPlaylistItems((current) => [...current, ...tracksToPreload.map((track) => ({ id: crypto.randomUUID(), trackId: track.id }))]);
+    setPlaylistItems((current) => [...current, ...tracksToPreload.map((track) => ({ id: crypto.randomUUID(), trackId: track.id, rowId: crypto.randomUUID() }))]);
     setSidebarTool('playlist');
   }
 
-  function movePlaylistItem(itemId: string, beforeItemId: string) {
+  function movePlaylistItem(itemId: string, targetRowId: string, placement: PlaylistItemPlacement) {
     setPlaylistItems((current) => {
-      const moving = current.find((item) => item.id === itemId);
-      const currentItemId = current[playlistCurrentIndex]?.id;
-      if (!moving) return current;
-      const reordered = current.filter((item) => item.id !== itemId);
-      const targetIndex = reordered.findIndex((item) => item.id === beforeItemId);
-      reordered.splice(Math.max(0, targetIndex), 0, moving);
-      if (currentItemId) setPlaylistCurrentIndex(Math.max(0, reordered.findIndex((item) => item.id === currentItemId)));
-      return reordered;
+      const currentRow = groupPlaylistItems(current)[playlistCurrentIndex];
+      const currentAnchorItemId = currentRow?.items.find((item) => item.id !== itemId)?.id ?? currentRow?.items[0]?.id;
+      const result = repositionPlaylistItem(current, itemId, targetRowId, placement, detail?.project.maxPlaylistGroupSize ?? 4);
+      if (result.limitReached) setError(`Cette rangée est limitée à ${detail?.project.maxPlaylistGroupSize ?? 4} morceaux.`);
+      if (currentAnchorItemId && result.changed) setPlaylistCurrentIndex(Math.max(0, groupPlaylistItems(result.items).findIndex((row) => row.items.some((item) => item.id === currentAnchorItemId))));
+      return result.items;
     });
   }
 
   function removePlaylistItem(itemId: string) {
-    const removedIndex = playlistItems.findIndex((item) => item.id === itemId);
-    if (removedIndex < 0) return;
-    if (removedIndex === playlistCurrentIndex) stopPlaylistPlayback();
+    const removedItem = playlistItems.find((item) => item.id === itemId);
+    if (!removedItem) return;
+    const removedRowIndex = playlistQueueRows.findIndex((row) => row.id === removedItem.rowId);
+    if (removedRowIndex === playlistCurrentIndex) stopPlaylistPlayback();
     setPlaylistItems((current) => current.filter((item) => item.id !== itemId));
-    setPlaylistCurrentIndex((current) => Math.max(0, removedIndex < current ? current - 1 : current));
-    playlistPlayedItemIdsRef.current.delete(itemId);
+    setPlaylistCurrentIndex((current) => Math.max(0, removedRowIndex < current && playlistQueueRows[removedRowIndex]?.items.length === 1 ? current - 1 : current));
+    playlistPlayedRowIdsRef.current.delete(removedItem.rowId);
   }
 
   function resetPlaylistEditor() {
     playlistRunRef.current = false;
     playlistTransitioningRef.current = false;
+    playlistRunGenerationRef.current += 1;
     clearPlaylistAdvanceTimer();
-    ignoredPlaylistPlaybackRef.current = undefined;
-    setPlaylistPlaybackId(undefined);
+    setPlaylistPlaybackIds([]);
     setPlaylistItems([]);
     setLoadedPlaylistId(undefined);
     setPlaylistCurrentIndex(0);
     setPlaylistOptions({ name: 'Nouvelle playlist', color: detail?.colors[0]?.color ?? '#8b5cf6', autostart: false, loop: false, random: false, gapMs: 0, crossfadeMs: 0 });
     setPlaylistOptionsOpen(false);
-    playlistPlayedItemIdsRef.current.clear();
+    playlistPlayedRowIdsRef.current.clear();
   }
 
   function clearPlaylist() {
@@ -722,17 +761,19 @@ export default function App() {
 
   function loadPlaylist(playlist: Playlist) {
     stopPlaylistPlayback();
-    const items = playlist.trackIds.filter((trackId) => detail?.tracks.some((track) => track.id === trackId)).map((trackId) => ({ id: crypto.randomUUID(), trackId }));
+    const entries = (playlist.items?.length ? playlist.items : playlist.trackIds.map((trackId, rowIndex) => ({ trackId, rowIndex })))
+      .filter((item) => detail?.tracks.some((track) => track.id === item.trackId));
+    const items = playlistQueueItems(entries, () => crypto.randomUUID());
     setPlaylistItems(items);
     setPlaylistOptions({ name: playlist.name, color: playlist.color, autostart: playlist.autostart, loop: playlist.loop, random: playlist.random, gapMs: playlist.gapMs ?? 0, crossfadeMs: playlist.crossfadeMs ?? 0 });
     setLoadedPlaylistId(playlist.id);
     setPlaylistCurrentIndex(0);
     setPlaylistOptionsOpen(false);
     setSidebarTool('playlist');
-    playlistPlayedItemIdsRef.current.clear();
-    if (playlist.autostart && items[0]) {
-      const firstTrack = detail?.tracks.find((track) => track.id === items[0]!.trackId);
-      if (firstTrack) startPlaylistTrack(firstTrack, 0, items[0].id).catch(() => undefined);
+    playlistPlayedRowIdsRef.current.clear();
+    const firstRow = groupPlaylistItems(items)[0];
+    if (playlist.autostart && firstRow) {
+      startPlaylistRow(firstRow, 0).catch(() => undefined);
     }
   }
 
@@ -744,7 +785,7 @@ export default function App() {
         ...playlistOptions,
         name: playlistOptions.name.trim() || 'Playlist sans titre',
         categoryId: currentCategory?.id ?? detail.categories[0]?.id ?? null,
-        trackIds: playlistItems.map((item) => item.trackId),
+        items: playlistEntries(playlistItems),
       });
       setLoadedPlaylistId(playlist.id);
       setPlaylistOptions((current) => ({ ...current, name: playlist.name }));
@@ -1089,6 +1130,19 @@ export default function App() {
       setDetail((current) => current ? { ...current, project } : current);
       setProjects((current) => current.map((candidate) => candidate.id === project.id ? project : candidate));
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Configuration impossible.'); }
+  }
+
+  async function updatePlaylistGroupLimit(maxPlaylistGroupSize: number) {
+    if (!detail) return;
+    if (playlistQueueRows.some((row) => row.items.length > maxPlaylistGroupSize)) {
+      setError('La playlist ouverte contient déjà une rangée plus grande que cette limite.');
+      return;
+    }
+    try {
+      const { project } = await api.updateProjectActions(detail.project.id, { maxPlaylistGroupSize });
+      setDetail((current) => current ? { ...current, project } : current);
+      setProjects((current) => current.map((candidate) => candidate.id === project.id ? project : candidate));
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Configuration des playlists impossible.'); }
   }
 
   async function reorderTrack(trackId: string, categoryId: string | null, beforeTrackId?: string) {
@@ -1452,7 +1506,7 @@ export default function App() {
           </article>;
         })}
       </div>
-      {!remote && <>{sidebarTool === 'playlist' && <PlaylistPanel items={playlistItems} tracks={detail?.tracks ?? []} colors={detail?.colors ?? []} options={playlistOptions} currentIndex={playlistCurrentIndex} playbackActive={Boolean(playlistPlayback)} playbackPaused={playlistPlayback?.paused ?? false} saved={Boolean(loadedPlaylistId)} saving={playlistSaving} optionsOpen={playlistOptionsOpen} onOptionsOpenChange={setPlaylistOptionsOpen} onOptionsChange={(patch) => setPlaylistOptions((current) => ({ ...current, ...patch }))} onDropTrack={addTrackToPlaylist} onMoveItem={movePlaylistItem} onRemoveItem={removePlaylistItem} onPlayItem={playPlaylistItem} onPlayPause={playPausePlaylist} onStop={stopPlaylistPlayback} onNext={skipPlaylistTrack} onSave={() => saveCurrentPlaylist().catch(() => undefined)} onDelete={() => deleteCurrentPlaylist().catch(() => undefined)} onClear={clearPlaylist} />}
+      {!remote && <>{sidebarTool === 'playlist' && <PlaylistPanel items={playlistItems} tracks={detail?.tracks ?? []} colors={detail?.colors ?? []} options={playlistOptions} currentRowIndex={playlistCurrentIndex} maxGroupSize={detail?.project.maxPlaylistGroupSize ?? 4} playbackActive={playlistPlaybacks.length > 0} playbackPaused={playlistPlaybacks.length > 0 && playlistPlaybacks.every((playback) => playback.paused)} saved={Boolean(loadedPlaylistId)} saving={playlistSaving} optionsOpen={playlistOptionsOpen} onOptionsOpenChange={setPlaylistOptionsOpen} onOptionsChange={(patch) => setPlaylistOptions((current) => ({ ...current, ...patch }))} onDropTrack={addTrackToPlaylist} onMoveItem={movePlaylistItem} onRemoveItem={removePlaylistItem} onPlayRow={playPlaylistRow} onPlayPause={playPausePlaylist} onStop={stopPlaylistPlayback} onNext={skipPlaylistRow} onSave={() => saveCurrentPlaylist().catch(() => undefined)} onDelete={() => deleteCurrentPlaylist().catch(() => undefined)} onClear={clearPlaylist} />}
         <nav className="sidebar-tool-tabs" aria-label="Outils de la colonne de lecture"><button className={sidebarTool === 'playlist' ? 'active' : ''} onClick={() => setSidebarTool((current) => current === 'playlist' ? undefined : 'playlist')} aria-label="Afficher la playlist" title="Playlist"><ListMusic size={17} /><em>{playlistItems.length}</em></button></nav>
       </>}
     </aside>
@@ -1580,7 +1634,7 @@ export default function App() {
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
-    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} initialSection={settingsInitialSection} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onAccountChange={handleAccountChange} onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined); }} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundAutoSearch(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onUpdateKeyboardShortcut={updateKeyboardShortcut} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} initialSection={settingsInitialSection} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onAccountChange={handleAccountChange} onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined); }} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundAutoSearch(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onUpdateKeyboardShortcut={updateKeyboardShortcut} onUpdatePlaylistGroupLimit={updatePlaylistGroupLimit} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
     {whatsNewOpen && releaseInfo && <WhatsNewDialog releases={releasesForDialog} currentVersion={releaseInfo.currentVersion} onClose={closeWhatsNew} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {freesoundOpen && detail && <FreesoundDialog initialQuery={search} autoSearch={freesoundAutoSearch} projectId={detail.project.id} categories={detail.categories} projectColors={detail.colors} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} bridgeOutputs={routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId} onImported={refreshProject} onClose={() => { setFreesoundOpen(false); setFreesoundAutoSearch(false); }} />}

@@ -168,18 +168,30 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .playlist-transition-options label strong { margin-left: auto; color: color-mix(in srgb, var(--playlist-color) 75%, #fff); font-size: .55rem; }
 .playlist-transition-options input { height: 16px; min-width: 0; accent-color: var(--playlist-color); cursor: pointer; }
 .playlist-delete-saved { min-height: 28px; padding: 0 7px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid rgba(248,113,113,.16); border-radius: 6px; color: #fca5a5; background: rgba(248,113,113,.06); cursor: pointer; font-size: .56rem; }
-.playlist-dropzone { min-height: 80px; flex: 1; padding: 3px; display: grid; align-content: start; gap: 4px; overflow-y: auto; border: 1px dashed color-mix(in srgb, var(--playlist-color) 35%, var(--border)); border-radius: 8px; background: color-mix(in srgb, var(--playlist-color) 3%, #0d0d0f); }
+.playlist-dropzone { min-height: 80px; flex: 1; padding: 3px; display: grid; align-content: start; gap: 0; overflow-y: auto; border: 1px dashed color-mix(in srgb, var(--playlist-color) 35%, var(--border)); border-radius: 8px; background: color-mix(in srgb, var(--playlist-color) 3%, #0d0d0f); }
 .playlist-dropzone.empty { align-content: stretch; }
 .playlist-drop-hint { min-height: 82px; display: grid; place-content: center; justify-items: center; gap: 3px; color: color-mix(in srgb, var(--playlist-color) 65%, #71717a); text-align: center; }
 .playlist-drop-hint strong { color: #a1a1aa; font-size: .64rem; }
 .playlist-drop-hint span { color: #62626a; font-size: .55rem; }
-.playlist-dropzone article { min-height: 31px; padding: 2px 3px; display: grid; grid-template-columns: 14px minmax(0, 1fr) 24px; align-items: center; gap: 3px; border: 1px solid var(--border); border-radius: 6px; color: #62626a; background: #171719; cursor: grab; }
-.playlist-dropzone article.current { border-color: color-mix(in srgb, var(--playlist-color) 70%, var(--border)); background: color-mix(in srgb, var(--playlist-color) 9%, #171719); }
-.playlist-dropzone article > button { min-width: 0; height: 25px; padding: 0; display: flex; align-items: center; gap: 5px; overflow: hidden; border: 0; color: #71717a; background: transparent; cursor: pointer; text-align: left; }
-.playlist-dropzone article > button:first-of-type span { min-width: 16px; color: color-mix(in srgb, var(--playlist-color) 75%, #a1a1aa); font: .55rem ui-monospace, monospace; }
-.playlist-dropzone article strong { overflow: hidden; color: #d4d4d8; font-size: .61rem; text-overflow: ellipsis; white-space: nowrap; }
-.playlist-dropzone article > button:last-child { justify-content: center; }
-.playlist-dropzone article > button:last-child:hover { color: #fca5a5; }
+.playlist-drop-guide { min-height: 22px; padding: 2px 5px 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 9px; color: #71717a; font-size: .5rem; }
+.playlist-drop-guide span { display: flex; align-items: center; gap: 3px; }
+.playlist-row-block { min-width: 0; display: grid; }
+.playlist-row-insert { height: 8px; display: grid; place-items: center; overflow: hidden; color: transparent; font-size: .5rem; transition: height .12s ease, color .12s ease, background .12s ease; }
+.playlist-row-insert.last { height: 11px; }
+.playlist-row-insert span { opacity: 0; }
+.playlist-row-insert:has(+ .playlist-row) { border-radius: 5px 5px 0 0; }
+.playlist-row-insert:hover, .playlist-row-insert:focus-within { height: 22px; color: color-mix(in srgb, var(--playlist-color) 78%, #fff); background: color-mix(in srgb, var(--playlist-color) 13%, transparent); }
+.playlist-row-insert:hover span, .playlist-row-insert:focus-within span { opacity: 1; }
+.playlist-row { min-width: 0; min-height: 35px; padding: 3px; display: grid; grid-template-columns: 31px minmax(0, 1fr) auto; align-items: center; gap: 4px; border: 1px solid var(--border); border-radius: 7px; background: #121214; }
+.playlist-row.current { border-color: color-mix(in srgb, var(--playlist-color) 70%, var(--border)); background: color-mix(in srgb, var(--playlist-color) 9%, #171719); }
+.playlist-row-play { height: 27px; padding: 0; display: grid; grid-template-columns: 10px 1fr; place-items: center; gap: 2px; border: 0; border-radius: 5px; color: color-mix(in srgb, var(--playlist-color) 78%, #a1a1aa); background: color-mix(in srgb, var(--playlist-color) 10%, transparent); cursor: pointer; font: .54rem ui-monospace, monospace; }
+.playlist-row-items { min-width: 0; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: thin; }
+.playlist-row-items article { min-width: 94px; min-height: 27px; padding: 2px 2px 2px 4px; display: grid; grid-template-columns: 12px minmax(48px, 1fr) 20px; align-items: center; gap: 3px; border: 1px solid color-mix(in srgb, var(--playlist-color) 22%, var(--border)); border-radius: 5px; color: #62626a; background: #19191c; cursor: grab; }
+.playlist-row-items article strong { overflow: hidden; color: #d4d4d8; font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }
+.playlist-row-items article button { width: 20px; height: 22px; padding: 0; display: grid; place-items: center; border: 0; color: #71717a; background: transparent; cursor: pointer; }
+.playlist-row-items article button:hover { color: #fca5a5; }
+.playlist-row-group, .playlist-row-limit { height: 20px; padding: 0 5px; display: flex; align-items: center; gap: 2px; border-radius: 999px; color: color-mix(in srgb, var(--playlist-color) 72%, #d4d4d8); background: color-mix(in srgb, var(--playlist-color) 13%, transparent); font-size: .5rem; }
+.playlist-row-limit { color: #a1a1aa; background: #242428; text-transform: uppercase; }
 .file-drop-overlay { position: fixed; z-index: 300; inset: 0; padding: 18px; display: grid; place-items: center; pointer-events: none; background: rgba(9,9,11,.76); backdrop-filter: blur(8px); animation: file-drop-in .16s ease-out both; }
 .file-drop-overlay.is-uploading { pointer-events: auto; }
 .file-drop-overlay::before { position: absolute; inset: 14px; border: 2px dashed rgba(34,211,182,.72); border-radius: 22px; content: ''; }

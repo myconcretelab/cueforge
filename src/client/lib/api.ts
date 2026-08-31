@@ -1,4 +1,4 @@
-import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, BatchTrackUpdateInput, BridgeDevice, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcuts, PublicPlan, ReleaseInfo, SoundShowAnalysis, Track, User } from '../types';
+import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, BatchTrackUpdateInput, BridgeDevice, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, PlaylistEntry, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcuts, PublicPlan, ReleaseInfo, SoundShowAnalysis, Track, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -74,7 +74,7 @@ export const api = {
   }),
   deleteProject: (id: string) => request<void>(`/api/projects/${id}`, { method: 'DELETE' }),
   project: (id: string) => request<ProjectDetail>(`/api/projects/${id}`),
-  updateProjectActions: (projectId: string, input: { leftClickAction?: MouseAction; rightClickAction?: MouseAction; keyboardAction?: MouseAction; escapeKeyAction?: KeyAction; backspaceKeyAction?: KeyAction; shiftBackspaceKeyAction?: KeyAction; spaceKeyAction?: KeyAction } & Partial<ProjectKeyboardShortcuts>) =>
+  updateProjectActions: (projectId: string, input: { leftClickAction?: MouseAction; rightClickAction?: MouseAction; keyboardAction?: MouseAction; escapeKeyAction?: KeyAction; backspaceKeyAction?: KeyAction; shiftBackspaceKeyAction?: KeyAction; spaceKeyAction?: KeyAction; maxPlaylistGroupSize?: number } & Partial<ProjectKeyboardShortcuts>) =>
     request<{ project: Project }>(`/api/projects/${projectId}/mouse-actions`, { method: 'PATCH', body: JSON.stringify(input) }),
   createProjectColor: (projectId: string, color: string) => request<{ projectColor: ProjectColor }>(`/api/projects/${projectId}/colors`, {
     method: 'POST', body: JSON.stringify({ color }),
@@ -83,7 +83,7 @@ export const api = {
     method: 'PATCH', body: JSON.stringify({ colorIds }),
   }),
   deleteProjectColor: (projectId: string, colorId: string) => request<void>(`/api/projects/${projectId}/colors/${colorId}`, { method: 'DELETE' }),
-  savePlaylist: (projectId: string, playlistId: string | undefined, input: Pick<Playlist, 'name' | 'color' | 'autostart' | 'loop' | 'random' | 'gapMs' | 'crossfadeMs' | 'trackIds' | 'categoryId'>) =>
+  savePlaylist: (projectId: string, playlistId: string | undefined, input: Pick<Playlist, 'name' | 'color' | 'autostart' | 'loop' | 'random' | 'gapMs' | 'crossfadeMs' | 'categoryId'> & { items: PlaylistEntry[] }) =>
     request<{ playlist: Playlist }>(playlistId ? `/api/projects/${projectId}/playlists/${playlistId}` : `/api/projects/${projectId}/playlists`, {
       method: playlistId ? 'PATCH' : 'POST', body: JSON.stringify(input),
     }),

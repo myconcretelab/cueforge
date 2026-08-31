@@ -10,6 +10,7 @@ import { requireUser } from '../services/auth.js';
 import { sameIds } from '../services/order.js';
 import { ownsProject } from '../services/ownership.js';
 import { accountForUser } from '../services/accounts.js';
+import { playlistRowsAreValid } from '../services/playlist-rows.js';
 
 const idParams = z.object({ id: z.string().uuid() });
 const mouseActionSchema = z.enum(['start', 'crossfade', 'fade-in', 'replace', 'stop', 'none']);
@@ -24,8 +25,12 @@ const playlistInputSchema = z.object({
   random: z.boolean(),
   gapMs: z.number().int().min(0).max(30_000).default(0),
   crossfadeMs: z.number().int().min(0).max(30_000).default(0),
-  trackIds: z.array(z.string().uuid()).min(1).max(500),
-});
+  items: z.array(z.object({ trackId: z.string().uuid(), rowIndex: z.number().int().min(0).max(499) })).min(1).max(500).optional(),
+  trackIds: z.array(z.string().uuid()).min(1).max(500).optional(),
+}).refine((input) => input.items !== undefined || input.trackIds !== undefined, { message: 'La playlist doit contenir au moins un morceau.' }).transform(({ items, trackIds, ...input }) => ({
+  ...input,
+  items: items ?? trackIds!.map((trackId, rowIndex) => ({ trackId, rowIndex })),
+}));
 
 export async function projectRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/projects', async (request, reply) => {
@@ -79,7 +84,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     const [colors, savedPlaylists, savedPlaylistItems, projectCategories, projectTracks] = await Promise.all([
       db.select().from(projectColors).where(eq(projectColors.projectId, id)).orderBy(asc(projectColors.position)),
       db.select().from(playlists).where(eq(playlists.projectId, id)).orderBy(asc(playlists.position), asc(playlists.createdAt)),
-      db.select({ playlistId: playlistItems.playlistId, trackId: playlistItems.trackId }).from(playlistItems)
+      db.select({ playlistId: playlistItems.playlistId, trackId: playlistItems.trackId, rowIndex: playlistItems.rowIndex }).from(playlistItems)
         .innerJoin(playlists, eq(playlistItems.playlistId, playlists.id)).where(eq(playlists.projectId, id)).orderBy(asc(playlistItems.position)),
       db.select().from(categories).where(eq(categories.projectId, id)).orderBy(asc(categories.position)),
       db.select().from(tracks).where(eq(tracks.projectId, id)).orderBy(asc(tracks.position), asc(tracks.createdAt)),
@@ -87,7 +92,10 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     return {
       project,
       colors,
-      playlists: savedPlaylists.map((playlist) => ({ ...playlist, trackIds: savedPlaylistItems.filter((item) => item.playlistId === playlist.id).map((item) => item.trackId) })),
+      playlists: savedPlaylists.map((playlist) => {
+        const items = savedPlaylistItems.filter((item) => item.playlistId === playlist.id).map(({ trackId, rowIndex }) => ({ trackId, rowIndex }));
+        return { ...playlist, trackIds: items.map((item) => item.trackId), items };
+      }),
       categories: projectCategories,
       tracks: projectTracks,
     };
@@ -118,7 +126,20 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       masterVolumeDownShortcut: keyboardShortcutSchema.optional(),
       masterVolumeDownFastShortcut: keyboardShortcutSchema.optional(),
       searchShortcut: keyboardShortcutSchema.optional(),
+      maxPlaylistGroupSize: z.number().int().min(2).max(8).optional(),
     }).refine((value) => Object.keys(value).length > 0, { message: 'Sélectionnez une action.' }).parse(request.body);
+    if (input.maxPlaylistGroupSize !== undefined) {
+      const savedItems = await db.select({ playlistId: playlistItems.playlistId, rowIndex: playlistItems.rowIndex }).from(playlistItems)
+        .innerJoin(playlists, eq(playlistItems.playlistId, playlists.id)).where(eq(playlists.projectId, id));
+      const groupCounts = new Map<string, number>();
+      for (const item of savedItems) {
+        const key = `${item.playlistId}:${item.rowIndex}`;
+        groupCounts.set(key, (groupCounts.get(key) ?? 0) + 1);
+      }
+      if ([...groupCounts.values()].some((count) => count > input.maxPlaylistGroupSize!)) {
+        return reply.code(400).send({ error: 'Une playlist enregistrée contient déjà une rangée plus grande que cette limite.' });
+      }
+    }
     const [project] = await db.update(projects).set({ ...input, updatedAt: new Date() }).where(eq(projects.id, id)).returning();
     return { project };
   });
@@ -203,9 +224,11 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       const [category] = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.id, input.categoryId), eq(categories.projectId, id))).limit(1);
       if (!category) return reply.code(400).send({ error: 'Catégorie de playlist invalide.' });
     }
+    const [project] = await db.select({ maxPlaylistGroupSize: projects.maxPlaylistGroupSize }).from(projects).where(eq(projects.id, id)).limit(1);
+    if (!playlistRowsAreValid(input.items, project?.maxPlaylistGroupSize ?? 4)) return reply.code(400).send({ error: 'Composition des rangées de playlist invalide.' });
     const projectTracks = await db.select({ id: tracks.id }).from(tracks).where(eq(tracks.projectId, id));
     const projectTrackIds = new Set(projectTracks.map((track) => track.id));
-    if (!input.trackIds.every((trackId) => projectTrackIds.has(trackId))) return reply.code(400).send({ error: 'La playlist contient un morceau invalide.' });
+    if (!input.items.every((item) => projectTrackIds.has(item.trackId))) return reply.code(400).send({ error: 'La playlist contient un morceau invalide.' });
     const [existingPlaylists, existingTracks] = await Promise.all([
       db.select({ position: playlists.position }).from(playlists).where(eq(playlists.projectId, id)),
       db.select({ position: tracks.position }).from(tracks).where(eq(tracks.projectId, id)),
@@ -213,8 +236,8 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     const position = Math.max(-1, ...existingPlaylists.map((playlist) => playlist.position), ...existingTracks.map((track) => track.position)) + 1;
     const playlist = await db.transaction(async (transaction) => {
       const [created] = await transaction.insert(playlists).values({ projectId: id, categoryId: input.categoryId, name: input.name, color: input.color, autostart: input.autostart, loop: input.loop, random: input.random, gapMs: input.gapMs, crossfadeMs: input.crossfadeMs, position }).returning();
-      await transaction.insert(playlistItems).values(input.trackIds.map((trackId, itemPosition) => ({ playlistId: created.id, trackId, position: itemPosition })));
-      return { ...created, trackIds: input.trackIds };
+      await transaction.insert(playlistItems).values(input.items.map((item, itemPosition) => ({ playlistId: created.id, trackId: item.trackId, position: itemPosition, rowIndex: item.rowIndex })));
+      return { ...created, trackIds: input.items.map((item) => item.trackId), items: input.items };
     });
     return reply.code(201).send({ playlist });
   });
@@ -246,14 +269,16 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       const [category] = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.id, input.categoryId), eq(categories.projectId, id))).limit(1);
       if (!category) return reply.code(400).send({ error: 'Catégorie de playlist invalide.' });
     }
+    const [project] = await db.select({ maxPlaylistGroupSize: projects.maxPlaylistGroupSize }).from(projects).where(eq(projects.id, id)).limit(1);
+    if (!playlistRowsAreValid(input.items, project?.maxPlaylistGroupSize ?? 4)) return reply.code(400).send({ error: 'Composition des rangées de playlist invalide.' });
     const projectTracks = await db.select({ id: tracks.id }).from(tracks).where(eq(tracks.projectId, id));
     const projectTrackIds = new Set(projectTracks.map((track) => track.id));
-    if (!input.trackIds.every((trackId) => projectTrackIds.has(trackId))) return reply.code(400).send({ error: 'La playlist contient un morceau invalide.' });
+    if (!input.items.every((item) => projectTrackIds.has(item.trackId))) return reply.code(400).send({ error: 'La playlist contient un morceau invalide.' });
     const playlist = await db.transaction(async (transaction) => {
       const [updated] = await transaction.update(playlists).set({ categoryId: input.categoryId, name: input.name, color: input.color, autostart: input.autostart, loop: input.loop, random: input.random, gapMs: input.gapMs, crossfadeMs: input.crossfadeMs, updatedAt: new Date() }).where(eq(playlists.id, playlistId)).returning();
       await transaction.delete(playlistItems).where(eq(playlistItems.playlistId, playlistId));
-      await transaction.insert(playlistItems).values(input.trackIds.map((trackId, itemPosition) => ({ playlistId, trackId, position: itemPosition })));
-      return { ...updated, trackIds: input.trackIds };
+      await transaction.insert(playlistItems).values(input.items.map((item, itemPosition) => ({ playlistId, trackId: item.trackId, position: itemPosition, rowIndex: item.rowIndex })));
+      return { ...updated, trackIds: input.items.map((item) => item.trackId), items: input.items };
     });
     return { playlist };
   });

@@ -194,6 +194,7 @@ export const projects = pgTable('projects', {
   masterVolumeDownShortcut: text('master_volume_down_shortcut').notNull().default('Minus'),
   masterVolumeDownFastShortcut: text('master_volume_down_fast_shortcut').notNull().default('Control+Minus'),
   searchShortcut: text('search_shortcut').notNull().default('Primary+KeyK'),
+  maxPlaylistGroupSize: integer('max_playlist_group_size').notNull().default(4),
   position: integer('position').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -265,6 +266,7 @@ export const playlistItems = pgTable('playlist_items', {
   playlistId: uuid('playlist_id').notNull().references(() => playlists.id, { onDelete: 'cascade' }),
   trackId: uuid('track_id').notNull().references(() => tracks.id, { onDelete: 'cascade' }),
   position: integer('position').notNull().default(0),
+  rowIndex: integer('row_index').notNull().default(0),
 }, (table) => [index('playlist_items_playlist_id_idx').on(table.playlistId), index('playlist_items_track_id_idx').on(table.trackId)]);
 
 export const auditLogs = pgTable('audit_logs', {

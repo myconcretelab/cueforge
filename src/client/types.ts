@@ -67,9 +67,15 @@ export interface Project extends ProjectKeyboardShortcuts {
   backspaceKeyAction: KeyAction;
   shiftBackspaceKeyAction: KeyAction;
   spaceKeyAction: KeyAction;
+  maxPlaylistGroupSize: number;
   position: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PlaylistEntry {
+  trackId: string;
+  rowIndex: number;
 }
 
 export interface AccountSummary {
@@ -201,6 +207,7 @@ export interface Playlist {
   crossfadeMs: number;
   position: number;
   trackIds: string[];
+  items: PlaylistEntry[];
   createdAt: string;
   updatedAt: string;
 }

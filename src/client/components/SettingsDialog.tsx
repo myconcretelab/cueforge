@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BookOpen, Cable, CloudDownload, CreditCard, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, LoaderCircle, LogOut, Palette, Plus, RefreshCcw, Settings2, ShieldCheck, Speaker, Smartphone, Trash2, Waves, X } from 'lucide-react';
+import { BookOpen, Cable, CloudDownload, CreditCard, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, ListMusic, LoaderCircle, LogOut, Palette, Plus, RefreshCcw, Settings2, ShieldCheck, Speaker, Smartphone, Trash2, Waves, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { audioEngine, type AudioOutputDevice } from '../lib/audio-engine';
 import { bridgeClient, type BridgeOutput } from '../lib/bridge-client';
@@ -34,6 +34,7 @@ interface Props {
   onCacheOffline: () => void;
   onUpdateKeyAction: (key: 'escape' | 'backspace' | 'shift-backspace' | 'space', action: KeyAction) => void;
   onUpdateKeyboardShortcut: (key: ProjectKeyboardShortcutKey, shortcut: string) => void;
+  onUpdatePlaylistGroupLimit: (limit: number) => void;
   onLogout: () => void;
   onClose: () => void;
 }
@@ -101,7 +102,7 @@ function formatPrice(cents: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 }
 
-export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, onAutomaticUpdatesChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onUpdateKeyboardShortcut, onLogout, onClose }: Props) {
+export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, onAutomaticUpdatesChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onUpdateKeyboardShortcut, onUpdatePlaylistGroupLimit, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
   const [newColor, setNewColor] = useState('#22d3b6');
   const [draggedProjectId, setDraggedProjectId] = useState<string>();
@@ -429,6 +430,10 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
       <section className="settings-section">
         <div className="settings-section-title"><FileArchive size={16} /><div><strong>Bibliothèque</strong><span>Importez ou préparez les médias de ce spectacle.</span></div></div>
         <div className="settings-actions"><button className="button ghost" onClick={onImportSoundShow}><FileArchive size={17} />Importer SoundShow</button><button className="button ghost" onClick={onOpenFreesound}><Waves size={17} />Rechercher sur Freesound</button><button className="button ghost" onClick={onCacheOffline}><CloudDownload size={17} />{offlineStatus || 'Rendre disponible hors ligne'}</button></div>
+      </section>
+      <section className="settings-section">
+        <div className="settings-section-title"><ListMusic size={16} /><div><strong>Playlists</strong><span>Réglez le nombre maximal de morceaux pouvant partager une rangée.</span></div></div>
+        <div className="settings-key-actions"><label><span>Morceaux simultanés</span><select value={selectedProject?.maxPlaylistGroupSize ?? 4} disabled={!selectedProject} onChange={(event) => onUpdatePlaylistGroupLimit(Number(event.target.value))}>{[2, 3, 4, 5, 6, 7, 8].map((limit) => <option value={limit} key={limit}>{limit} morceaux</option>)}</select></label></div>
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><Speaker size={16} /><div><strong>Moteur et sorties audio</strong><span>{bridgeAvailable ? 'Le navigateur reste utilisable seul. Le bridge ajoute un cache natif et plusieurs sorties indépendantes.' : 'Le son utilise la sortie système par défaut.'}</span></div></div>
