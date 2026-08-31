@@ -1,6 +1,6 @@
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import {
-  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, FolderOpen, FolderPlus, GripVertical, History, LayoutDashboard, ListPlus, LoaderCircle, Menu, Move, Pause, Play, Plus, Radio,
+  ArrowUpDown, AudioLines, AudioWaveform, ChevronDown, ChevronUp, CircleCheck, Clock3, Columns3, Download, FolderOpen, FolderPlus, GripHorizontal, GripVertical, History, LayoutDashboard, ListMusic, ListPlus, LoaderCircle, Menu, Move, Pause, Play, Plus, Radio,
   LogIn, RefreshCcw, Repeat2, RotateCcw, Scan, Search, Settings, Settings2, SlidersHorizontal, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
@@ -39,7 +39,7 @@ import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCat
 import { intersectsSelection, type SelectionRectangle } from './lib/track-selection';
 import { normalizeTrackTags, trackMatchesSearch, type TrackSearchScope } from './lib/track-tags';
 import { canDropTrackInSubcategoryDrawer, trackDropPlacement, trackIdAfterTarget } from './lib/track-subcategories';
-import { createWorkspaceLayout, moveWorkspaceItem, readWorkspaceLayout, resizeWorkspaceItem, swapWorkspaceItems, workspaceBlockLabels, workspaceLayoutItem, workspaceLayoutStorageKey, workspaceLayoutWithColumns, type WorkspaceBlockId } from './lib/workspace-layout';
+import { compactPlaylistMaximumRows, compactPlaylistMinimumRows, createWorkspaceLayout, moveWorkspaceItem, readWorkspaceLayout, resizeWorkspaceItem, swapWorkspaceItems, workspaceBlockLabels, workspaceLayoutItem, workspaceLayoutStorageKey, workspaceLayoutWithColumns, workspaceLayoutRows, type WorkspaceBlockId } from './lib/workspace-layout';
 import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcutKey, ReleaseInfo, RemoteCommand, Track, TrackSubcategory, User } from './types';
 
 const colors = ['#22d3b6', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
@@ -817,6 +817,7 @@ export default function App() {
 
   function addTrackToPlaylist(trackId: string, targetRowId?: string, placement: PlaylistItemPlacement = 'after') {
     if (!detail?.tracks.some((track) => track.id === trackId)) return;
+    revealCompactPlaylist();
     setPlaylistItems((current) => {
       const rows = groupPlaylistItems(current).map((row) => ({ ...row, items: [...row.items] }));
       const currentRowId = rows[playlistCurrentIndex]?.id;
@@ -842,6 +843,11 @@ export default function App() {
   function addCategoryToPlaylist() {
     if (tracksToPreload.length === 0) return;
     setPlaylistItems((current) => [...current, ...tracksToPreload.map((track) => ({ id: crypto.randomUUID(), trackId: track.id, rowId: crypto.randomUUID() }))]);
+    revealCompactPlaylist();
+  }
+
+  function revealCompactPlaylist() {
+    setWorkspaceLayout((current) => current.preset === 'compact-control' && !current.compactPlaylistOpen ? { ...current, compactPlaylistOpen: true } : current);
   }
 
   function movePlaylistItem(itemId: string, targetRowId: string, placement: PlaylistItemPlacement) {
@@ -894,6 +900,7 @@ export default function App() {
     setLoadedPlaylistId(playlist.id);
     setPlaylistCurrentIndex(0);
     setPlaylistOptionsOpen(false);
+    revealCompactPlaylist();
     playlistPlayedRowIdsRef.current.clear();
     const firstRow = groupPlaylistItems(items)[0];
     if (playlist.autostart && firstRow) {
@@ -1806,6 +1813,42 @@ export default function App() {
       onDragEnd={() => { setDraggedTrackId(undefined); setDropTrackId(undefined); setDropTrackPlacement(undefined); setDropSubcategoryId(undefined); setDropCategoryId(undefined); }} />;
   }
 
+  const compactPlaylistLayout = workspaceLayout.preset === 'compact-control';
+  const compactPlaylistRows = Math.min(compactPlaylistMaximumRows, Math.max(compactPlaylistMinimumRows, workspaceLayout.compactPlaylistRows));
+  const storedPlayersLayoutItem = workspaceLayoutItem(workspaceLayout, 'players');
+  const storedPlaylistLayoutItem = workspaceLayoutItem(workspaceLayout, 'playlist');
+  const drawerGeometryActive = compactPlaylistLayout && !layoutEditing;
+  const displayedPlayersLayoutItem = drawerGeometryActive
+    ? { ...storedPlayersLayoutItem, y: 0, h: workspaceLayout.compactPlaylistOpen ? workspaceLayoutRows - compactPlaylistRows : workspaceLayoutRows }
+    : storedPlayersLayoutItem;
+  const displayedPlaylistLayoutItem = drawerGeometryActive
+    ? { ...storedPlaylistLayoutItem, y: workspaceLayoutRows - compactPlaylistRows, h: compactPlaylistRows }
+    : storedPlaylistLayoutItem;
+
+  function setCompactPlaylistRows(rows: number) {
+    const compactRows = Math.min(compactPlaylistMaximumRows, Math.max(compactPlaylistMinimumRows, Math.round(rows)));
+    setWorkspaceLayout((current) => current.compactPlaylistRows === compactRows ? current : { ...current, compactPlaylistRows: compactRows });
+  }
+
+  function beginCompactPlaylistResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    const grid = event.currentTarget.closest<HTMLElement>('.workspace-layout-grid');
+    if (!grid) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const bounds = grid.getBoundingClientRect();
+    const rowGap = Number.parseFloat(window.getComputedStyle(grid).rowGap) || 0;
+    const rowUnit = (bounds.height - rowGap * (workspaceLayoutRows - 1)) / workspaceLayoutRows + rowGap;
+    const resize = (moveEvent: PointerEvent) => setCompactPlaylistRows((bounds.bottom - moveEvent.clientY + rowGap) / rowUnit);
+    const finish = () => {
+      window.removeEventListener('pointermove', resize);
+      window.removeEventListener('pointerup', finish);
+      window.removeEventListener('pointercancel', finish);
+    };
+    window.addEventListener('pointermove', resize);
+    window.addEventListener('pointerup', finish);
+    window.addEventListener('pointercancel', finish);
+  }
+
   return <div className={`app-shell ${remote ? 'remote-mode' : ''}`}>
     <aside className={sidebarOpen ? 'sidebar open' : 'sidebar'}>
       <header className="brand"><span className="brand-mark small" aria-hidden="true">SR</span><strong>SonoRiva</strong><button className="icon-button sidebar-close" onClick={() => setSidebarOpen(false)}><X /></button></header>
@@ -1850,7 +1893,7 @@ export default function App() {
         onPresetChange={(preset) => setWorkspaceLayout(createWorkspaceLayout(preset, workspaceLayout.columns))}
         onReset={() => setWorkspaceLayout(createWorkspaceLayout('classic', workspaceLayout.columns))}
         onClose={() => setLayoutEditing(false)} />}
-      <div className={`workspace-layout-grid ${layoutEditing ? 'is-editing' : ''}`} style={{ '--workspace-columns': workspaceLayout.columns } as React.CSSProperties}
+      <div className={`workspace-layout-grid ${layoutEditing ? 'is-editing' : ''} ${compactPlaylistLayout ? 'has-compact-playlist' : ''} ${workspaceLayout.compactPlaylistOpen ? 'is-compact-playlist-open' : ''}`} style={{ '--workspace-columns': workspaceLayout.columns } as React.CSSProperties}
         onDragOver={(event) => { if (!layoutEditing || !event.dataTransfer.types.includes(workspaceBlockMime)) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; }}
         onDrop={(event) => {
           if (!layoutEditing || (event.target instanceof Element && event.target.closest('[data-workspace-block]'))) return;
@@ -1867,7 +1910,7 @@ export default function App() {
           const y = Math.floor((event.clientY - bounds.top) / (rowHeight + rowGap));
           setWorkspaceLayout((current) => moveWorkspaceItem(current, blockId, x, y));
         }}>
-        <WorkspaceLayoutBlock item={workspaceLayoutItem(workspaceLayout, 'players')} columns={workspaceLayout.columns} label={workspaceBlockLabels.players} editing={layoutEditing && !remote}
+        <WorkspaceLayoutBlock item={displayedPlayersLayoutItem} columns={workspaceLayout.columns} label={workspaceBlockLabels.players} editing={layoutEditing && !remote}
           onSwap={(sourceId, targetId) => setWorkspaceLayout((current) => swapWorkspaceItems(current, sourceId, targetId))}
           onResize={(id, width, height) => setWorkspaceLayout((current) => resizeWorkspaceItem(current, id, width, height))}>
           <div className={`side-label player-heading ${playingTracks.length >= maxActivePlaybacks ? 'is-at-limit' : ''}`}><span>En lecture</span><em title={`${playingTracks.length} lecture${playingTracks.length !== 1 ? 's' : ''} sur ${maxActivePlaybacks} maximum`}>{playingTracks.length}/{maxActivePlaybacks}</em>{playingTracks.length > 0 && <button onClick={() => sendOrRun({ type: 'stop-all' })} aria-label="Tout arrêter"><Square size={13} fill="currentColor" /></button>}</div>
@@ -1889,11 +1932,18 @@ export default function App() {
               </article>;
             })}
           </div>
+          {!remote && compactPlaylistLayout && !layoutEditing && <button type="button" className={`compact-playlist-toggle ${workspaceLayout.compactPlaylistOpen ? 'active' : ''}`} aria-expanded={workspaceLayout.compactPlaylistOpen} onClick={() => setWorkspaceLayout((current) => ({ ...current, compactPlaylistOpen: !current.compactPlaylistOpen }))}
+            onDragOver={(event) => { if (!event.dataTransfer.types.includes('application/x-sonoriva-track')) return; event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; revealCompactPlaylist(); }}
+            onDrop={(event) => { const trackId = event.dataTransfer.getData('application/x-sonoriva-track'); if (!trackId) return; event.preventDefault(); addTrackToPlaylist(trackId); }}>
+            <span><ListMusic size={15} /><strong>Playlist</strong><em>{playlistItems.length}</em></span><small>{workspaceLayout.compactPlaylistOpen ? 'Masquer' : 'Afficher'}</small>{workspaceLayout.compactPlaylistOpen ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
+          </button>}
         </WorkspaceLayoutBlock>
 
-        <WorkspaceLayoutBlock item={workspaceLayoutItem(workspaceLayout, 'playlist')} columns={workspaceLayout.columns} label={workspaceBlockLabels.playlist} editing={layoutEditing && !remote}
+        <WorkspaceLayoutBlock item={displayedPlaylistLayoutItem} columns={workspaceLayout.columns} label={workspaceBlockLabels.playlist} editing={layoutEditing && !remote} className={drawerGeometryActive && workspaceLayout.compactPlaylistOpen ? 'is-compact-drawer-open' : ''}
           onSwap={(sourceId, targetId) => setWorkspaceLayout((current) => swapWorkspaceItems(current, sourceId, targetId))}
           onResize={(id, width, height) => setWorkspaceLayout((current) => resizeWorkspaceItem(current, id, width, height))}>
+          {!remote && compactPlaylistLayout && workspaceLayout.compactPlaylistOpen && !layoutEditing && <button type="button" className="compact-playlist-resizer" role="separator" aria-label="Régler la hauteur du tiroir playlist" aria-orientation="horizontal" aria-valuemin={compactPlaylistMinimumRows} aria-valuemax={compactPlaylistMaximumRows} aria-valuenow={compactPlaylistRows} title="Glisser pour régler la hauteur · Flèches haut et bas" onPointerDown={beginCompactPlaylistResize}
+            onKeyDown={(event) => { if (event.key === 'ArrowUp') { event.preventDefault(); setCompactPlaylistRows(compactPlaylistRows + 1); } else if (event.key === 'ArrowDown') { event.preventDefault(); setCompactPlaylistRows(compactPlaylistRows - 1); } }}><GripHorizontal size={18} /></button>}
           {!remote && <PlaylistPanel items={playlistItems} tracks={detail?.tracks ?? []} colors={detail?.colors ?? []} options={playlistOptions} currentRowIndex={playlistCurrentIndex} maxGroupSize={detail?.project.maxPlaylistGroupSize ?? 4} playbackActive={playlistPlaybacks.length > 0} playbackPaused={playlistPlaybacks.length > 0 && playlistPlaybacks.every((playback) => playback.paused)} saved={Boolean(loadedPlaylistId)} saving={playlistSaving} optionsOpen={playlistOptionsOpen} onOptionsOpenChange={setPlaylistOptionsOpen} onOptionsChange={(patch) => setPlaylistOptions((current) => ({ ...current, ...patch }))} onDropTrack={addTrackToPlaylist} onMoveItem={movePlaylistItem} onRemoveItem={removePlaylistItem} onPlayRow={playPlaylistRow} onPlayPause={playPausePlaylist} onStop={stopPlaylistPlayback} onNext={skipPlaylistRow} onSave={() => saveCurrentPlaylist().catch(() => undefined)} onDelete={() => deleteCurrentPlaylist().catch(() => undefined)} onClear={clearPlaylist} />}
         </WorkspaceLayoutBlock>
 

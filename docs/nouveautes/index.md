@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.10.0 — 31 août 2026
+
+- nouveau modèle **Régie compacte** avec playlist escamotable ;
+- ouverture du tiroir par bouton ou dépôt d’un morceau ;
+- hauteur et état du tiroir mémorisés localement.
+
+[Détails de la version 1.10.0](./1.10.0.md)
+
 ## Version 1.9.0 — 31 août 2026
 
 - quatre blocs réorganisables et redimensionnables sur une grille ;

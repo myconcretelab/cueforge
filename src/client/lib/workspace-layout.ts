@@ -1,9 +1,11 @@
 export const workspaceLayoutRows = 12;
 export const workspaceLayoutColumns = [6, 8, 12] as const;
+export const compactPlaylistMinimumRows = 4;
+export const compactPlaylistMaximumRows = 9;
 
 export type WorkspaceGridColumns = typeof workspaceLayoutColumns[number];
 export type WorkspaceBlockId = 'categories' | 'soundboard' | 'players' | 'playlist';
-export type WorkspacePreset = 'classic' | 'playlist-vertical' | 'playlist-focus' | 'custom';
+export type WorkspacePreset = 'classic' | 'compact-control' | 'playlist-vertical' | 'playlist-focus' | 'custom';
 
 export interface WorkspaceLayoutItem {
   id: WorkspaceBlockId;
@@ -17,6 +19,8 @@ export interface WorkspaceLayout {
   columns: WorkspaceGridColumns;
   preset: WorkspacePreset;
   items: WorkspaceLayoutItem[];
+  compactPlaylistOpen: boolean;
+  compactPlaylistRows: number;
 }
 
 export const workspaceBlockLabels: Record<WorkspaceBlockId, string> = {
@@ -28,6 +32,7 @@ export const workspaceBlockLabels: Record<WorkspaceBlockId, string> = {
 
 export const workspacePresetLabels: Record<Exclude<WorkspacePreset, 'custom'>, string> = {
   classic: 'Régie classique',
+  'compact-control': 'Régie compacte',
   'playlist-vertical': 'Playlist verticale',
   'playlist-focus': 'Playlist principale',
 };
@@ -38,6 +43,12 @@ const basePresets: Record<Exclude<WorkspacePreset, 'custom'>, WorkspaceLayoutIte
     { id: 'soundboard', x: 0, y: 2, w: 9, h: 10 },
     { id: 'players', x: 9, y: 0, w: 3, h: 6 },
     { id: 'playlist', x: 9, y: 6, w: 3, h: 6 },
+  ],
+  'compact-control': [
+    { id: 'categories', x: 0, y: 0, w: 9, h: 2 },
+    { id: 'soundboard', x: 0, y: 2, w: 9, h: 10 },
+    { id: 'players', x: 9, y: 0, w: 3, h: 8 },
+    { id: 'playlist', x: 9, y: 8, w: 3, h: 4 },
   ],
   'playlist-vertical': [
     { id: 'playlist', x: 0, y: 0, w: 4, h: 12 },
@@ -61,12 +72,12 @@ const minimumSizes: Record<WorkspaceBlockId, { w: number; h: number }> = {
 };
 
 export function createWorkspaceLayout(preset: Exclude<WorkspacePreset, 'custom'> = 'classic', columns: WorkspaceGridColumns = 12): WorkspaceLayout {
-  return { columns, preset, items: scaleItems(basePresets[preset], 12, columns) };
+  return { columns, preset, items: scaleItems(basePresets[preset], 12, columns), compactPlaylistOpen: false, compactPlaylistRows: 6 };
 }
 
 export function workspaceLayoutWithColumns(layout: WorkspaceLayout, columns: WorkspaceGridColumns): WorkspaceLayout {
   if (layout.columns === columns) return layout;
-  return { columns, preset: layout.preset, items: scaleItems(layout.items, layout.columns, columns) };
+  return { ...layout, columns, items: scaleItems(layout.items, layout.columns, columns) };
 }
 
 export function workspaceLayoutItem(layout: WorkspaceLayout, id: WorkspaceBlockId): WorkspaceLayoutItem {
@@ -104,7 +115,13 @@ export function readWorkspaceLayout(serialized: string | null): WorkspaceLayout 
   try {
     const value = JSON.parse(serialized) as WorkspaceLayout;
     if (!workspaceLayoutColumns.includes(value.columns) || !Array.isArray(value.items) || !layoutItemsAreValid(value.items, value.columns)) return createWorkspaceLayout();
-    return { columns: value.columns, preset: value.preset in workspacePresetLabels || value.preset === 'custom' ? value.preset : 'custom', items: value.items };
+    return {
+      columns: value.columns,
+      preset: value.preset in workspacePresetLabels || value.preset === 'custom' ? value.preset : 'custom',
+      items: value.items,
+      compactPlaylistOpen: Boolean(value.compactPlaylistOpen),
+      compactPlaylistRows: clamp(value.compactPlaylistRows ?? 6, compactPlaylistMinimumRows, compactPlaylistMaximumRows),
+    };
   } catch {
     return createWorkspaceLayout();
   }

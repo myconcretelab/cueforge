@@ -2,6 +2,20 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.10.0] - 2026-08-31
+
+### Ajouté
+
+- modèle **Régie compacte** affichant les lectures sur toute la hauteur avec un tiroir Playlist escamotable ;
+- ouverture automatique du tiroir lors du dépôt d’un morceau, avec ajout direct à la playlist ;
+- hauteur du tiroir réglable à la souris ou au clavier.
+
+### Modifié
+
+- état ouvert et hauteur du tiroir conservés dans la disposition locale de l’utilisateur ;
+- affichage mobile maintenu en blocs verticaux sans tiroir ;
+- passage de l’application à la version `1.10.0`.
+
 ## [1.9.0] - 2026-08-31
 
 ### Ajouté

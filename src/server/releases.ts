@@ -11,6 +11,20 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.10.0',
+    date: '2026-08-31',
+    title: 'Playlist en tiroir compact',
+    summary: 'Un nouveau modèle réserve toute la colonne aux lectures et ouvre la playlist à la demande sous celles-ci.',
+    important: false,
+    changes: [
+      'Le modèle Régie compacte affiche les lectures en cours sur toute la hauteur de la colonne droite.',
+      'Un bouton fixé en bas ouvre ou masque la playlist et affiche son nombre de morceaux.',
+      'Glisser un morceau sur ce bouton ouvre le tiroir et permet de l’ajouter directement.',
+      'La hauteur et l’état du tiroir sont conservés localement pour chaque utilisateur.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.9.0',
     date: '2026-08-31',
     title: 'Espace de travail réorganisable',

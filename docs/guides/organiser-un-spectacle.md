@@ -6,7 +6,9 @@ SonoRiva utilise quatre niveaux d’organisation : spectacles, catégories, coul
 
 Le bouton **Disposition de l’interface** de la barre supérieure ouvre l’éditeur des quatre blocs : catégories, soundboard, lectures en cours et playlist.
 
-Trois modèles sont disponibles : **Régie classique**, **Playlist verticale** et **Playlist principale**. Le modèle **Playlist verticale** place la playlist sur toute la hauteur de la grille. La grille utilise six, huit ou douze colonnes.
+Quatre modèles sont disponibles : **Régie classique**, **Régie compacte**, **Playlist verticale** et **Playlist principale**. Le modèle **Playlist verticale** place la playlist sur toute la hauteur de la grille. La grille utilise six, huit ou douze colonnes.
+
+Dans le modèle **Régie compacte**, les lectures occupent toute la hauteur de la colonne droite. Le bouton **Playlist** fixé en bas de cette colonne ouvre le panneau sous les lecteurs et indique le nombre de morceaux présents. Un morceau glissé sur ce bouton ouvre le tiroir et peut être déposé directement dans la playlist. La séparation supérieure du panneau règle sa hauteur à la souris ; les flèches haut et bas la modifient lorsqu’elle possède le focus clavier. L’état ouvert et la hauteur sont enregistrés avec la disposition locale. Sur mobile, la playlist reste un bloc vertical permanent.
 
 Dans l’éditeur, la poignée portant le nom d’un bloc permet de le déposer sur un autre bloc pour permuter leurs emplacements. Un dépôt dans une zone libre déplace le bloc vers cette zone. La poignée située dans le coin inférieur droit redimensionne le bloc. Un déplacement ou un redimensionnement qui chevaucherait un autre bloc est ignoré.
 
