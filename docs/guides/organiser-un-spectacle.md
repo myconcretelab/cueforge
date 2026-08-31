@@ -40,6 +40,14 @@ Le bouton **Nouvelle sous-catégorie** du tableau de bord crée un groupe vide. 
 
 Pendant une recherche, les sous-catégories ne sont pas affichées : chaque morceau correspondant apparaît directement dans les résultats.
 
+Les boutons de lecture restent actifs en mode **Réorganiser**. Un clic bref déclenche le morceau ; un glisser déplace sa carte.
+
+## Colonne de lecture
+
+La colonne de lecture accepte huit lecteurs simultanés par défaut. La limite est définie séparément pour chaque spectacle dans **Paramètres → Colonne de lecture**, entre une et seize lectures. Une fois la limite atteinte, les nouveaux départs sont refusés. Abaisser la limite sous le nombre de lecteurs déjà actifs ne les arrête pas ; aucun nouveau lecteur ne démarre avant que le nombre actif repasse sous la limite.
+
+À partir de cinq lecteurs par défaut, les cartes passent automatiquement en mode compact. Leur titre, leur position et leur volume restent à gauche, tandis que les quatre commandes sont disposées à droite sur deux lignes. Le seuil est réglable de une à seize lectures dans la même section des paramètres.
+
 ## Couleurs
 
 La palette du spectacle fournit les couleurs disponibles pour les catégories et les pistes. Les couleurs sont ajoutées, supprimées et réordonnées dans les paramètres.

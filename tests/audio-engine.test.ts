@@ -144,6 +144,19 @@ describe('audio player instance controls', () => {
     expect(audioEngine.getMasterVolume()).toBe(1);
   });
 
+  it('refuse une nouvelle lecture lorsque la limite simultanée est atteinte', async () => {
+    audioEngine.setMaxActivePlaybacks(1);
+    expect(audioEngine.getMaxActivePlaybacks()).toBe(1);
+    const limitedTrack = { ...track, id: '33333333-3333-4333-8333-333333333333' };
+    const firstPlayback = audioEngine.play(limitedTrack, 0);
+
+    await expect(audioEngine.play(limitedTrack, 0)).rejects.toThrow('Limite de 1 lecture simultanée atteinte.');
+
+    const playbackId = await firstPlayback;
+    audioEngine.stopInstance(playbackId, 0);
+    audioEngine.setMaxActivePlaybacks(8);
+  });
+
   it('retire le dernier lecteur immédiatement ou avec son fondu', async () => {
     const firstId = await audioEngine.play(track, 0);
     const secondId = await audioEngine.play(track, 0);

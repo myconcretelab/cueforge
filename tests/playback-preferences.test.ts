@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 describe('commandes de lecture et préférences de session', () => {
   const source = readFileSync(new URL('../src/client/App.tsx', import.meta.url), 'utf8');
+  const trackPadSource = readFileSync(new URL('../src/client/components/TrackPad.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/client/styles.css', import.meta.url), 'utf8');
 
   it('laisse les raccourcis globaux actifs pendant le réglage d’un curseur', () => {
     expect(source).toContain("event.target.type !== 'range'");
@@ -25,6 +27,18 @@ describe('commandes de lecture et préférences de session', () => {
   it('utilise l’action clavier configurée pour les touches des morceaux', () => {
     expect(source).toContain("runTrackAction(detail.project.keyboardAction ?? 'start', track)");
     expect(source).toContain('shortcut={trackShortcutLabel(shortcutIndex)}');
+  });
+
+  it('conserve le déclenchement des sons pendant la réorganisation des sous-catégories', () => {
+    expect(trackPadSource).toContain("onClick={() => !selectionMode && onPrimary()}");
+    expect(trackPadSource).not.toContain('!reorderEnabled && onPrimary()');
+  });
+
+  it('active automatiquement les lecteurs compacts au seuil du spectacle', () => {
+    expect(source).toContain('playingTracks.length >= compactPlaybackThreshold');
+    expect(source).toContain("now-playing-list ${compactPlayerCards ? 'is-compact' : ''}");
+    expect(styles).toContain('.now-playing-list.is-compact .player-card { min-height: 54px;');
+    expect(styles).toContain('grid-template-columns: minmax(0, 1fr) 49px');
   });
 
   it('conserve le nombre de colonnes lors de la déconnexion', () => {

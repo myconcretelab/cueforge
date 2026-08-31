@@ -40,7 +40,7 @@ export function TrackPad({ track, color, active, playbacks, historyProgress, loa
     {selectionMode && <span className="track-selection-indicator" aria-hidden="true">{selected && <CircleCheck size={18} />}</span>}
     {loaded && <span className="track-loaded" title="Disponible hors ligne" aria-label="Disponible hors ligne"><CircleCheck size={15} /></span>}
     <button className="icon-button subtle track-edit" onClick={() => !selectionMode && onEdit()} aria-label={`Modifier ${track.title}`} tabIndex={selectionMode ? -1 : undefined}><MoreHorizontal size={18} /></button>
-    <button className="track-trigger" onClick={() => !selectionMode && !reorderEnabled && onPrimary()} onContextMenu={(event) => { event.preventDefault(); if (!selectionMode && !reorderEnabled) onSecondary(); }} aria-pressed={selectionMode ? selected : undefined}>
+    <button className="track-trigger" onClick={() => !selectionMode && onPrimary()} onContextMenu={(event) => { event.preventDefault(); if (!selectionMode) onSecondary(); }} aria-pressed={selectionMode ? selected : undefined}>
       <span className={`play-disc ${mainOutput ? 'has-output-route' : ''}`} style={mainOutput ? { '--main-output-color': mainOutput.color } as React.CSSProperties : undefined}>{active ? <AudioWaveform size={18} /> : <Play size={18} fill="currentColor" />}</span>
       <span className="track-title">{track.title}</span>
     </button>

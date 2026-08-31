@@ -2,6 +2,24 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.7.0] - 2026-08-31
+
+### Ajouté
+
+- limite de huit lectures simultanées par défaut, réglable de une à seize pour chaque spectacle ;
+- présentation compacte des lecteurs avec commandes placées à droite ;
+- seuil automatique du mode compact fixé à cinq lecteurs par défaut et réglable de un à seize.
+
+### Corrigé
+
+- déclenchement des morceaux à nouveau disponible pendant la réorganisation des sous-catégories ;
+- message de limite conservé lors du démarrage partiel ou refusé d’une rangée de playlist.
+
+### Modifié
+
+- compteur de la colonne de lecture affichant le nombre actif et la limite configurée ;
+- passage de l’application à la version `1.7.0`.
+
 ## [1.6.1] - 2026-08-31
 
 ### Ajouté

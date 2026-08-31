@@ -11,6 +11,21 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.7.0',
+    date: '2026-08-31',
+    title: 'Colonne de lecture compacte',
+    summary: 'La colonne limite les lectures simultanées et réduit automatiquement la hauteur de ses lecteurs lorsque leur nombre augmente.',
+    important: false,
+    changes: [
+      'Huit lectures simultanées sont autorisées par défaut, avec une limite réglable de une à seize par spectacle.',
+      'À partir de cinq lecteurs par défaut, les cartes occupent environ deux fois moins de hauteur et placent leurs commandes à droite.',
+      'Le seuil du mode compact est réglable de une à seize lectures.',
+      'Le compteur de la colonne affiche le nombre actif et la limite.',
+      'Les morceaux restent déclenchables par clic pendant la réorganisation des sous-catégories.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.6.1',
     date: '2026-08-31',
     title: 'Tiroirs de sous-catégorie plus directs',

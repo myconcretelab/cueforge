@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BookOpen, Cable, CloudDownload, CreditCard, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, ListMusic, LoaderCircle, LogOut, Palette, Plus, RefreshCcw, Settings2, ShieldCheck, Speaker, Smartphone, Trash2, Waves, X } from 'lucide-react';
+import { AudioWaveform, BookOpen, Cable, CloudDownload, CreditCard, FileArchive, FolderPlus, Gift, GripVertical, HardDrive, Keyboard, ListMusic, LoaderCircle, LogOut, Palette, Plus, RefreshCcw, Settings2, ShieldCheck, Speaker, Smartphone, Trash2, Waves, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { audioEngine, type AudioOutputDevice } from '../lib/audio-engine';
 import { bridgeClient, type BridgeOutput } from '../lib/bridge-client';
@@ -35,6 +35,7 @@ interface Props {
   onUpdateKeyAction: (key: 'escape' | 'backspace' | 'shift-backspace' | 'space', action: KeyAction) => void;
   onUpdateKeyboardShortcut: (key: ProjectKeyboardShortcutKey, shortcut: string) => void;
   onUpdatePlaylistGroupLimit: (limit: number) => void;
+  onUpdatePlaybackSettings: (input: { maxActivePlaybacks?: number; compactPlaybackThreshold?: number }) => void;
   onLogout: () => void;
   onClose: () => void;
 }
@@ -102,7 +103,7 @@ function formatPrice(cents: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 }
 
-export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, onAutomaticUpdatesChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onUpdateKeyboardShortcut, onUpdatePlaylistGroupLimit, onLogout, onClose }: Props) {
+export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, onAutomaticUpdatesChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onUpdateKeyboardShortcut, onUpdatePlaylistGroupLimit, onUpdatePlaybackSettings, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
   const [newColor, setNewColor] = useState('#22d3b6');
   const [draggedProjectId, setDraggedProjectId] = useState<string>();
@@ -434,6 +435,13 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
       <section className="settings-section">
         <div className="settings-section-title"><ListMusic size={16} /><div><strong>Playlists</strong><span>Réglez le nombre maximal de morceaux pouvant partager une rangée.</span></div></div>
         <div className="settings-key-actions"><label><span>Morceaux simultanés</span><select value={selectedProject?.maxPlaylistGroupSize ?? 4} disabled={!selectedProject} onChange={(event) => onUpdatePlaylistGroupLimit(Number(event.target.value))}>{[2, 3, 4, 5, 6, 7, 8].map((limit) => <option value={limit} key={limit}>{limit} morceaux</option>)}</select></label></div>
+      </section>
+      <section className="settings-section">
+        <div className="settings-section-title"><AudioWaveform size={16} /><div><strong>Colonne de lecture</strong><span>Réglez la limite de lecteurs et le seuil de présentation compacte pour ce spectacle.</span></div></div>
+        <div className="settings-key-actions">
+          <label><span>Lectures simultanées</span><select value={selectedProject?.maxActivePlaybacks ?? 8} disabled={!selectedProject} onChange={(event) => onUpdatePlaybackSettings({ maxActivePlaybacks: Number(event.target.value) })}>{Array.from({ length: 16 }, (_, index) => index + 1).map((limit) => <option value={limit} key={limit}>{limit} lecture{limit > 1 ? 's' : ''}</option>)}</select></label>
+          <label><span>Mode compact à partir de</span><select value={selectedProject?.compactPlaybackThreshold ?? 5} disabled={!selectedProject} onChange={(event) => onUpdatePlaybackSettings({ compactPlaybackThreshold: Number(event.target.value) })}>{Array.from({ length: 16 }, (_, index) => index + 1).map((threshold) => <option value={threshold} key={threshold}>{threshold} lecture{threshold > 1 ? 's' : ''}</option>)}</select></label>
+        </div>
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><Speaker size={16} /><div><strong>Moteur et sorties audio</strong><span>{bridgeAvailable ? 'Le navigateur reste utilisable seul. Le bridge ajoute un cache natif et plusieurs sorties indépendantes.' : 'Le son utilise la sortie système par défaut.'}</span></div></div>

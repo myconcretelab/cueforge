@@ -27,6 +27,20 @@ describe('client API', () => {
     }));
   });
 
+  it('enregistre les limites de la colonne de lecture pour le spectacle', async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ project: {} }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetcher);
+    const projectId = '11111111-1111-4111-8111-111111111111';
+    const input = { maxActivePlaybacks: 8, compactPlaybackThreshold: 5 };
+
+    await api.updateProjectActions(projectId, input);
+
+    expect(fetcher).toHaveBeenCalledWith(`/api/projects/${projectId}/mouse-actions`, expect.objectContaining({
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }));
+  });
+
   it('transmet le forfait et la périodicité lors de la création du compte', async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ user: {}, checkoutUrl: 'https://checkout.stripe.com/test', checkoutRequired: true }), { status: 201, headers: { 'Content-Type': 'application/json' } }));
     vi.stubGlobal('fetch', fetcher);

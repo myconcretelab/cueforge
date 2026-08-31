@@ -161,6 +161,7 @@ export default function App() {
 
   useEffect(() => audioEngine.subscribe(setActivePlaybacks), []);
   useEffect(() => audioEngine.setMasterVolume(masterVolume / 100), [masterVolume]);
+  useEffect(() => audioEngine.setMaxActivePlaybacks(detail?.project.maxActivePlaybacks ?? 8), [detail?.project.maxActivePlaybacks]);
   useEffect(() => audioEngine.subscribeHistory(setPlaybackHistory), []);
   useEffect(() => subscribeToAppUpdate(setUpdateAvailable), []);
   useEffect(() => {
@@ -466,6 +467,9 @@ export default function App() {
       return [{ playback, track }];
     });
   }, [activePlaybacks, detail?.tracks]);
+  const maxActivePlaybacks = detail?.project.maxActivePlaybacks ?? 8;
+  const compactPlaybackThreshold = detail?.project.compactPlaybackThreshold ?? 5;
+  const compactPlayerCards = playingTracks.length >= compactPlaybackThreshold;
   const tracksToPreload = useMemo(() => {
     if (!detail) return [];
     if (selectedCategoryId === 'all') return detail.tracks;
@@ -587,12 +591,14 @@ export default function App() {
       if (generation !== playlistRunGenerationRef.current) return [];
       const results = await Promise.allSettled(tracks.map((track) => audioEngine.play({ ...track, loop: false }, fadeInMs ?? track.fadeInMs)));
       const playbackIds = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
+      const firstFailure = results.find((result) => result.status === 'rejected');
+      const failureMessage = firstFailure?.status === 'rejected' && firstFailure.reason instanceof Error ? firstFailure.reason.message : undefined;
       if (generation !== playlistRunGenerationRef.current) {
         for (const playbackId of playbackIds) audioEngine.stopInstance(playbackId, 0);
         return [];
       }
-      if (playbackIds.length === 0) throw new Error('Aucun morceau de la rangée n’a pu démarrer.');
-      if (playbackIds.length < tracks.length) setError('Certains morceaux de la rangée n’ont pas pu démarrer.');
+      if (playbackIds.length === 0) throw new Error(failureMessage ?? 'Aucun morceau de la rangée n’a pu démarrer.');
+      if (playbackIds.length < tracks.length) setError(failureMessage ?? 'Certains morceaux de la rangée n’ont pas pu démarrer.');
       setPlaylistPlaybackIds(playbackIds);
       return playbackIds;
     } catch (cause) {
@@ -1168,6 +1174,15 @@ export default function App() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Configuration des playlists impossible.'); }
   }
 
+  async function updatePlaybackSettings(input: { maxActivePlaybacks?: number; compactPlaybackThreshold?: number }) {
+    if (!detail) return;
+    try {
+      const { project } = await api.updateProjectActions(detail.project.id, input);
+      setDetail((current) => current ? { ...current, project } : current);
+      setProjects((current) => current.map((candidate) => candidate.id === project.id ? project : candidate));
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Configuration de la colonne de lecture impossible.'); }
+  }
+
   async function reorderTrack(trackId: string, categoryId: string | null, beforeTrackId?: string, subcategoryId: string | null = null) {
     if (!detail || reordering || trackId === beforeTrackId) return;
     const previousTracks = detail.tracks;
@@ -1705,15 +1720,16 @@ export default function App() {
         <label><span><i>D</i>Clic droit</span><select value={detail.project.rightClickAction ?? 'crossfade'} onChange={(event) => updateMouseAction('right', event.target.value as MouseAction)}>{mouseActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
         <label><span><i>K</i>Clavier</span><select value={detail.project.keyboardAction ?? 'start'} onChange={(event) => updateMouseAction('keyboard', event.target.value as MouseAction)}>{mouseActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
       </section>}
-      <div className="side-label player-heading"><span>En lecture</span><em>{playingTracks.length}</em>{playingTracks.length > 0 && <button onClick={() => sendOrRun({ type: 'stop-all' })} aria-label="Tout arrêter"><Square size={13} fill="currentColor" /></button>}</div>
-      <div className="now-playing-list">
+      <div className={`side-label player-heading ${playingTracks.length >= maxActivePlaybacks ? 'is-at-limit' : ''}`}><span>En lecture</span><em title={`${playingTracks.length} lecture${playingTracks.length !== 1 ? 's' : ''} sur ${maxActivePlaybacks} maximum`}>{playingTracks.length}/{maxActivePlaybacks}</em>{playingTracks.length > 0 && <button onClick={() => sendOrRun({ type: 'stop-all' })} aria-label="Tout arrêter"><Square size={13} fill="currentColor" /></button>}</div>
+      <div className={`now-playing-list ${compactPlayerCards ? 'is-compact' : ''}`}>
         {playingTracks.length === 0 ? <div className="players-empty"><AudioWaveform size={24} /><strong>Aucun son en lecture</strong><span>Les lecteurs actifs apparaîtront ici.</span></div> : playingTracks.map(({ playback, track }) => {
           const category = detail?.categories.find((item) => item.id === track.categoryId);
           const color = track.color ?? category?.color ?? '#71717a';
           return <article className={`player-card ${playback.paused ? 'is-paused' : ''}`} key={playback.id} style={{ '--track-color': color } as React.CSSProperties}>
-            <div className="player-card-copy"><strong>{track.title}</strong><PlaybackOutputSelector title={track.title} outputId={playback.outputId} outputs={routedBridgeOutputs} disabled={playback.fadingOut} onChange={(outputId) => audioEngine.setInstanceOutput(playback.id, outputId).catch((cause) => setError(cause instanceof Error ? cause.message : 'Impossible de changer la sortie audio.'))} /></div>
-            <PlaybackPositionControl playback={playback} title={track.title} />
-            <PlaybackVolumeControl playback={playback} title={track.title} />
+            <div className="player-card-main"><div className="player-card-copy"><strong>{track.title}</strong><PlaybackOutputSelector title={track.title} outputId={playback.outputId} outputs={routedBridgeOutputs} disabled={playback.fadingOut} onChange={(outputId) => audioEngine.setInstanceOutput(playback.id, outputId).catch((cause) => setError(cause instanceof Error ? cause.message : 'Impossible de changer la sortie audio.'))} /></div>
+              <PlaybackPositionControl playback={playback} title={track.title} />
+              <PlaybackVolumeControl playback={playback} title={track.title} />
+            </div>
             <div className="player-card-controls">
               <button className={playback.loop ? 'active' : ''} disabled={playback.fadingOut} onClick={() => audioEngine.setInstanceLoop(playback.id, !playback.loop)} aria-label={playback.loop ? `Désactiver la boucle de ${track.title}` : `Jouer ${track.title} en boucle`} title="Boucle"><Repeat2 size={15} /></button>
               <button disabled={playback.fadingOut} onClick={() => audioEngine.togglePauseInstance(playback.id)} aria-label={playback.paused ? `Reprendre ${track.title}` : `Mettre ${track.title} en pause`} title={playback.paused ? 'Reprendre' : 'Pause'}>{playback.paused ? <Play size={15} fill="currentColor" /> : <Pause size={15} fill="currentColor" />}</button>
@@ -1863,7 +1879,7 @@ export default function App() {
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
-    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} initialSection={settingsInitialSection} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onAccountChange={handleAccountChange} onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined); }} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundAutoSearch(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onUpdateKeyboardShortcut={updateKeyboardShortcut} onUpdatePlaylistGroupLimit={updatePlaylistGroupLimit} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} initialSection={settingsInitialSection} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onAccountChange={handleAccountChange} onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined); }} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundAutoSearch(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onUpdateKeyboardShortcut={updateKeyboardShortcut} onUpdatePlaylistGroupLimit={updatePlaylistGroupLimit} onUpdatePlaybackSettings={updatePlaybackSettings} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
     {whatsNewOpen && releaseInfo && <WhatsNewDialog releases={releasesForDialog} currentVersion={releaseInfo.currentVersion} onClose={closeWhatsNew} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {freesoundOpen && detail && <FreesoundDialog initialQuery={search} autoSearch={freesoundAutoSearch} projectId={detail.project.id} categories={detail.categories} projectColors={detail.colors} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} bridgeOutputs={routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId} onImported={refreshProject} onClose={() => { setFreesoundOpen(false); setFreesoundAutoSearch(false); }} />}

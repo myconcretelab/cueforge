@@ -197,6 +197,13 @@
       "when": 1788180213032,
       "tag": "0027_wakeful_midnight",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1788191063825,
+      "tag": "0028_lame_vengeance",
+      "breakpoints": true
     }
   ]
 }

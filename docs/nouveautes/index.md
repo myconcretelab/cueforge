@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.7.0 — 31 août 2026
+
+- limite configurable des lectures simultanées, fixée à huit par défaut ;
+- lecteurs compacts automatiques à partir de cinq sons ;
+- correction du déclenchement pendant la réorganisation des sous-catégories.
+
+[Détails de la version 1.7.0](./1.7.0.md)
+
 ## Version 1.6.1 — 31 août 2026
 
 - ajout par dépôt direct dans le tiroir ouvert ;

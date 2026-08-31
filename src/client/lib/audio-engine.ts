@@ -80,6 +80,8 @@ class AudioEngine {
   private routingListeners = new Set<RoutingListener>();
   private history = readHistory();
   private playbackSequence = 0;
+  private maxActivePlaybacks = 8;
+  private pendingMainPlaybacks = 0;
   private outputSelection = readAudioOutputSelection();
 
   getPlaybackMode(): AudioPlaybackMode {
@@ -97,6 +99,14 @@ class AudioEngine {
 
   getMasterVolume(): number {
     return this.masterVolume;
+  }
+
+  getMaxActivePlaybacks(): number {
+    return this.maxActivePlaybacks;
+  }
+
+  setMaxActivePlaybacks(limit: number): void {
+    this.maxActivePlaybacks = Math.min(16, Math.max(1, Math.round(limit)));
   }
 
   setMasterVolume(volume: number): void {
@@ -347,51 +357,59 @@ class AudioEngine {
   }
 
   async play(track: Track, fadeInMs = track.fadeInMs, volumeMultiplier = 1, outputId?: string): Promise<string> {
-    if (bridgeClient.isEnabled()) return bridgeClient.play(track, fadeInMs, volumeMultiplier, 'main', outputId);
-    const [context, buffer] = await Promise.all([this.getContext(), this.load(track)]);
-    const gain = context.createGain();
-    const startAt = Math.min(track.startTimeMs / 1000, Math.max(0, buffer.duration - 0.01));
-    const endAt = track.endTimeMs ? Math.min(track.endTimeMs / 1000, buffer.duration) : buffer.duration;
-    const volume = Math.min(1, Math.max(0, track.volume * volumeMultiplier));
-    gain.connect(this.masterGain ?? context.destination);
-    const now = context.currentTime;
-    if (fadeInMs > 0) {
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(volume, now + fadeInMs / 1000);
-    } else {
-      gain.gain.setValueAtTime(volume, now);
+    if (this.getActivePlaybacks().length + this.pendingMainPlaybacks >= this.maxActivePlaybacks) {
+      throw new Error(`Limite de ${this.maxActivePlaybacks} lecture${this.maxActivePlaybacks > 1 ? 's' : ''} simultanée${this.maxActivePlaybacks > 1 ? 's' : ''} atteinte.`);
     }
-    const sequence = ++this.playbackSequence;
-    const startedAtMs = performance.now();
-    const playback: Playback = {
-      id: `${track.id}:${sequence}`,
-      trackId: track.id,
-      sequence,
-      startedAtMs,
-      resumedAtMs: startedAtMs,
-      elapsedMs: 0,
-      durationMs: Math.max(10, (endAt - startAt) * 1_000),
-      loop: track.loop,
-      paused: false,
-      volume,
-      volumeFrom: fadeInMs > 0 ? 0 : volume,
-      volumeTransitionStartedAtMs: startedAtMs,
-      volumeTransitionDurationMs: Math.max(0, fadeInMs),
-      fadingOut: false,
-      gain,
-      buffer,
-      startAtSeconds: startAt,
-      endAtSeconds: endAt,
-      positionSeconds: startAt,
-      stopping: false,
-      suppressHistory: false,
-    };
-    const instances = this.active.get(track.id) ?? new Set<Playback>();
-    instances.add(playback);
-    this.active.set(track.id, instances);
-    this.startPlaybackSource(playback);
-    this.notify();
-    return playback.id;
+    this.pendingMainPlaybacks += 1;
+    try {
+      if (bridgeClient.isEnabled()) return await bridgeClient.play(track, fadeInMs, volumeMultiplier, 'main', outputId);
+      const [context, buffer] = await Promise.all([this.getContext(), this.load(track)]);
+      const gain = context.createGain();
+      const startAt = Math.min(track.startTimeMs / 1000, Math.max(0, buffer.duration - 0.01));
+      const endAt = track.endTimeMs ? Math.min(track.endTimeMs / 1000, buffer.duration) : buffer.duration;
+      const volume = Math.min(1, Math.max(0, track.volume * volumeMultiplier));
+      gain.connect(this.masterGain ?? context.destination);
+      const now = context.currentTime;
+      if (fadeInMs > 0) {
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(volume, now + fadeInMs / 1000);
+      } else {
+        gain.gain.setValueAtTime(volume, now);
+      }
+      const sequence = ++this.playbackSequence;
+      const startedAtMs = performance.now();
+      const playback: Playback = {
+        id: `${track.id}:${sequence}`,
+        trackId: track.id,
+        sequence,
+        startedAtMs,
+        resumedAtMs: startedAtMs,
+        elapsedMs: 0,
+        durationMs: Math.max(10, (endAt - startAt) * 1_000),
+        loop: track.loop,
+        paused: false,
+        volume,
+        volumeFrom: fadeInMs > 0 ? 0 : volume,
+        volumeTransitionStartedAtMs: startedAtMs,
+        volumeTransitionDurationMs: Math.max(0, fadeInMs),
+        fadingOut: false,
+        gain,
+        buffer,
+        startAtSeconds: startAt,
+        endAtSeconds: endAt,
+        positionSeconds: startAt,
+        stopping: false,
+        suppressHistory: false,
+      };
+      const instances = this.active.get(track.id) ?? new Set<Playback>();
+      instances.add(playback);
+      this.active.set(track.id, instances);
+      this.startPlaybackSource(playback);
+      this.notify();
+      return playback.id;
+    } finally {
+      this.pendingMainPlaybacks = Math.max(0, this.pendingMainPlaybacks - 1);
+    }
   }
 
   togglePauseInstance(playbackId: string): void {
@@ -518,7 +536,10 @@ class AudioEngine {
       playback.volumeTransitionStartedAtMs = nowMs;
       playback.volumeTransitionDurationMs = 0;
       gain.gain.setValueAtTime(0, now);
+      playback.source = undefined;
+      source.onended = null;
       source.stop(now);
+      this.finishPlayback(playback, false);
       return;
     }
     playback.volume = 0;

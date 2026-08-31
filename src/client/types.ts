@@ -68,6 +68,8 @@ export interface Project extends ProjectKeyboardShortcuts {
   shiftBackspaceKeyAction: KeyAction;
   spaceKeyAction: KeyAction;
   maxPlaylistGroupSize: number;
+  maxActivePlaybacks: number;
+  compactPlaybackThreshold: number;
   position: number;
   createdAt: string;
   updatedAt: string;

@@ -129,6 +129,8 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       masterVolumeDownFastShortcut: keyboardShortcutSchema.optional(),
       searchShortcut: keyboardShortcutSchema.optional(),
       maxPlaylistGroupSize: z.number().int().min(2).max(8).optional(),
+      maxActivePlaybacks: z.number().int().min(1).max(16).optional(),
+      compactPlaybackThreshold: z.number().int().min(1).max(16).optional(),
     }).refine((value) => Object.keys(value).length > 0, { message: 'Sélectionnez une action.' }).parse(request.body);
     if (input.maxPlaylistGroupSize !== undefined) {
       const savedItems = await db.select({ playlistId: playlistItems.playlistId, rowIndex: playlistItems.rowIndex }).from(playlistItems)
