@@ -69,6 +69,8 @@ type MediaDevicesWithOutputPicker = MediaDevices & {
 
 class AudioEngine {
   private context?: AudioContext;
+  private masterGain?: GainNode;
+  private masterVolume = 1;
   private buffers = new Map<string, AudioBuffer>();
   private pending = new Map<string, Promise<AudioBuffer>>();
   private active = new Map<string, Set<Playback>>();
@@ -88,8 +90,26 @@ class AudioEngine {
     if (mode === bridgeClient.getMode()) return;
     if (this.getActivePlaybacks().length > 0) throw new Error('Arrêtez les lectures en cours avant de changer de moteur audio.');
     bridgeClient.setMode(mode);
+    this.setMasterVolume(this.masterVolume);
     this.notify();
     this.notifyCache();
+  }
+
+  getMasterVolume(): number {
+    return this.masterVolume;
+  }
+
+  setMasterVolume(volume: number): void {
+    this.masterVolume = Math.min(1, Math.max(0, volume));
+    if (bridgeClient.isEnabled()) {
+      bridgeClient.setMasterVolume(this.masterVolume);
+      return;
+    }
+    if (!this.context || !this.masterGain) return;
+    const now = this.context.currentTime;
+    this.masterGain.gain.cancelScheduledValues(now);
+    this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
+    this.masterGain.gain.linearRampToValueAtTime(this.masterVolume, now + .03);
   }
 
   supportsAudioOutputSelection(): boolean {
@@ -282,6 +302,9 @@ class AudioEngine {
   private async getContext(): Promise<AudioContext> {
     if (!this.context) {
       this.context = new AudioContext({ latencyHint: 'interactive' });
+      this.masterGain = this.context.createGain();
+      this.masterGain.gain.setValueAtTime(this.masterVolume, this.context.currentTime);
+      this.masterGain.connect(this.context.destination);
       if (this.outputSelection.deviceId && typeof (this.context as Partial<AudioContextWithSink>).setSinkId === 'function') {
         try {
           await (this.context as AudioContextWithSink).setSinkId(this.outputSelection.deviceId);
@@ -330,7 +353,7 @@ class AudioEngine {
     const startAt = Math.min(track.startTimeMs / 1000, Math.max(0, buffer.duration - 0.01));
     const endAt = track.endTimeMs ? Math.min(track.endTimeMs / 1000, buffer.duration) : buffer.duration;
     const volume = Math.min(1, Math.max(0, track.volume * volumeMultiplier));
-    gain.connect(context.destination);
+    gain.connect(this.masterGain ?? context.destination);
     const now = context.currentTime;
     if (fadeInMs > 0) {
       gain.gain.setValueAtTime(0, now);
@@ -535,15 +558,15 @@ class AudioEngine {
     this.resetHistory([...trackIds]);
   }
 
-  async runAction(action: MouseAction, track: Track, projectTracks: Track[], volumeMultiplier = 1): Promise<void> {
+  async runAction(action: MouseAction, track: Track, projectTracks: Track[], volumeMultiplier = 1, outputId?: string): Promise<void> {
     if (action === 'none') return;
     if (action === 'stop') return this.stop(track.id, track.fadeOutMs);
-    if (action === 'start') { await this.play(track, track.fadeInMs, volumeMultiplier); return; }
-    if (action === 'fade-in') { await this.play(track, track.fadeInMs > 0 ? track.fadeInMs : 1_200, volumeMultiplier); return; }
+    if (action === 'start') { await this.play(track, track.fadeInMs, volumeMultiplier, outputId); return; }
+    if (action === 'fade-in') { await this.play(track, track.fadeInMs > 0 ? track.fadeInMs : 1_200, volumeMultiplier, outputId); return; }
     await this.preload(track);
     if (action === 'replace') this.stopAll(projectTracks, 0);
     else this.stopAll(projectTracks);
-    await this.play(track, track.fadeInMs, volumeMultiplier);
+    await this.play(track, track.fadeInMs, volumeMultiplier, outputId);
   }
 
   private findPlayback(playbackId: string): Playback | undefined {

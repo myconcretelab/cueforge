@@ -1,4 +1,4 @@
-import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, BatchTrackUpdateInput, BridgeDevice, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, PublicPlan, ReleaseInfo, SoundShowAnalysis, Track, User } from '../types';
+import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, BatchTrackUpdateInput, BridgeDevice, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcuts, PublicPlan, ReleaseInfo, SoundShowAnalysis, Track, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -74,7 +74,7 @@ export const api = {
   }),
   deleteProject: (id: string) => request<void>(`/api/projects/${id}`, { method: 'DELETE' }),
   project: (id: string) => request<ProjectDetail>(`/api/projects/${id}`),
-  updateProjectActions: (projectId: string, input: { leftClickAction?: MouseAction; rightClickAction?: MouseAction; escapeKeyAction?: KeyAction; backspaceKeyAction?: KeyAction; spaceKeyAction?: KeyAction }) =>
+  updateProjectActions: (projectId: string, input: { leftClickAction?: MouseAction; rightClickAction?: MouseAction; escapeKeyAction?: KeyAction; backspaceKeyAction?: KeyAction; spaceKeyAction?: KeyAction } & Partial<ProjectKeyboardShortcuts>) =>
     request<{ project: Project }>(`/api/projects/${projectId}/mouse-actions`, { method: 'PATCH', body: JSON.stringify(input) }),
   createProjectColor: (projectId: string, color: string) => request<{ projectColor: ProjectColor }>(`/api/projects/${projectId}/colors`, {
     method: 'POST', body: JSON.stringify({ color }),

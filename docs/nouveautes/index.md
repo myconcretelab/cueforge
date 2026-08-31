@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.3.0 — 31 août 2026
+
+- raccourcis configurables pour la navigation, les départs et le chargement ;
+- routage temporaire ou persistant vers la sortie secondaire ;
+- volume maître au clavier pour Web Audio et SonoRiva Bridge 1.0.4.
+
+[Détails de la version 1.3.0](./1.3.0.md)
+
 ## Version 1.0.0 — 29 août 2026
 
 - nouvelle identité SonoRiva et monogramme SR ;

@@ -20,6 +20,8 @@ Le grand Play reste lié à la sortie principale et aux actions souris du specta
 
 Chaque carte de la colonne **En lecture** affiche une LED de la couleur de sa sortie. La LED contient un sélecteur qui déplace la lecture active vers une autre sortie. La position, la pause, la boucle et le volume sont conservés. Le changement est refusé pendant un fondu sortant.
 
+Les raccourcis de sortie utilisent comme sortie secondaire la première sortie routable différente de la sortie principale. La touche configurée en maintien force les nouveaux départs vers cette sortie tant qu’elle reste pressée. La touche de bascule conserve ce routage pour les départs suivants.
+
 ## Moteur navigateur
 
 ## Sélection
@@ -63,6 +65,8 @@ Le bridge écoute sur `127.0.0.1:43821`. Les commandes de lecture sont envoyées
 ### Sorties du bridge
 
 Le champ **Régie principale** détermine la sortie des pads et des playlists. Le champ **Préécoute** détermine la seconde sortie disponible pour les commandes de préécoute natives. Les deux champs peuvent désigner le même périphérique ou deux périphériques différents.
+
+À partir de SonoRiva Bridge 1.0.4, le volume maître de la régie agit sur toutes les lectures Bridge en conservant le volume propre de chaque lecture.
 
 ### Cache du bridge
 

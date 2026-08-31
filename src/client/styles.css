@@ -474,6 +474,14 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .settings-key-actions label { grid-template-columns: 145px minmax(0, 1fr); align-items: center; gap: 10px; color: #a1a1aa; font-size: .7rem; }
 .settings-key-actions label > span { display: flex; align-items: center; gap: 7px; }
 .settings-key-actions select { height: 38px; padding-block: 0; font-size: .72rem; }
+.settings-shortcut-list { margin-top: 14px; display: grid; gap: 7px; }
+.settings-shortcut-row { min-height: 54px; padding: 8px 9px 8px 11px; display: grid; grid-template-columns: minmax(0, 1fr) 170px; align-items: center; gap: 14px; border: 1px solid #27272a; border-radius: 9px; background: rgba(24,24,27,.45); }
+.settings-shortcut-row > span { min-width: 0; display: grid; gap: 3px; }
+.settings-shortcut-row strong { color: #d4d4d8; font-size: .72rem; }
+.settings-shortcut-row small { color: #71717a; font-size: .63rem; line-height: 1.35; }
+.shortcut-recorder { min-height: 34px; padding: 6px 10px; border: 1px solid #3f3f46; border-radius: 7px; color: #e4e4e7; background: #18181b; font: inherit; font-size: .68rem; font-weight: 700; cursor: pointer; }
+.shortcut-recorder:hover { border-color: #52525b; background: #202024; }
+.shortcut-recorder.is-recording { border-color: var(--accent); color: #99f6e4; box-shadow: 0 0 0 2px rgba(34,211,182,.12); }
 .audio-output-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto 34px; align-items: end; gap: 8px; }
 .audio-output-controls label { min-width: 0; display: grid; gap: 5px; color: #71717a; font-size: .62rem; }
 .audio-output-controls select { min-width: 0; height: 38px; padding-block: 0; font-size: .7rem; }
@@ -816,6 +824,7 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
   .freesound-player { grid-template-columns: 36px minmax(0, 1fr) 32px; }
   .freesound-volume { grid-column: 1 / -1; }
   .settings-key-actions label { grid-template-columns: 1fr; }
+  .settings-shortcut-row { grid-template-columns: 1fr; gap: 7px; }
   .audio-output-controls { grid-template-columns: minmax(0, 1fr) 34px; }
   .audio-output-controls .button { grid-column: 1 / -1; grid-row: 2; }
   .bridge-output-grid { grid-template-columns: 1fr; }

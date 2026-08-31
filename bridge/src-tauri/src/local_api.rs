@@ -117,6 +117,7 @@ pub async fn serve(state: Arc<Runtime>) -> Result<(), String> {
         .route("/v1/events", get(events))
         .route("/v1/playbacks/{id}/pause", post(toggle_pause))
         .route("/v1/playbacks/{id}/volume", put(set_volume))
+        .route("/v1/master-volume", put(set_master_volume))
         .route("/v1/playbacks/{id}/loop", put(set_loop))
         .route("/v1/playbacks/{id}/seek", put(seek))
         .route("/v1/playbacks/{id}/output", put(set_playback_output))
@@ -362,6 +363,20 @@ async fn set_volume(
         .lock()
         .map_err(lock_error)?
         .set_volume(&id, input.volume);
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn set_master_volume(
+    headers: HeaderMap,
+    State(state): State<Arc<Runtime>>,
+    Json(input): Json<VolumeInput>,
+) -> ApiResult<StatusCode> {
+    authorize(&headers, &state, false).await?;
+    state
+        .audio
+        .lock()
+        .map_err(lock_error)?
+        .set_master_volume(input.volume);
     Ok(StatusCode::NO_CONTENT)
 }
 

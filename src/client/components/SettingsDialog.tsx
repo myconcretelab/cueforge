@@ -4,7 +4,8 @@ import { api } from '../lib/api';
 import { audioEngine, type AudioOutputDevice } from '../lib/audio-engine';
 import { bridgeClient, type BridgeOutput } from '../lib/bridge-client';
 import { associateLocalBridge } from '../lib/bridge-connection';
-import type { AccountSummary, BridgeDevice, KeyAction, Project, ProjectColor, PublicPlan, User } from '../types';
+import { defaultProjectKeyboardShortcuts, formatShortcut, projectShortcutDefinitions, shortcutFromKeyboardEvent, shortcutMainKey } from '../lib/keyboard-shortcuts';
+import type { AccountSummary, BridgeDevice, KeyAction, Project, ProjectColor, ProjectKeyboardShortcutKey, PublicPlan, User } from '../types';
 
 interface Props {
   user: User;
@@ -32,6 +33,7 @@ interface Props {
   onToggleRemote: () => void;
   onCacheOffline: () => void;
   onUpdateKeyAction: (key: 'escape' | 'backspace' | 'space', action: KeyAction) => void;
+  onUpdateKeyboardShortcut: (key: ProjectKeyboardShortcutKey, shortcut: string) => void;
   onLogout: () => void;
   onClose: () => void;
 }
@@ -41,6 +43,45 @@ const keyActions: Array<{ value: KeyAction; label: string }> = [
   { value: 'stop-all-immediate', label: 'Arrêter immédiatement' },
   { value: 'none', label: 'Aucune action' },
 ];
+
+function ShortcutRecorder({ value, trackKeys = false, disabled = false, onChange }: { value: string; trackKeys?: boolean; disabled?: boolean; onChange: (shortcut: string) => void }) {
+  const [recording, setRecording] = useState(false);
+  const pendingModifier = useRef<string | undefined>(undefined);
+  const commit = (shortcut: string, button: HTMLButtonElement) => {
+    if (trackKeys && shortcutMainKey(shortcut) !== 'TrackKey') return;
+    pendingModifier.current = undefined;
+    setRecording(false);
+    button.blur();
+    onChange(shortcut);
+  };
+  return <button
+    type="button"
+    className={`shortcut-recorder ${recording ? 'is-recording' : ''}`}
+    disabled={disabled}
+    aria-label={`Modifier le raccourci ${formatShortcut(value)}`}
+    onClick={() => setRecording(true)}
+    onBlur={() => { pendingModifier.current = undefined; setRecording(false); }}
+    onKeyDown={(event) => {
+      if (!recording) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const shortcut = shortcutFromKeyboardEvent(event.nativeEvent);
+      if (!shortcut) return;
+      if (['Control', 'Alt', 'Shift', 'Meta', 'AltGraph'].includes(shortcutMainKey(shortcut))) {
+        pendingModifier.current = shortcut;
+        return;
+      }
+      commit(shortcut, event.currentTarget);
+    }}
+    onKeyUp={(event) => {
+      if (!recording || !pendingModifier.current) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const shortcut = pendingModifier.current;
+      if (shortcutMainKey(shortcut) === shortcutMainKey(shortcutFromKeyboardEvent(event.nativeEvent) ?? '')) commit(shortcut, event.currentTarget);
+    }}
+  >{recording ? (trackKeys ? 'Pressez 1 à 9…' : 'Pressez les touches…') : formatShortcut(value)}</button>;
+}
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} o`;
@@ -58,7 +99,7 @@ function formatPrice(cents: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 }
 
-export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, onAutomaticUpdatesChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onLogout, onClose }: Props) {
+export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, onAutomaticUpdatesChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onUpdateKeyboardShortcut, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
   const [newColor, setNewColor] = useState('#22d3b6');
   const [draggedProjectId, setDraggedProjectId] = useState<string>();
@@ -428,11 +469,22 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         <button className="button ghost wide" onClick={onToggleRemote}><Smartphone size={17} />{remote ? 'Revenir à la régie principale' : 'Ouvrir la télécommande'}</button>
       </section>
       <section className="settings-section">
-        <div className="settings-section-title"><Keyboard size={16} /><div><strong>Raccourcis clavier</strong><span>Attribuez une action d’arrêt à chaque touche globale.</span></div></div>
+        <div className="settings-section-title"><Keyboard size={16} /><div><strong>Raccourcis clavier</strong><span>Les raccourcis sont enregistrés pour le spectacle sélectionné.</span></div></div>
         <div className="settings-key-actions">
           <label><span><kbd>Échap</kbd> Touche Échap</span><select value={selectedProject?.escapeKeyAction ?? 'stop-all'} onChange={(event) => onUpdateKeyAction('escape', event.target.value as KeyAction)}>{keyActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
           <label><span><kbd>⌫</kbd> Retour arrière</span><select value={selectedProject?.backspaceKeyAction ?? 'stop-all'} onChange={(event) => onUpdateKeyAction('backspace', event.target.value as KeyAction)}>{keyActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
           <label><span><kbd>Espace</kbd> Barre d’espace</span><select value={selectedProject?.spaceKeyAction ?? 'stop-all-immediate'} onChange={(event) => onUpdateKeyAction('space', event.target.value as KeyAction)}>{keyActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
+        </div>
+        <div className="settings-shortcut-list">
+          {projectShortcutDefinitions.map((definition) => <div className="settings-shortcut-row" key={definition.key}>
+            <span><strong>{definition.label}</strong><small>{definition.description}</small></span>
+            <ShortcutRecorder
+              value={selectedProject?.[definition.key] ?? defaultProjectKeyboardShortcuts[definition.key]}
+              trackKeys={definition.trackKeys}
+              disabled={!selectedProject}
+              onChange={(shortcut) => onUpdateKeyboardShortcut(definition.key, shortcut)}
+            />
+          </div>)}
         </div>
       </section>
       <section className="settings-section" ref={billingSectionRef}>

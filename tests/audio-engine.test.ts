@@ -134,6 +134,16 @@ describe('audio player instance controls', () => {
     expect(latest).toHaveLength(0);
   });
 
+  it('conserve un volume maître distinct du volume individuel', async () => {
+    audioEngine.setMasterVolume(.42);
+    expect(audioEngine.getMasterVolume()).toBe(.42);
+    await audioEngine.play(track, 0, .6);
+    expect(latest[0]?.volume).toBe(.6);
+    audioEngine.stopAll([track], 0);
+    audioEngine.setMasterVolume(1.5);
+    expect(audioEngine.getMasterVolume()).toBe(1);
+  });
+
   it('réinitialise le spectacle sans recréer une progression lors de l’arrêt', async () => {
     await audioEngine.play(track, 0);
     const playbackId = latest[0]?.id;

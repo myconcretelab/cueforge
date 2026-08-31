@@ -169,6 +169,13 @@
       "when": 1788167914203,
       "tag": "0023_easy_malice",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788170909164,
+      "tag": "0024_nebulous_thor_girl",
+      "breakpoints": true
     }
   ]
 }

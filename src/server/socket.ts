@@ -6,7 +6,7 @@ import { cookieValue, sessionCookieName, userFromToken } from './services/auth.j
 import { ownsProject } from './services/ownership.js';
 
 const commandSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('play'), trackId: z.string().uuid(), volumeMultiplier: z.number().min(0).max(1).optional() }),
+  z.object({ type: z.literal('play'), trackId: z.string().uuid(), volumeMultiplier: z.number().min(0).max(1).optional(), outputId: z.string().min(1).max(500).optional() }),
   z.object({ type: z.literal('stop'), trackId: z.string().uuid() }),
   z.object({ type: z.literal('stop-all') }),
   z.object({ type: z.literal('stop-all-immediate') }),
@@ -15,6 +15,7 @@ const commandSchema = z.discriminatedUnion('type', [
     trackId: z.string().uuid(),
     action: z.enum(['start', 'crossfade', 'fade-in', 'replace', 'stop', 'none']),
     volumeMultiplier: z.number().min(0).max(1).optional(),
+    outputId: z.string().min(1).max(500).optional(),
   }),
 ]);
 

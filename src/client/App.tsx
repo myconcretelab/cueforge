@@ -26,11 +26,12 @@ import { audioEngine, playbackPositionAt, playbackVolumeAt, type ActivePlayback 
 import { bridgeClient } from './lib/bridge-client';
 import type { RoutedBridgeOutput } from './lib/bridge-output-routing';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
+import { projectShortcut, projectShortcutDefinitions, shortcutFromKeyboardEvent, shortcutMainKey, shortcutModifierKeys, trackIndexFromKeyboardEvent } from './lib/keyboard-shortcuts';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
 import { intersectsSelection, type SelectionRectangle } from './lib/track-selection';
 import { trackMatchesSearch, type TrackSearchScope } from './lib/track-tags';
-import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ReleaseInfo, RemoteCommand, Track, User } from './types';
+import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcutKey, ReleaseInfo, RemoteCommand, Track, User } from './types';
 
 const colors = ['#22d3b6', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
 const mouseActions: Array<{ value: MouseAction; label: string }> = [
@@ -117,7 +118,10 @@ export default function App() {
   const [connected, setConnected] = useState(false);
   const [offlineStatus, setOfflineStatus] = useState('');
   const [error, setError] = useState('');
+  const [shortcutNotice, setShortcutNotice] = useState('');
   const [nextTrackVolume, setNextTrackVolume] = useState(() => readNumberRange('sonoriva-next-volume', 100, 0, 100));
+  const [masterVolume, setMasterVolume] = useState(() => readNumberRange('sonoriva-master-volume', 100, 0, 100));
+  const [shortcutOutputSecondary, setShortcutOutputSecondary] = useState(false);
   const [keepNextTrackVolume, setKeepNextTrackVolume] = useState(() => localStorage.getItem('sonoriva-keep-next-volume') === 'true');
   const [now, setNow] = useState(() => Date.now());
   const [chronoElapsedMs, setChronoElapsedMs] = useState(0);
@@ -134,6 +138,7 @@ export default function App() {
   const ignoredPlaylistPlaybackRef = useRef<string | undefined>(undefined);
   const playlistPlayedItemIdsRef = useRef(new Set<string>());
   const releaseAutoShownRef = useRef(false);
+  const secondaryOutputHeldRef = useRef(false);
   const remote = new URLSearchParams(window.location.search).get('remote') === '1';
   const unseenReleases = useMemo(() => releaseInfo?.releases.filter((release) => releaseInfo.unseenVersions.includes(release.version)) ?? [], [releaseInfo]);
   const releasesForDialog = unseenReleases.length > 0 ? unseenReleases : releaseInfo?.releases ?? [];
@@ -144,6 +149,7 @@ export default function App() {
   }, []);
 
   useEffect(() => audioEngine.subscribe(setActivePlaybacks), []);
+  useEffect(() => audioEngine.setMasterVolume(masterVolume / 100), [masterVolume]);
   useEffect(() => audioEngine.subscribeHistory(setPlaybackHistory), []);
   useEffect(() => subscribeToAppUpdate(setUpdateAvailable), []);
   useEffect(() => {
@@ -402,8 +408,8 @@ export default function App() {
       }
       const track = currentTracks.find((candidate) => candidate.id === command.trackId);
       if (!track) return;
-      if (command.type === 'run-action') audioEngine.runAction(command.action, track, currentTracks, command.volumeMultiplier).catch((cause) => setError(cause.message));
-      else if (command.type === 'play') audioEngine.play(track, track.fadeInMs, command.volumeMultiplier).catch((cause) => setError(cause.message));
+      if (command.type === 'run-action') audioEngine.runAction(command.action, track, currentTracks, command.volumeMultiplier, command.outputId).catch((cause) => setError(cause.message));
+      else if (command.type === 'play') audioEngine.play(track, track.fadeInMs, command.volumeMultiplier, command.outputId).catch((cause) => setError(cause.message));
       else audioEngine.stop(track.id, track.fadeOutMs);
     });
     return () => { connection.disconnect(); setSocket(undefined); setConnected(false); };
@@ -446,7 +452,9 @@ export default function App() {
   const preloadedInCategory = tracksToPreload.filter((track) => offlineTrackIds.has(track.id)).length;
   const trackColumns = compactLayout ? mobileColumns : desktopColumns;
   const currentCategory = detail?.categories.find((category) => category.id === selectedCategoryId);
-  const displayedCategories = detail?.categories.filter((category) => !categoryIsFavorites(category.name)) ?? [];
+  const displayedCategories = useMemo(() => detail?.categories.filter((category) => !categoryIsFavorites(category.name)) ?? [], [detail?.categories]);
+  const resolvedMainBridgeOutputId = routedBridgeOutputs.some((output) => output.id === mainBridgeOutputId) ? mainBridgeOutputId : routedBridgeOutputs[0]?.id;
+  const secondaryBridgeOutputId = routedBridgeOutputs.find((output) => output.id !== resolvedMainBridgeOutputId)?.id;
   const displayedChronoMs = chronoElapsedMs + (chronoStartedAt === undefined ? 0 : Math.max(0, now - chronoStartedAt));
   const playlistPlayback = activePlaybacks.find((playback) => playback.id === playlistPlaybackId);
   const detailProjectId = detail?.project.id;
@@ -464,7 +472,13 @@ export default function App() {
     setSelectedTrackIds(new Set());
     setSelectionRectangle(undefined);
     setBatchEditOpen(false);
+    setShortcutOutputSecondary(false);
+    secondaryOutputHeldRef.current = false;
   }, [selectedProjectId]);
+
+  useEffect(() => {
+    if (!secondaryBridgeOutputId) setShortcutOutputSecondary(false);
+  }, [secondaryBridgeOutputId]);
 
   useEffect(() => {
     if (!detailProjectId) return;
@@ -480,6 +494,11 @@ export default function App() {
     }
     return multiplier;
   }, [keepNextTrackVolume, nextTrackVolume]);
+
+  const shortcutLaunchOutputId = useCallback(() => {
+    if (secondaryOutputHeldRef.current || shortcutOutputSecondary) return secondaryBridgeOutputId;
+    return resolvedMainBridgeOutputId;
+  }, [resolvedMainBridgeOutputId, secondaryBridgeOutputId, shortcutOutputSecondary]);
 
   const sendOrRun = useCallback((command: RemoteCommand, track?: Track) => {
     const preparedCommand = command.type === 'play' && command.volumeMultiplier === undefined
@@ -498,8 +517,8 @@ export default function App() {
       audioEngine.stopAll(detail?.tracks ?? [], preparedCommand.type === 'stop-all-immediate' ? 0 : undefined);
     }
     else if (preparedCommand.type === 'stop' && track) audioEngine.stop(track.id, track.fadeOutMs);
-    else if (preparedCommand.type === 'play' && track) audioEngine.play(track, track.fadeInMs, preparedCommand.volumeMultiplier).catch((cause) => setError(cause.message));
-  }, [consumeNextTrackVolume, detail, remote, socket]);
+    else if (preparedCommand.type === 'play' && track) audioEngine.play(track, track.fadeInMs, preparedCommand.volumeMultiplier, preparedCommand.outputId ?? shortcutLaunchOutputId()).catch((cause) => setError(cause.message));
+  }, [consumeNextTrackVolume, detail, remote, shortcutLaunchOutputId, socket]);
 
   const runTrackAction = useCallback((action: MouseAction, track: Track) => {
     if (action === 'none') return;
@@ -509,8 +528,8 @@ export default function App() {
       socket?.emit('remote-command', { projectId: detail.project.id, command: { type: 'run-action', trackId: track.id, action, volumeMultiplier } satisfies RemoteCommand });
       return;
     }
-    audioEngine.runAction(action, track, detail?.tracks ?? [], volumeMultiplier).catch((cause) => setError(cause.message));
-  }, [consumeNextTrackVolume, detail, remote, socket]);
+    audioEngine.runAction(action, track, detail?.tracks ?? [], volumeMultiplier, shortcutLaunchOutputId()).catch((cause) => setError(cause.message));
+  }, [consumeNextTrackVolume, detail, remote, shortcutLaunchOutputId, socket]);
 
   const playTrackOnOutput = useCallback((track: Track, outputId: string) => {
     if (remote || !routedBridgeOutputs.some((output) => output.id === outputId)) return;
@@ -745,8 +764,51 @@ export default function App() {
     }
   }
 
+  const selectCategory = useCallback((categoryId: string) => {
+    setSelectedCategoryId(categoryId);
+    setSearch('');
+    if (detail) localStorage.setItem(categoryStorageKey(detail.project.id), categoryId);
+  }, [detail]);
+
+  const preloadCategory = useCallback(async () => {
+    const remaining = tracksToPreload.filter((track) => !offlineTrackIds.has(track.id));
+    if (!remaining.length) return;
+    setPreloadProgress({ done: tracksToPreload.length - remaining.length, total: tracksToPreload.length });
+    let done = tracksToPreload.length - remaining.length;
+    try {
+      for (let index = 0; index < remaining.length; index += 3) {
+        const batch = remaining.slice(index, index + 3);
+        await Promise.all(batch.map(async (track) => {
+          await cacheTrackOffline(track.id);
+          setOfflineTrackIds((current) => new Set(current).add(track.id));
+          await audioEngine.preload(track);
+        }));
+        done += batch.length;
+        setPreloadProgress({ done, total: tracksToPreload.length });
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Mise à disposition hors ligne interrompue.');
+    } finally {
+      setPreloadProgress(undefined);
+    }
+  }, [offlineTrackIds, tracksToPreload]);
+
   useEffect(() => {
     if (!detail) return;
+    const holdShortcut = projectShortcut(detail.project, 'secondaryOutputHoldShortcut');
+    const adjustMasterVolume = (delta: number) => {
+      setMasterVolume((current) => {
+        const next = Math.min(100, Math.max(0, current + delta));
+        localStorage.setItem('sonoriva-master-volume', String(next));
+        setShortcutNotice(`Volume maître : ${next} %`);
+        return next;
+      });
+    };
+    const moveCategory = (direction: 1 | -1) => {
+      const ids = ['all', ...displayedCategories.map((category) => category.id)];
+      const currentIndex = Math.max(0, ids.indexOf(selectedCategoryId));
+      selectCategory(ids[(currentIndex + direction + ids.length) % ids.length]!);
+    };
     const onKey = (event: KeyboardEvent) => {
       if ((event.target instanceof HTMLInputElement && event.target.type !== 'range') || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
       if (selectionMode) {
@@ -758,10 +820,16 @@ export default function App() {
         }
         return;
       }
+      const shortcut = shortcutFromKeyboardEvent(event);
+      if (shortcut === holdShortcut) {
+        event.preventDefault();
+        secondaryOutputHeldRef.current = true;
+        return;
+      }
       const keyAction = event.key === 'Escape' ? detail.project.escapeKeyAction ?? 'stop-all'
         : event.key === 'Backspace' ? detail.project.backspaceKeyAction ?? 'stop-all'
           : event.key === ' ' ? detail.project.spaceKeyAction ?? 'stop-all-immediate' : undefined;
-      if (keyAction) {
+      if (keyAction && keyAction !== 'none') {
         event.preventDefault();
         if (keyAction === 'stop-all') {
           sendOrRun({ type: 'stop-all' });
@@ -770,13 +838,52 @@ export default function App() {
         }
         return;
       }
-      const index = Number(event.key) - 1;
-      const track = visibleTracks[index];
-      if (index >= 0 && index < 9 && track) sendOrRun({ type: 'play', trackId: track.id }, track);
+      if (!shortcut) return;
+      const run = (callback: () => void, repeat = false) => {
+        event.preventDefault();
+        if (!event.repeat || repeat) callback();
+      };
+      if (shortcut === projectShortcut(detail.project, 'nextCategoryShortcut')) return run(() => moveCategory(1));
+      if (shortcut === projectShortcut(detail.project, 'previousCategoryShortcut')) return run(() => moveCategory(-1));
+      if (shortcut === projectShortcut(detail.project, 'loadCategoryShortcut')) return run(() => { preloadCategory().catch(() => undefined); });
+      if (shortcut === projectShortcut(detail.project, 'toggleOutputShortcut')) return run(() => {
+        if (!secondaryBridgeOutputId) {
+          setShortcutNotice('La sortie secondaire nécessite SonoRiva Bridge et deux sorties audio routées.');
+          return;
+        }
+        setShortcutOutputSecondary((current) => {
+          setShortcutNotice(`Prochains départs : sortie ${current ? 'principale' : 'secondaire'}`);
+          return !current;
+        });
+      });
+      if (shortcut === projectShortcut(detail.project, 'masterVolumeUpFastShortcut')) return run(() => adjustMasterVolume(10), true);
+      if (shortcut === projectShortcut(detail.project, 'masterVolumeDownFastShortcut')) return run(() => adjustMasterVolume(-10), true);
+      if (shortcut === projectShortcut(detail.project, 'masterVolumeUpShortcut')) return run(() => adjustMasterVolume(2), true);
+      if (shortcut === projectShortcut(detail.project, 'masterVolumeDownShortcut')) return run(() => adjustMasterVolume(-2), true);
+
+      const ignoredModifiers = secondaryOutputHeldRef.current ? shortcutModifierKeys(holdShortcut) : [];
+      const trackShortcut = shortcutFromKeyboardEvent(event, ignoredModifiers);
+      const index = trackIndexFromKeyboardEvent(event);
+      const track = index === undefined ? undefined : visibleTracks[index];
+      if (!track || !trackShortcut) return;
+      if (trackShortcut === projectShortcut(detail.project, 'crossfadeTrackShortcut')) return run(() => runTrackAction('crossfade', track));
+      if (trackShortcut === projectShortcut(detail.project, 'startTrackShortcut')) run(() => runTrackAction('start', track));
     };
+    const onKeyUp = (event: KeyboardEvent) => {
+      const released = shortcutFromKeyboardEvent(event);
+      if (released && shortcutMainKey(released) === shortcutMainKey(holdShortcut)) secondaryOutputHeldRef.current = false;
+    };
+    const resetHeldOutput = () => { secondaryOutputHeldRef.current = false; };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [detail, selectionMode, sendOrRun, visibleTracks]);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', resetHeldOutput);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', resetHeldOutput);
+      resetHeldOutput();
+    };
+  }, [detail, displayedCategories, preloadCategory, runTrackAction, secondaryBridgeOutputId, selectedCategoryId, selectionMode, selectCategory, sendOrRun, visibleTracks]);
 
   async function createProject() {
     const name = window.prompt('Nom du nouveau spectacle');
@@ -938,6 +1045,28 @@ export default function App() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Configuration impossible.'); }
   }
 
+  async function updateKeyboardShortcut(key: ProjectKeyboardShortcutKey, shortcut: string) {
+    if (!detail) return;
+    const conflict = projectShortcutDefinitions.find((definition) => definition.key !== key && projectShortcut(detail.project, definition.key) === shortcut);
+    if (conflict) {
+      setError(`Cette combinaison est déjà utilisée pour « ${conflict.label} ».`);
+      return;
+    }
+    const reservedStopKey = shortcut === 'Escape' ? detail.project.escapeKeyAction
+      : shortcut === 'Backspace' ? detail.project.backspaceKeyAction
+        : shortcut === 'Space' ? detail.project.spaceKeyAction : 'none';
+    if (reservedStopKey !== 'none') {
+      setError('Cette touche est encore affectée à une commande d’arrêt globale. Sélectionnez d’abord « Aucune action ».');
+      return;
+    }
+    try {
+      const input = { [key]: shortcut } as Partial<Pick<Project, ProjectKeyboardShortcutKey>>;
+      const { project } = await api.updateProjectActions(detail.project.id, input);
+      setDetail((current) => current ? { ...current, project } : current);
+      setProjects((current) => current.map((candidate) => candidate.id === project.id ? project : candidate));
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Configuration impossible.'); }
+  }
+
   async function reorderTrack(trackId: string, categoryId: string | null, beforeTrackId?: string) {
     if (!detail || reordering || trackId === beforeTrackId) return;
     const previousTracks = detail.tracks;
@@ -1039,12 +1168,6 @@ export default function App() {
     localStorage.setItem('sonoriva-project', id);
   }
 
-  function selectCategory(categoryId: string) {
-    setSelectedCategoryId(categoryId);
-    setSearch('');
-    if (detail) localStorage.setItem(categoryStorageKey(detail.project.id), categoryId);
-  }
-
   function toggleSelectionMode() {
     const next = !selectionMode;
     setSelectionMode(next);
@@ -1134,29 +1257,6 @@ export default function App() {
       }
       setOfflineStatus('Projet disponible hors ligne');
     } catch { setOfflineStatus('Téléchargement interrompu'); }
-  }
-
-  async function preloadCategory() {
-    const remaining = tracksToPreload.filter((track) => !offlineTrackIds.has(track.id));
-    if (!remaining.length) return;
-    setPreloadProgress({ done: tracksToPreload.length - remaining.length, total: tracksToPreload.length });
-    let done = tracksToPreload.length - remaining.length;
-    try {
-      for (let index = 0; index < remaining.length; index += 3) {
-        const batch = remaining.slice(index, index + 3);
-        await Promise.all(batch.map(async (track) => {
-          await cacheTrackOffline(track.id);
-          setOfflineTrackIds((current) => new Set(current).add(track.id));
-          await audioEngine.preload(track);
-        }));
-        done += batch.length;
-        setPreloadProgress({ done, total: tracksToPreload.length });
-      }
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Mise à disposition hors ligne interrompue.');
-    } finally {
-      setPreloadProgress(undefined);
-    }
   }
 
   function updateTrackColumns(value: number) {
@@ -1451,11 +1551,11 @@ export default function App() {
         </div>}
       </section>
 
-      <footer className="statusbar"><span><i className={connected ? 'live' : ''} />{remote ? 'Contrôleur' : 'Lecteur principal'}</span><span><Settings2 size={14} /> SonoRiva {releaseInfo?.currentVersion ?? __APP_VERSION__} · {audioEngine.getPlaybackMode() === 'bridge' ? 'Bridge audio' : 'Web Audio'} · {activePlaybacks.length} actif{activePlaybacks.length !== 1 ? 's' : ''}</span></footer>
+      <footer className="statusbar"><span><i className={connected ? 'live' : ''} />{remote ? 'Contrôleur' : 'Lecteur principal'} · volume maître {masterVolume} %{shortcutOutputSecondary ? ' · sortie secondaire' : ''}</span><span><Settings2 size={14} /> SonoRiva {releaseInfo?.currentVersion ?? __APP_VERSION__} · {audioEngine.getPlaybackMode() === 'bridge' ? 'Bridge audio' : 'Web Audio'} · {activePlaybacks.length} actif{activePlaybacks.length !== 1 ? 's' : ''}</span></footer>
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
-    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} initialSection={settingsInitialSection} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onAccountChange={handleAccountChange} onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined); }} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundAutoSearch(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} initialSection={settingsInitialSection} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onAccountChange={handleAccountChange} onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined); }} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundAutoSearch(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onUpdateKeyboardShortcut={updateKeyboardShortcut} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
     {whatsNewOpen && releaseInfo && <WhatsNewDialog releases={releasesForDialog} currentVersion={releaseInfo.currentVersion} onClose={closeWhatsNew} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {freesoundOpen && detail && <FreesoundDialog initialQuery={search} autoSearch={freesoundAutoSearch} projectId={detail.project.id} categories={detail.categories} projectColors={detail.colors} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} bridgeOutputs={routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId} onImported={refreshProject} onClose={() => { setFreesoundOpen(false); setFreesoundAutoSearch(false); }} />}
@@ -1471,6 +1571,7 @@ export default function App() {
       </div>
     </div>}
     {noticesEnabled && !automaticUpdates && updateAvailable && <AppUpdateBanner playbackActive={activePlaybacks.length > 0} onApply={() => { if (!applyAppUpdate()) setError('La mise à jour n’est plus disponible.'); }} />}
+    {shortcutNotice && <Toast message={shortcutNotice} onClose={() => setShortcutNotice('')} />}
     {error && <Toast message={error} onClose={() => setError('')} />}
   </div>;
 }

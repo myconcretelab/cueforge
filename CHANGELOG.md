@@ -2,6 +2,21 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.3.0] - 2026-08-31
+
+### Ajouté
+
+- raccourcis configurables pour parcourir les catégories, démarrer les positions 1 à 9 et lancer un fondu enchaîné ;
+- commande de chargement en cache de la catégorie actuelle ;
+- maintien et bascule du routage des nouveaux départs vers la sortie secondaire ;
+- volume maître commun aux lectures Web Audio et Bridge avec réglages clavier normal et rapide ;
+- saisie directe et persistance par spectacle des nouvelles combinaisons ;
+- SonoRiva Bridge 1.0.4 avec prise en charge du volume maître.
+
+### Modifié
+
+- passage de l’application à la version `1.3.0`.
+
 ## [1.2.0] - 2026-08-31
 
 ### Ajouté

@@ -11,6 +11,22 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.3.0',
+    date: '2026-08-31',
+    title: 'Raccourcis de régie configurables',
+    summary: 'La navigation, les départs, le chargement, le routage et le volume maître sont pilotables au clavier avec des affectations propres à chaque spectacle.',
+    important: false,
+    changes: [
+      'Tab et Ctrl + Tab parcourent les catégories dans les deux sens.',
+      'Les touches 1 à 9 démarrent les morceaux visibles et leur variante avec Ctrl lance un fondu enchaîné.',
+      'AltGr charge tous les morceaux de la catégorie actuelle dans le cache.',
+      'Maj maintenue route les nouveaux départs vers la sortie secondaire et Verr. Maj bascule durablement la sortie.',
+      'Les touches + et - règlent le volume maître, avec un pas accéléré lorsque Ctrl est maintenu.',
+      'Chaque nouvelle combinaison peut être réaffectée dans les paramètres du spectacle.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.2.0',
     date: '2026-08-31',
     title: 'Sélection et édition de lot',

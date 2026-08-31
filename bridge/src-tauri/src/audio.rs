@@ -36,6 +36,7 @@ pub struct AudioEngine {
     outputs: HashMap<String, AudioOutputStream>,
     active: HashMap<String, Playback>,
     sequence: u64,
+    master_volume: f32,
 }
 
 struct AudioOutputStream {
@@ -49,6 +50,7 @@ impl AudioEngine {
             outputs: HashMap::new(),
             active: HashMap::new(),
             sequence: 0,
+            master_volume: 1.0,
         }
     }
 
@@ -181,7 +183,11 @@ impl AudioEngine {
             .max(10);
         let player = Arc::new(Player::connect_new(&mixer));
         let target_volume = (track.volume * volume_multiplier).clamp(0.0, 1.0);
-        player.set_volume(if fade_in_ms > 0 { 0.0 } else { target_volume });
+        player.set_volume(if fade_in_ms > 0 {
+            0.0
+        } else {
+            target_volume * self.master_volume
+        });
         append_source(&player, track, path, 0, track.loop_playback)?;
         self.sequence += 1;
         let id = format!("{}:{}", track.id, Uuid::new_v4());
@@ -204,7 +210,13 @@ impl AudioEngine {
             },
         );
         if fade_in_ms > 0 {
-            tokio::spawn(fade_player(player, 0.0, target_volume, fade_in_ms, false));
+            tokio::spawn(fade_player(
+                player,
+                0.0,
+                target_volume * self.master_volume,
+                fade_in_ms,
+                false,
+            ));
         }
         Ok(id)
     }
@@ -270,7 +282,18 @@ impl AudioEngine {
     pub fn set_volume(&mut self, id: &str, volume: f32) {
         if let Some(playback) = self.active.get_mut(id) {
             playback.volume = volume.clamp(0.0, 1.0);
-            playback.player.set_volume(playback.volume);
+            playback
+                .player
+                .set_volume(playback.volume * self.master_volume);
+        }
+    }
+
+    pub fn set_master_volume(&mut self, volume: f32) {
+        self.master_volume = volume.clamp(0.0, 1.0);
+        for playback in self.active.values() {
+            playback
+                .player
+                .set_volume(playback.volume * self.master_volume);
         }
     }
 
@@ -353,7 +376,7 @@ impl AudioEngine {
         self.refresh_output_if_idle(output_id, Some(id));
         let mixer = self.output(output_id)?.sink.mixer().clone();
         let player = Arc::new(Player::connect_new(&mixer));
-        player.set_volume(volume);
+        player.set_volume(volume * self.master_volume);
         append_source(&player, &track, &path, position_ms, loop_playback)?;
         if paused {
             player.pause();

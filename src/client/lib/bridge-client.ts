@@ -161,6 +161,7 @@ class BridgeClient {
 
   togglePause(id: string): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/pause`, 'POST'); }
   setVolume(id: string, volume: number): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/volume`, 'PUT', { volume }); }
+  setMasterVolume(volume: number): void { this.send('/v1/master-volume', 'PUT', { volume }); }
   setLoop(id: string, loop: boolean): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/loop`, 'PUT', { loop }); }
   seek(id: string, progress: number): void { this.send(`/v1/playbacks/${encodeURIComponent(id)}/seek`, 'PUT', { progress }); }
   async setPlaybackOutput(id: string, deviceId: string): Promise<void> {

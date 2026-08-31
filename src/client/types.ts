@@ -39,7 +39,23 @@ export interface ReleaseInfo {
 export type MouseAction = 'start' | 'crossfade' | 'fade-in' | 'replace' | 'stop' | 'none';
 export type KeyAction = 'stop-all' | 'stop-all-immediate' | 'none';
 
-export interface Project {
+export interface ProjectKeyboardShortcuts {
+  nextCategoryShortcut: string;
+  previousCategoryShortcut: string;
+  startTrackShortcut: string;
+  crossfadeTrackShortcut: string;
+  loadCategoryShortcut: string;
+  secondaryOutputHoldShortcut: string;
+  toggleOutputShortcut: string;
+  masterVolumeUpShortcut: string;
+  masterVolumeUpFastShortcut: string;
+  masterVolumeDownShortcut: string;
+  masterVolumeDownFastShortcut: string;
+}
+
+export type ProjectKeyboardShortcutKey = keyof ProjectKeyboardShortcuts;
+
+export interface Project extends ProjectKeyboardShortcuts {
   id: string;
   name: string;
   accountId: string;
@@ -281,8 +297,8 @@ export interface FreesoundSearchResult {
 }
 
 export type RemoteCommand =
-  | { type: 'play'; trackId: string; volumeMultiplier?: number }
+  | { type: 'play'; trackId: string; volumeMultiplier?: number; outputId?: string }
   | { type: 'stop'; trackId: string }
   | { type: 'stop-all' }
   | { type: 'stop-all-immediate' }
-  | { type: 'run-action'; trackId: string; action: MouseAction; volumeMultiplier?: number };
+  | { type: 'run-action'; trackId: string; action: MouseAction; volumeMultiplier?: number; outputId?: string };
