@@ -11,6 +11,21 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.11.0',
+    date: '2026-08-31',
+    title: 'Colonne gauche réorganisable',
+    summary: 'Les actions, les lectures et la playlist peuvent désormais être placées dans la colonne gauche de l’espace de travail.',
+    important: false,
+    changes: [
+      'La colonne gauche accepte les blocs Actions de déclenchement, Lectures en cours et Playlist.',
+      'Les actions de déclenchement deviennent un bloc déplaçable dans l’éditeur de disposition.',
+      'En Régie compacte, déplacer les lectures dans la colonne gauche y déplace aussi la playlist conditionnelle.',
+      'Les blocs restants s’étendent automatiquement dans l’espace libéré sur la grille.',
+      'Sur mobile, les actions restent dans le menu latéral et les autres blocs conservent leur ordre vertical.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.10.0',
     date: '2026-08-31',
     title: 'Playlist en tiroir compact',

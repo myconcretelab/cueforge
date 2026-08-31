@@ -2,6 +2,20 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.11.0] - 2026-08-31
+
+### Ajouté
+
+- colonne gauche transformée en zone de dépôt persistante pour les actions de déclenchement, les lectures en cours et la playlist ;
+- bloc **Actions de déclenchement** intégré à l’éditeur de disposition et permutable avec les autres blocs compatibles ;
+- déplacement conjoint des lectures et de la playlist dans la colonne gauche avec le modèle **Régie compacte**.
+
+### Modifié
+
+- extension automatique des blocs restants lorsque la colonne gauche reçoit des éléments de la grille ;
+- disposition mobile conservant les actions dans le menu latéral et les quatre blocs principaux dans le flux vertical ;
+- passage de l’application à la version `1.11.0`.
+
 ## [1.10.0] - 2026-08-31
 
 ### Ajouté

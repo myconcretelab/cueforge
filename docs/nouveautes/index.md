@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.11.0 — 31 août 2026
+
+- colonne gauche utilisable comme zone de dépôt pour les actions, les lectures et la playlist ;
+- actions de déclenchement intégrées aux blocs réorganisables ;
+- lectures et playlist conditionnelle déplaçables ensemble en mode compact.
+
+[Détails de la version 1.11.0](./1.11.0.md)
+
 ## Version 1.10.0 — 31 août 2026
 
 - nouveau modèle **Régie compacte** avec playlist escamotable ;

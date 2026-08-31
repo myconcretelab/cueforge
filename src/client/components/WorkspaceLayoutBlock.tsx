@@ -9,13 +9,14 @@ interface Props {
   columns: number;
   label: string;
   editing: boolean;
+  docked?: boolean;
   className?: string;
   children: ReactNode;
   onSwap: (sourceId: WorkspaceBlockId, targetId: WorkspaceBlockId) => void;
   onResize: (id: WorkspaceBlockId, width: number, height: number) => void;
 }
 
-export function WorkspaceLayoutBlock({ item, columns, label, editing, className = '', children, onSwap, onResize }: Props) {
+export function WorkspaceLayoutBlock({ item, columns, label, editing, docked = false, className = '', children, onSwap, onResize }: Props) {
   function resize(event: ReactPointerEvent<HTMLButtonElement>) {
     const block = event.currentTarget.closest<HTMLElement>('.workspace-block');
     const grid = event.currentTarget.closest<HTMLElement>('.workspace-layout-grid');
@@ -42,12 +43,12 @@ export function WorkspaceLayoutBlock({ item, columns, label, editing, className 
     window.addEventListener('pointercancel', finish);
   }
 
-  return <section className={`workspace-block workspace-${item.id} ${editing ? 'is-layout-editing' : ''} ${className}`} data-workspace-block={item.id}
+  return <section className={`workspace-block workspace-${item.id} ${editing ? 'is-layout-editing' : ''} ${docked ? 'is-docked' : ''} ${className}`} data-workspace-block={item.id}
     style={{ gridColumn: `${item.x + 1} / span ${item.w}`, gridRow: `${item.y + 1} / span ${item.h}` }}
     onDragOver={(event) => { if (!editing || !event.dataTransfer.types.includes(workspaceBlockMime)) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; }}
     onDrop={(event) => { if (!editing) return; const sourceId = event.dataTransfer.getData(workspaceBlockMime) as WorkspaceBlockId; if (!sourceId) return; event.preventDefault(); event.stopPropagation(); onSwap(sourceId, item.id); }}>
     {editing && <><div className="workspace-block-editor"><button type="button" draggable aria-label={`Déplacer le bloc ${label}`} title="Glisser sur un autre bloc pour les permuter"
-      onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData(workspaceBlockMime, item.id); }}><Move size={14} /><span>{label}</span></button><em>{item.w} × {item.h}</em></div><button type="button" className="workspace-resize-handle" onPointerDown={resize} aria-label={`Redimensionner le bloc ${label}`} title="Redimensionner sur la grille"><Maximize2 size={13} /></button></>}
+      onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData(workspaceBlockMime, item.id); }}><Move size={14} /><span>{label}</span></button><em>{docked ? 'Colonne gauche' : `${item.w} × ${item.h}`}</em></div>{!docked && <button type="button" className="workspace-resize-handle" onPointerDown={resize} aria-label={`Redimensionner le bloc ${label}`} title="Redimensionner sur la grille"><Maximize2 size={13} /></button>}</>}
     <div className="workspace-block-content">{children}</div>
   </section>;
 }

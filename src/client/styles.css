@@ -90,6 +90,19 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 
 .app-shell { min-height: 100vh; display: grid; grid-template-columns: 265px minmax(0, 1fr); background: #09090b; }
 .sidebar { position: sticky; top: 0; z-index: 20; height: 100vh; display: flex; flex-direction: column; border-right: 1px solid var(--border); background: #0d0d0f; }
+.sidebar-layout-dock { --compact-playlist-rows: 6; flex: 1; min-height: 0; padding: 8px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.sidebar-layout-dock.is-editing { background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px); background-size: 42px 42px; }
+.workspace-block.is-docked { flex: 0 0 auto; border-color: transparent; border-radius: 10px; background: transparent; box-shadow: none; }
+.workspace-block.is-docked.is-layout-editing { border-color: rgba(34,211,182,.38); background: #0d0d0f; box-shadow: inset 0 0 0 1px rgba(34,211,182,.1); }
+.workspace-block.is-docked.workspace-actions .workspace-block-content { height: auto; }
+.workspace-block.is-docked.workspace-players { flex: 1 1 auto; min-height: 150px; }
+.workspace-block.is-docked.workspace-playlist { flex: 1 1 auto; min-height: 160px; }
+.sidebar-layout-dock.has-compact-playlist:not(.is-editing):not(.is-compact-playlist-open) .workspace-playlist { display: none; }
+.sidebar-layout-dock.has-compact-playlist.is-compact-playlist-open:not(.is-editing) .workspace-players { flex-grow: calc(12 - var(--compact-playlist-rows)); }
+.sidebar-layout-dock.has-compact-playlist.is-compact-playlist-open:not(.is-editing) .workspace-playlist { flex-grow: var(--compact-playlist-rows); }
+.sidebar-dock-drop-hint { min-height: 66px; margin-top: auto; padding: 10px; display: grid; place-content: center; justify-items: center; gap: 3px; border: 1px dashed rgba(34,211,182,.3); border-radius: 10px; color: #5eead4; text-align: center; }
+.sidebar-dock-drop-hint strong { font-size: .65rem; }
+.sidebar-dock-drop-hint span { color: #71717a; font-size: .54rem; }
 .brand { height: 72px; padding: 0 19px; display: flex; align-items: center; gap: 11px; border-bottom: 1px solid var(--border); letter-spacing: -.03em; }
 .brand-mark.small { width: 34px; height: 34px; margin: 0; border-radius: 9px; font-size: .86rem; }
 .sidebar-close, .menu-button { display: none; }
@@ -264,6 +277,7 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .workspace-categories .category-tabs-row { height: calc(100% - 25px); min-height: 0; }
 .workspace-categories .category-tabs { min-height: 0; padding: 7px 0 8px; }
 .workspace-categories .category-tab-shell, .workspace-categories .category-tabs > .category-tab { min-height: 0; }
+.workspace-actions .mouse-actions { height: 100%; overflow: auto; }
 .workspace-soundboard .dashboard { margin: 8px 10px; }
 .workspace-soundboard .selection-toolbar { margin: 0 10px 8px; }
 .workspace-soundboard .soundboard { min-height: 0; padding: 2px 10px 18px; overflow: auto; }

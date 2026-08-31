@@ -4,15 +4,17 @@ SonoRiva utilise quatre niveaux d’organisation : spectacles, catégories, coul
 
 ## Disposition de l’espace de travail
 
-Le bouton **Disposition de l’interface** de la barre supérieure ouvre l’éditeur des quatre blocs : catégories, soundboard, lectures en cours et playlist.
+Le bouton **Disposition de l’interface** de la barre supérieure ouvre l’éditeur des cinq blocs : actions de déclenchement, catégories, soundboard, lectures en cours et playlist.
 
 Quatre modèles sont disponibles : **Régie classique**, **Régie compacte**, **Playlist verticale** et **Playlist principale**. Le modèle **Playlist verticale** place la playlist sur toute la hauteur de la grille. La grille utilise six, huit ou douze colonnes.
 
 Dans le modèle **Régie compacte**, les lectures occupent toute la hauteur de la colonne droite. Le bouton **Playlist** fixé en bas de cette colonne ouvre le panneau sous les lecteurs et indique le nombre de morceaux présents. Un morceau glissé sur ce bouton ouvre le tiroir et peut être déposé directement dans la playlist. La séparation supérieure du panneau règle sa hauteur à la souris ; les flèches haut et bas la modifient lorsqu’elle possède le focus clavier. L’état ouvert et la hauteur sont enregistrés avec la disposition locale. Sur mobile, la playlist reste un bloc vertical permanent.
 
-Dans l’éditeur, la poignée portant le nom d’un bloc permet de le déposer sur un autre bloc pour permuter leurs emplacements. Un dépôt dans une zone libre déplace le bloc vers cette zone. La poignée située dans le coin inférieur droit redimensionne le bloc. Un déplacement ou un redimensionnement qui chevaucherait un autre bloc est ignoré.
+La colonne gauche est une zone de dépôt permanente. Elle peut contenir les blocs **Actions de déclenchement**, **Lectures en cours** et **Playlist**. Dans le modèle **Régie compacte**, déplacer les lectures dans cette colonne y déplace également la playlist conditionnelle. Les blocs restés sur la grille s’étendent dans l’espace libéré.
 
-La disposition est enregistrée dans le navigateur pour l’utilisateur connecté. Sur un écran de 900 pixels de large ou moins, les blocs reprennent automatiquement un ordre vertical : catégories, soundboard, lectures en cours, playlist.
+Dans l’éditeur, la poignée portant le nom d’un bloc permet de le déposer sur un autre bloc pour permuter leurs emplacements. Un dépôt sur le fond de la colonne gauche y ajoute un bloc compatible ; un dépôt dans une zone libre de la grille l’y replace. La poignée située dans le coin inférieur droit redimensionne les blocs de la grille. Un déplacement ou un redimensionnement qui chevaucherait un autre bloc est ignoré.
+
+La disposition est enregistrée dans le navigateur pour l’utilisateur connecté. Sur un écran de 900 pixels de large ou moins, les actions restent dans le menu latéral et les autres blocs reprennent automatiquement un ordre vertical : catégories, soundboard, lectures en cours, playlist.
 
 ## Spectacles
 

@@ -1,16 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import {
   createWorkspaceLayout,
+  dockWorkspaceItem,
   moveWorkspaceItem,
   readWorkspaceLayout,
   resizeWorkspaceItem,
   swapWorkspaceItems,
+  workspaceDockItems,
+  workspaceItemIsDocked,
   workspaceLayoutItem,
   workspaceLayoutStorageKey,
   workspaceLayoutWithColumns,
 } from '../src/client/lib/workspace-layout';
 
 describe('workspace layout', () => {
+  it('places trigger actions in the left dock by default', () => {
+    const layout = createWorkspaceLayout();
+    expect(layout.dock).toEqual(['actions']);
+    expect(workspaceItemIsDocked(layout, 'actions')).toBe(true);
+  });
+
   it('provides a full-height playlist preset', () => {
     const layout = createWorkspaceLayout('playlist-vertical');
     expect(workspaceLayoutItem(layout, 'playlist')).toMatchObject({ x: 0, y: 0, w: 4, h: 12 });
@@ -20,7 +29,15 @@ describe('workspace layout', () => {
     const layout = createWorkspaceLayout('compact-control');
     expect(workspaceLayoutItem(layout, 'players')).toMatchObject({ x: 9, y: 0, w: 3, h: 8 });
     expect(workspaceLayoutItem(layout, 'playlist')).toMatchObject({ x: 9, y: 8, w: 3, h: 4 });
-    expect(layout).toMatchObject({ compactPlaylistOpen: false, compactPlaylistRows: 6 });
+    expect(layout).toMatchObject({ compactPlaylistEnabled: true, compactPlaylistOpen: false, compactPlaylistRows: 6 });
+  });
+
+  it('keeps compact players and their playlist together in the left dock', () => {
+    const layout = dockWorkspaceItem(createWorkspaceLayout('compact-control'), 'players');
+    expect(workspaceDockItems(layout)).toEqual(['actions', 'players', 'playlist']);
+    expect(workspaceItemIsDocked(layout, 'playlist')).toBe(true);
+    expect(workspaceLayoutItem(layout, 'categories').w).toBe(12);
+    expect(workspaceLayoutItem(layout, 'soundboard').w).toBe(12);
   });
 
   it('keeps the proportions when the grid resolution changes', () => {
@@ -49,6 +66,24 @@ describe('workspace layout', () => {
     expect(workspaceLayoutItem(swapped, 'playlist')).toMatchObject({ x: 9, y: 0, w: 3, h: 6 });
   });
 
+  it('exchanges a docked block with a compatible grid block', () => {
+    const layout = swapWorkspaceItems(createWorkspaceLayout(), 'actions', 'players');
+    expect(workspaceDockItems(layout)).toEqual(['players']);
+    expect(workspaceItemIsDocked(layout, 'actions')).toBe(false);
+    expect(workspaceLayoutItem(layout, 'actions')).toMatchObject({ x: 9, y: 0, w: 3, h: 6 });
+  });
+
+  it('moves the compact player and playlist pair into the dock when actions take its slot', () => {
+    const layout = swapWorkspaceItems(createWorkspaceLayout('compact-control'), 'actions', 'players');
+    expect(workspaceDockItems(layout)).toEqual(['players', 'playlist']);
+    expect(workspaceItemIsDocked(layout, 'actions')).toBe(false);
+    expect(workspaceLayoutItem(layout, 'actions')).toMatchObject({ x: 9, y: 0, w: 3, h: 12 });
+    const restored = swapWorkspaceItems(layout, 'actions', 'players');
+    expect(workspaceDockItems(restored)).toEqual(['actions']);
+    expect(workspaceLayoutItem(restored, 'players')).toMatchObject({ x: 9, y: 0, w: 3, h: 6 });
+    expect(workspaceLayoutItem(restored, 'playlist')).toMatchObject({ x: 9, y: 6, w: 3, h: 6 });
+  });
+
   it('falls back safely when persisted data is invalid', () => {
     const invalid = JSON.stringify({ columns: 12, preset: 'custom', items: [{ id: 'playlist', x: 0, y: 0, w: 20, h: 12 }] });
     expect(readWorkspaceLayout(invalid).preset).toBe('classic');
@@ -58,6 +93,14 @@ describe('workspace layout', () => {
   it('restores and clamps the compact playlist drawer preferences', () => {
     const serialized = JSON.stringify({ ...createWorkspaceLayout('compact-control'), compactPlaylistOpen: true, compactPlaylistRows: 20 });
     expect(readWorkspaceLayout(serialized)).toMatchObject({ preset: 'compact-control', compactPlaylistOpen: true, compactPlaylistRows: 9 });
+  });
+
+  it('migrates layouts saved before the left dock existed', () => {
+    const current = createWorkspaceLayout();
+    const legacy = JSON.stringify({ columns: current.columns, preset: current.preset, items: current.items.filter((item) => item.id !== 'actions') });
+    const migrated = readWorkspaceLayout(legacy);
+    expect(workspaceLayoutItem(migrated, 'actions').id).toBe('actions');
+    expect(migrated.dock).toEqual(['actions']);
   });
 
   it('uses a distinct persistence key for each user', () => {
