@@ -2,6 +2,18 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.6.1] - 2026-08-31
+
+### Ajouté
+
+- dépôt d’un morceau directement dans les espaces du tiroir ouvert pour l’ajouter à la sous-catégorie ;
+- macaron indiquant le nombre de morceaux à gauche du titre de chaque sous-catégorie.
+
+### Modifié
+
+- commandes **Modifier** et **Supprimer** placées à gauche du titre dans l’en-tête du tiroir ;
+- passage de l’application à la version `1.6.1`.
+
 ## [1.6.0] - 2026-08-31
 
 ### Ajouté

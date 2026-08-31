@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.6.1 — 31 août 2026
+
+- ajout par dépôt direct dans le tiroir ouvert ;
+- compteur compact à gauche du titre de la sous-catégorie ;
+- commandes de modification et de suppression regroupées avant le titre du tiroir.
+
+[Détails de la version 1.6.1](./1.6.1.md)
+
 ## Version 1.6.0 — 31 août 2026
 
 - sous-catégories compactes créées par glisser-déposer ou par bouton ;

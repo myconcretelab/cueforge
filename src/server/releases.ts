@@ -11,6 +11,19 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.6.1',
+    date: '2026-08-31',
+    title: 'Tiroirs de sous-catégorie plus directs',
+    summary: 'Un morceau peut être ajouté en le déposant dans le tiroir ouvert, dont les commandes et le compteur sont plus lisibles.',
+    important: false,
+    changes: [
+      'Déposer un morceau dans un espace libre du tiroir ouvert l’ajoute à la sous-catégorie.',
+      'Un macaron compact affiche le nombre de morceaux juste à gauche du titre de la tuile.',
+      'Les commandes Modifier et Supprimer précèdent désormais le titre dans l’en-tête du tiroir.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.6.0',
     date: '2026-08-31',
     title: 'Sous-catégories en tiroir',

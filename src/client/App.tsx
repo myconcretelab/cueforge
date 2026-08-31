@@ -34,7 +34,7 @@ import { movePlaylistItem as repositionPlaylistItem, playlistEntries, playlistQu
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
 import { intersectsSelection, type SelectionRectangle } from './lib/track-selection';
 import { trackMatchesSearch, type TrackSearchScope } from './lib/track-tags';
-import { trackDropPlacement, trackIdAfterTarget } from './lib/track-subcategories';
+import { canDropTrackInSubcategoryDrawer, trackDropPlacement, trackIdAfterTarget } from './lib/track-subcategories';
 import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcutKey, ReleaseInfo, RemoteCommand, Track, TrackSubcategory, User } from './types';
 
 const colors = ['#22d3b6', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
@@ -445,6 +445,7 @@ export default function App() {
     ...visibleSubcategories.map((subcategory) => ({ kind: 'subcategory' as const, id: subcategory.id, position: subcategory.position, subcategory })),
     ...visiblePlaylists.map((playlist) => ({ kind: 'playlist' as const, id: playlist.id, position: playlist.position, playlist })),
   ].sort((first, second) => first.position - second.position || first.id.localeCompare(second.id)), [topLevelTracks, visiblePlaylists, visibleSubcategories]);
+  const openSubcategory = useMemo(() => detail?.subcategories.find((subcategory) => subcategory.id === openSubcategoryId), [detail?.subcategories, openSubcategoryId]);
   const openSubcategoryTracks = useMemo(() => categoryTracks.filter((track) => track.subcategoryId === openSubcategoryId).sort((first, second) => first.position - second.position), [categoryTracks, openSubcategoryId]);
   const visibleTracks = useMemo(() => visibleBoardItems.flatMap((item) => {
     if (item.kind === 'track') return [item.track];
@@ -1847,9 +1848,12 @@ export default function App() {
             const rowStart = Math.floor(boardIndex / trackColumns) * trackColumns;
             const rowEndsHere = boardIndex % trackColumns === trackColumns - 1 || boardIndex === visibleBoardItems.length - 1;
             const showDrawer = rowEndsHere && openBoardIndex >= rowStart && openBoardIndex <= boardIndex;
-            return <Fragment key={`${boardItem.kind}:${boardItem.id}`}>{tile}{showDrawer && openSubcategoryId && <section className="subcategory-drawer" style={{ '--subcategory-color': detail.subcategories.find((item) => item.id === openSubcategoryId)?.color ?? '#8b5cf6' } as React.CSSProperties}>
-              <header><span><FolderOpen size={16} /><strong>{detail.subcategories.find((item) => item.id === openSubcategoryId)?.name}</strong><em>{openSubcategoryTracks.length}</em></span><span><button type="button" className="button ghost" onClick={() => { const subcategory = detail.subcategories.find((item) => item.id === openSubcategoryId); if (subcategory) setSubcategoryDialog(subcategory); }}>Modifier</button><button type="button" className="icon-button" onClick={() => setOpenSubcategoryId(undefined)} aria-label="Fermer la sous-catégorie"><X size={16} /></button></span></header>
-              {openSubcategoryTracks.length > 0 ? <div className="subcategory-drawer-grid">{openSubcategoryTracks.map((track) => renderBoardTrack(track))}</div> : <div className="subcategory-drawer-empty"><FolderPlus size={22} /><span>Glissez des morceaux sur la tuile pour les ajouter.</span></div>}
+            return <Fragment key={`${boardItem.kind}:${boardItem.id}`}>{tile}{showDrawer && openSubcategory && <section className={`subcategory-drawer ${dropSubcategoryId === openSubcategory.id ? 'is-track-drop-target' : ''}`} style={{ '--subcategory-color': openSubcategory.color } as React.CSSProperties}
+              onDragOver={(event) => { const overTrack = event.target instanceof Element && Boolean(event.target.closest('[data-track-id]')); if (!canDropTrackInSubcategoryDrawer(reorderMode, draggedTrackId, overTrack)) return; event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = 'move'; setDropSubcategoryId(openSubcategory.id); setDropTrackId(undefined); setDropTrackPlacement(undefined); }}
+              onDragLeave={(event) => { const nextTarget = event.relatedTarget as Node | null; if (nextTarget && event.currentTarget.contains(nextTarget)) return; setDropSubcategoryId((current) => current === openSubcategory.id ? undefined : current); }}
+              onDrop={(event) => { const overTrack = event.target instanceof Element && Boolean(event.target.closest('[data-track-id]')); if (!canDropTrackInSubcategoryDrawer(reorderMode, draggedTrackId, overTrack) || !draggedTrackId) return; event.preventDefault(); event.stopPropagation(); moveTrackIntoSubcategory(draggedTrackId, openSubcategory.id).catch(() => undefined); }}>
+              <header><span className="subcategory-drawer-heading"><span className="subcategory-drawer-actions"><button type="button" className="button ghost" onClick={() => setSubcategoryDialog(openSubcategory)}>Modifier</button><button type="button" className="button danger" onClick={() => { if (window.confirm(`Supprimer la sous-catégorie « ${openSubcategory.name} » ? Les morceaux resteront dans sa catégorie parente.`)) deleteSubcategory(openSubcategory).catch((cause) => setError(cause instanceof Error ? cause.message : 'Suppression impossible.')); }}>Supprimer</button></span><FolderOpen size={16} /><strong>{openSubcategory.name}</strong><em>{openSubcategoryTracks.length}</em></span><button type="button" className="icon-button" onClick={() => setOpenSubcategoryId(undefined)} aria-label="Fermer la sous-catégorie"><X size={16} /></button></header>
+              {openSubcategoryTracks.length > 0 ? <div className="subcategory-drawer-grid">{openSubcategoryTracks.map((track) => renderBoardTrack(track))}</div> : <div className="subcategory-drawer-empty"><FolderPlus size={22} /><span>Glissez des morceaux dans le tiroir pour les ajouter.</span></div>}
             </section>}</Fragment>;
           })}
         </div>}

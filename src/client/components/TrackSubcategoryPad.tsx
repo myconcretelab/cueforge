@@ -20,6 +20,7 @@ export function TrackSubcategoryPad({ subcategory, tracks, open, reorderEnabled,
   const previews = tracks.slice(0, 4);
   return <article className={`track-pad subcategory-pad ${open ? 'is-open' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${dropTarget ? 'is-drop-target' : ''} ${positionTarget ? `reorder-position-target drop-${positionTarget}` : ''}`} style={{ '--track-color': subcategory.color } as React.CSSProperties} draggable={reorderEnabled}
     onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}>
+    <span className="subcategory-count-badge" aria-label={`${tracks.length} morceau${tracks.length !== 1 ? 'x' : ''}`}>{tracks.length > 99 ? '99+' : tracks.length}</span>
     <span className="subcategory-edge-title">{subcategory.name}</span>
     <button type="button" className="icon-button subtle track-edit" onClick={onEdit} aria-label={`Modifier ${subcategory.name}`}><MoreHorizontal size={18} /></button>
     <button type="button" className="subcategory-trigger" onClick={onToggle} aria-expanded={open}>
@@ -29,6 +30,6 @@ export function TrackSubcategoryPad({ subcategory, tracks, open, reorderEnabled,
       </span>
       <span className="subcategory-open-label">{open ? 'Fermer' : 'Ouvrir'}<ChevronDown size={14} /></span>
     </button>
-    <div className="track-meta"><span>{tracks.length} morceau{tracks.length !== 1 ? 'x' : ''}</span><span>{open ? 'Tiroir ouvert' : 'Sous-catégorie'}</span></div>
+    <div className="track-meta"><span>Groupe</span><span>{open ? 'Tiroir ouvert' : 'Sous-catégorie'}</span></div>
   </article>;
 }

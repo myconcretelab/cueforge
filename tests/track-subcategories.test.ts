@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { TrackSubcategoryPad } from '../src/client/components/TrackSubcategoryPad.js';
-import { trackDropPlacement, trackIdAfterTarget } from '../src/client/lib/track-subcategories.js';
+import { canDropTrackInSubcategoryDrawer, trackDropPlacement, trackIdAfterTarget } from '../src/client/lib/track-subcategories.js';
 import type { Track } from '../src/client/types.js';
 
 function track(id: string, position: number, subcategoryId: string | null = null): Track {
@@ -11,6 +11,13 @@ function track(id: string, position: number, subcategoryId: string | null = null
 }
 
 describe('sous-catégories de morceaux', () => {
+  it('accepte un morceau dans les espaces libres du tiroir en mode réorganisation', () => {
+    expect(canDropTrackInSubcategoryDrawer(true, 'track', false)).toBe(true);
+    expect(canDropTrackInSubcategoryDrawer(false, 'track', false)).toBe(false);
+    expect(canDropTrackInSubcategoryDrawer(true, undefined, false)).toBe(false);
+    expect(canDropTrackInSubcategoryDrawer(true, 'track', true)).toBe(false);
+  });
+
   it('réserve le centre au regroupement et les bords à l’insertion', () => {
     expect(trackDropPlacement(10, 0, 100)).toBe('before');
     expect(trackDropPlacement(50, 0, 100)).toBe('group');
@@ -43,8 +50,9 @@ describe('sous-catégories de morceaux', () => {
       onDragEnd: () => undefined,
     }));
 
+    expect(markup).toContain('subcategory-count-badge');
+    expect(markup).toContain('aria-label="2 morceaux">2</span>');
     expect(markup).toContain('subcategory-edge-title">Ambiances');
-    expect(markup).toContain('2 morceaux');
     expect(markup).toContain('aria-expanded="false"');
   });
 });

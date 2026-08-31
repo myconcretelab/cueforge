@@ -2,6 +2,10 @@ import type { Track } from '../types';
 
 export type TrackDropPlacement = 'before' | 'group' | 'after';
 
+export function canDropTrackInSubcategoryDrawer(reorderMode: boolean, draggedTrackId: string | undefined, overTrack: boolean): boolean {
+  return reorderMode && Boolean(draggedTrackId) && !overTrack;
+}
+
 export function trackDropPlacement(clientX: number, left: number, width: number): TrackDropPlacement {
   if (width <= 0) return 'group';
   const ratio = (clientX - left) / width;
