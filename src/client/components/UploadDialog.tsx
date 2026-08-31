@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { FileAudio, LoaderCircle, Upload, X } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Category } from '../types';
+import { TrackTagsInput } from './TrackTagsInput';
 
 interface Props {
   projectId: string;
@@ -14,6 +15,7 @@ export function UploadDialog({ projectId, categories, onClose, onUploaded }: Pro
   const [file, setFile] = useState<File>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const input = useRef<HTMLInputElement>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -22,6 +24,7 @@ export function UploadDialog({ projectId, categories, onClose, onUploaded }: Pro
     const data = new FormData(event.currentTarget);
     data.set('projectId', projectId);
     data.set('file', file);
+    data.set('tags', tags.join(','));
     setLoading(true);
     setError('');
     try {
@@ -43,6 +46,7 @@ export function UploadDialog({ projectId, categories, onClose, onUploaded }: Pro
       }} />
       <label>Titre<input name="title" required defaultValue={file?.name.replace(/\.[^.]+$/, '') ?? ''} key={file?.name} placeholder="Entrée des comédiens" /></label>
       <label>Catégorie<select name="categoryId" defaultValue=""><option value="">Sans catégorie</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+      <TrackTagsInput tags={tags} onChange={setTags} />
       {error && <p className="form-error">{error}</p>}
       <footer><button type="button" className="button ghost" onClick={onClose}>Annuler</button><button className="button primary" disabled={loading || !file}>{loading && <LoaderCircle className="spin" size={18} />}Importer</button></footer>
     </form>

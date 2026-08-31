@@ -27,6 +27,14 @@ La palette du spectacle fournit les couleurs disponibles pour les catégories et
 
 La suppression d’une couleur de la palette ne modifie pas les pistes qui utilisent déjà cette valeur.
 
+## Tags
+
+Chaque morceau peut contenir jusqu’à 30 tags de 40 caractères. Les tags sont ajoutés ou supprimés depuis les réglages du morceau. La touche Entrée ou une virgule valide le texte saisi.
+
+Le sélecteur de la barre de recherche propose deux modes : **Noms**, sélectionné par défaut, recherche dans le titre du morceau et le nom du fichier ; **Tags** recherche uniquement dans les tags. Plusieurs mots saisis en mode **Tags** doivent tous correspondre à au moins un tag du morceau.
+
+Les tags fournis par Freesound sont enregistrés automatiquement avec les morceaux importés depuis ce service.
+
 ## Playlists
 
 Une playlist contient une liste ordonnée de pistes. Les éléments sont ajoutés depuis la grille puis réordonnés dans le panneau de playlist.

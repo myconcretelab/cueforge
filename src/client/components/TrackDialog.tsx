@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { LoaderCircle, Plus, Save, Trash2, X } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Category, ProjectColor, Track } from '../types';
+import { TrackTagsInput } from './TrackTagsInput';
 import { WaveformEditor } from './WaveformEditor';
 
 interface Props { track: Track; categories: Category[]; projectColors: ProjectColor[]; onAddProjectColor: (color: string) => Promise<void>; onClose: () => void; onChanged: () => void }
@@ -12,6 +13,7 @@ export function TrackDialog({ track, categories, projectColors, onAddProjectColo
   const [error, setError] = useState('');
   const [startTimeMs, setStartTimeMs] = useState(track.startTimeMs);
   const [endTimeMs, setEndTimeMs] = useState<number | null>(track.endTimeMs);
+  const [tags, setTags] = useState(track.tags ?? []);
   const inheritedColor = categories.find((category) => category.id === track.categoryId)?.color ?? '#22d3b6';
   const [color, setColor] = useState(track.color ?? inheritedColor);
   const colorIsPreset = projectColors.some((item) => item.color.toLowerCase() === color.toLowerCase());
@@ -30,6 +32,7 @@ export function TrackDialog({ track, categories, projectColors, onAddProjectColo
         startTimeMs,
         endTimeMs,
         color,
+        tags,
       });
       onChanged();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Modification impossible.'); setLoading(false); }
@@ -65,6 +68,7 @@ export function TrackDialog({ track, categories, projectColors, onAddProjectColo
         {!colorIsPreset && <button type="button" className="button ghost track-color-save" disabled={savingColor} onClick={saveColorToProject}>{savingColor ? <LoaderCircle className="spin" size={15} /> : <Plus size={15} />}Enregistrer cette couleur dans le spectacle</button>}
       </section>
       <label>Catégorie<select name="categoryId" defaultValue={track.categoryId ?? ''}><option value="">Sans catégorie</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+      <TrackTagsInput tags={tags} onChange={setTags} />
       <WaveformEditor track={track} startMs={startTimeMs} endMs={endTimeMs} onStartChange={setStartTimeMs} onEndChange={setEndTimeMs} />
       <label>Volume · {Math.min(100, Math.round(track.volume * 100))} %<input name="volume" type="range" min="0" max="100" defaultValue={Math.min(100, track.volume * 100)} /></label>
       <div className="field-row"><label>Fondu d’entrée (ms)<input name="fadeInMs" type="number" min="0" max="60000" defaultValue={track.fadeInMs} /></label><label>Fondu de sortie (ms)<input name="fadeOutMs" type="number" min="0" max="60000" defaultValue={track.fadeOutMs} /></label></div>

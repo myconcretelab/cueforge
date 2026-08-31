@@ -202,6 +202,7 @@ export interface Track {
   fadeInMs: number;
   fadeOutMs: number;
   color: string | null;
+  tags: string[];
   description: string | null;
   copyrightText: string | null;
   sourceUrl: string | null;

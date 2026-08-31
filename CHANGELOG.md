@@ -2,6 +2,18 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.1.0] - 2026-08-31
+
+### Ajouté
+
+- ajout et suppression de tags dans les réglages des morceaux et lors de leur import ;
+- sélection explicite entre la recherche par noms, active par défaut, et la recherche par tags ;
+- reprise automatique des tags fournis par Freesound.
+
+### Modifié
+
+- passage de l’application à la version `1.1.0`.
+
 ## [1.0.0] - 2026-08-29
 
 ### Ajouté

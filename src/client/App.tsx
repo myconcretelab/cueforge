@@ -27,6 +27,7 @@ import type { RoutedBridgeOutput } from './lib/bridge-output-routing';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
+import { trackMatchesSearch, type TrackSearchScope } from './lib/track-tags';
 import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ReleaseInfo, RemoteCommand, Track, User } from './types';
 
 const colors = ['#22d3b6', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
@@ -56,6 +57,7 @@ export default function App() {
   const [selectedProjectId, setSelectedProjectId] = useState(localStorage.getItem('sonoriva-project'));
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const [searchScope, setSearchScope] = useState<TrackSearchScope>('name');
   const [activePlaybacks, setActivePlaybacks] = useState<ActivePlayback[]>([]);
   const [playbackHistory, setPlaybackHistory] = useState<Map<string, number>>(new Map());
   const [offlineTrackIds, setOfflineTrackIds] = useState<Set<string>>(new Set());
@@ -403,12 +405,12 @@ export default function App() {
   const columnCategoryId = isSearching ? 'all' : selectedCategoryId;
   const visibleTracks = useMemo(() => (detail?.tracks ?? []).filter((track) => {
     const inCategory = isSearching || selectedCategoryId === 'all' || track.categoryId === selectedCategoryId;
-    const matches = track.title.toLocaleLowerCase('fr').includes(normalizedSearch) || track.originalFilename.toLocaleLowerCase('fr').includes(normalizedSearch);
+    const matches = trackMatchesSearch(track, normalizedSearch, searchScope);
     return inCategory && matches;
-  }), [detail?.tracks, isSearching, normalizedSearch, selectedCategoryId]);
+  }), [detail?.tracks, isSearching, normalizedSearch, searchScope, selectedCategoryId]);
   const visiblePlaylists = useMemo(() => remote ? [] : (detail?.playlists ?? []).filter((playlist) =>
     playlistIsVisible(playlist.categoryId, selectedCategoryId, isSearching)
-    && (!isSearching || playlist.name.toLocaleLowerCase('fr').includes(normalizedSearch))), [detail?.playlists, isSearching, normalizedSearch, remote, selectedCategoryId]);
+    && (!isSearching || (searchScope === 'name' && playlist.name.toLocaleLowerCase('fr').includes(normalizedSearch)))), [detail?.playlists, isSearching, normalizedSearch, remote, searchScope, selectedCategoryId]);
   const visibleBoardItems = useMemo(() => [
     ...visibleTracks.map((track) => ({ kind: 'track' as const, id: track.id, position: track.position, track })),
     ...visiblePlaylists.map((playlist) => ({ kind: 'playlist' as const, id: playlist.id, position: playlist.position, playlist })),
@@ -1278,7 +1280,7 @@ export default function App() {
       </section>}
 
       <section className="dashboard" aria-label="Tableau de bord des morceaux">
-        <div className="search"><Search size={18} /><input aria-label="Rechercher un son" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un son…" />{!remote && <button type="button" className="search-freesound" onClick={() => { setFreesoundAutoSearch(true); setFreesoundOpen(true); }} aria-label={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Ouvrir la recherche Freesound'} title={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Rechercher sur Freesound'}><Waves size={17} /></button>}<kbd>⌘ K</kbd></div>
+        <div className="search"><select className="search-scope" aria-label="Rechercher par" value={searchScope} onChange={(event) => setSearchScope(event.target.value as TrackSearchScope)}><option value="name">Noms</option><option value="tags">Tags</option></select><Search size={18} /><input aria-label={searchScope === 'tags' ? 'Rechercher des tags' : 'Rechercher un son par son nom'} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchScope === 'tags' ? 'Rechercher des tags…' : 'Rechercher un son…'} />{!remote && <button type="button" className="search-freesound" onClick={() => { setFreesoundAutoSearch(true); setFreesoundOpen(true); }} aria-label={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Ouvrir la recherche Freesound'} title={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Rechercher sur Freesound'}><Waves size={17} /></button>}<kbd>⌘ K</kbd></div>
         <div className="dashboard-actions">
           {!remote && <button className={`dashboard-button ${preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'is-loaded' : ''}`} onClick={() => preloadCategory()} disabled={!tracksToPreload.length || Boolean(preloadProgress) || preloadedInCategory === tracksToPreload.length}
             aria-label={preloadProgress ? `Mise hors ligne ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'}>

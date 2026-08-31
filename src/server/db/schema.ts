@@ -236,6 +236,7 @@ export const tracks = pgTable('tracks', {
   fadeInMs: integer('fade_in_ms').notNull().default(0),
   fadeOutMs: integer('fade_out_ms').notNull().default(400),
   color: text('color'),
+  tags: jsonb('tags').$type<string[]>().notNull().default([]),
   description: text('description'),
   copyrightText: text('copyright_text'),
   sourceUrl: text('source_url'),

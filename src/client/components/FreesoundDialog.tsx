@@ -266,6 +266,7 @@ export function FreesoundDialog({ initialQuery = '', autoSearch = false, project
         url: soundToImport.previewUrl,
         sourceUrl: soundToImport.pageUrl,
         sourceId: `freesound:${soundToImport.id}`,
+        tags: soundToImport.tags,
         description: soundToImport.tags.length ? `Tags Freesound : ${soundToImport.tags.join(', ')}` : 'Importé depuis Freesound.',
         copyrightText: `« ${soundToImport.name} » par ${soundToImport.username} — ${soundToImport.license.label} — ${soundToImport.pageUrl}`,
         color: importColor,

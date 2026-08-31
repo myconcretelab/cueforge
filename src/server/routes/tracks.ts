@@ -23,6 +23,18 @@ const acceptedMimeTypes = new Set([
 ]);
 const acceptedExtensions = new Set(['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac']);
 const maxAudioBytes = 250 * 1024 * 1024;
+const trackTagSchema = z.string().trim()
+  .transform((tag) => tag.replace(/^#+/, '').replace(/\s+/g, ' '))
+  .pipe(z.string().min(1).max(40));
+const trackTagsSchema = z.array(trackTagSchema).max(30).transform((tags) => {
+  const seen = new Set<string>();
+  return tags.filter((tag) => {
+    const key = tag.toLocaleLowerCase('fr');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+});
 
 const importedMetadataSchema = z.object({
   projectId: z.string().uuid(),
@@ -34,6 +46,7 @@ const importedMetadataSchema = z.object({
   fadeInMs: z.coerce.number().int().min(0).max(60_000).default(0),
   fadeOutMs: z.coerce.number().int().min(0).max(60_000).default(400),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  tags: z.preprocess((value) => typeof value === 'string' ? value.split(',') : value, trackTagsSchema).default([]),
   description: z.string().max(5_000).optional(),
   copyrightText: z.string().max(20_000).optional(),
   sourceUrl: z.string().url().optional(),
@@ -129,6 +142,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
         fadeOutMs: input.fadeOutMs,
         loop: fields.loop === 'true',
         color: input.color,
+        tags: input.tags,
         description: input.description,
         copyrightText: input.copyrightText,
         sourceUrl: input.sourceUrl,
@@ -204,6 +218,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
         volume: 1,
         loop: input.loop,
         color: input.color,
+        tags: input.tags,
         description: input.description,
         copyrightText: input.copyrightText,
         sourceUrl: input.sourceUrl ?? input.url,
@@ -258,6 +273,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
       startTimeMs: z.number().int().min(0).optional(),
       endTimeMs: z.number().int().positive().nullable().optional(),
       color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+      tags: trackTagsSchema.optional(),
     }).parse(request.body);
     if (input.categoryId && !(await categoryBelongsToProject(input.categoryId, existingTrack.projectId))) {
       return reply.code(400).send({ error: 'Catégorie invalide pour ce projet.' });

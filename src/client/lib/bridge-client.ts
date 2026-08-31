@@ -143,6 +143,7 @@ class BridgeClient {
       fadeInMs: 0,
       fadeOutMs: 0,
       color: null,
+      tags: [],
       description: null,
       copyrightText: null,
       sourceUrl: input.url,

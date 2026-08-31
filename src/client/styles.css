@@ -279,8 +279,9 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .category-resizer:hover, .category-resizer:active { color: var(--accent); border-color: rgba(34,211,182,.35); background: var(--accent-soft); }
 .dashboard { position: relative; z-index: 8; margin: 14px clamp(18px, 3vw, 42px) 16px; padding: 8px; display: grid; grid-template-columns: minmax(220px, 1fr) auto; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 14px; background: #0f0f11; box-shadow: 0 10px 30px rgba(0,0,0,.16); }
 .search { position: relative; min-width: 150px; display: flex; flex: 1; align-items: center; color: #71717a; }
-.search > svg { position: absolute; left: 13px; pointer-events: none; }
-.search input { height: 41px; padding-left: 41px; padding-right: 94px; }
+.search > svg { position: absolute; left: 104px; pointer-events: none; }
+.search input { height: 41px; padding-left: 131px; padding-right: 94px; }
+.search-scope { position: absolute; z-index: 2; left: 6px; width: 87px; height: 31px; padding: 0 24px 0 9px; border-color: rgba(255,255,255,.12); border-radius: 8px; color: #d4d4d8; background-color: #202024; cursor: pointer; font-size: .68rem; font-weight: 750; }
 .search-freesound { position: absolute; right: 48px; width: 30px; height: 30px; padding: 0; display: grid; place-items: center; border: 1px solid rgba(34,211,238,.22); border-radius: 8px; color: #67e8f9; background: rgba(34,211,238,.07); cursor: pointer; }
 .search-freesound:hover { color: #cffafe; border-color: rgba(34,211,238,.48); background: rgba(34,211,238,.14); }
 .search kbd { position: absolute; right: 11px; }
@@ -584,6 +585,17 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .track-color-swatches button span { width: 100%; height: 100%; display: block; border-radius: 5px; background: var(--palette-color); }
 .track-color-swatches em { color: #71717a; font-size: .65rem; font-style: normal; }
 .track-color-save { min-height: 34px; padding-inline: 10px; font-size: .66rem; }
+.track-tags-field { gap: 6px; }
+.track-tags-field > span { display: flex; align-items: center; gap: 7px; }
+.track-tags-field > span small { color: #71717a; font-size: .62rem; font-weight: 500; }
+.track-tags-field > em { color: #71717a; font-size: .62rem; font-style: normal; font-weight: 400; }
+.track-tags-input { min-height: 45px; padding: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-2); cursor: text; transition: border-color .2s, background .2s; }
+.track-tags-input:focus-within { border-color: rgba(34,211,182,.55); background: #202024; }
+.track-tags-input > input { min-width: 110px; width: 130px; height: 29px; padding: 3px 6px; flex: 1; border: 0; border-radius: 6px; background: transparent; outline: 0; font-size: .74rem; }
+.track-tag { min-height: 29px; padding: 3px 3px 3px 8px; display: inline-flex; align-items: center; gap: 3px; border: 1px solid rgba(34,211,182,.24); border-radius: 8px; color: #ccfbf1; background: var(--accent-soft); font-size: .69rem; font-weight: 600; }
+.track-tag b { color: var(--accent); font-weight: 800; }
+.track-tag button, .track-tag-add { width: 23px; height: 23px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 6px; color: #5eead4; background: transparent; cursor: pointer; }
+.track-tag button:hover, .track-tag-add:hover { color: #f0fdfa; background: rgba(34,211,182,.13); }
 .waveform-editor { display: grid; gap: 10px; }
 .waveform-editor > header { align-items: center; gap: 16px; }
 .waveform-editor > header > div:first-child { display: grid; gap: 3px; }

@@ -11,6 +11,20 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.1.0',
+    date: '2026-08-31',
+    title: 'Retrouver les sons par tags',
+    summary: 'Les morceaux peuvent être décrits par des tags et la recherche choisit explicitement entre les noms et ces tags.',
+    important: false,
+    changes: [
+      'Les réglages d’un morceau permettent d’ajouter et de supprimer jusqu’à 30 tags.',
+      'La barre de recherche propose les modes Noms et Tags, avec la recherche par nom sélectionnée par défaut.',
+      'Une recherche composée de plusieurs mots peut correspondre à plusieurs tags du même morceau.',
+      'Les tags Freesound sont conservés lors de l’import d’un son.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.0.0',
     date: '2026-08-29',
     title: 'SonoRiva entre en scène',

@@ -100,7 +100,7 @@ export const api = {
   }),
   deleteCategory: (projectId: string, categoryId: string) => request<void>(`/api/projects/${projectId}/categories/${categoryId}`, { method: 'DELETE' }),
   uploadTrack: (form: FormData) => request<{ track: Track }>('/api/tracks/upload', { method: 'POST', body: form }),
-  updateTrack: (id: string, input: Partial<Pick<Track, 'title' | 'categoryId' | 'volume' | 'loop' | 'fadeInMs' | 'fadeOutMs' | 'startTimeMs' | 'endTimeMs' | 'color'>>) =>
+  updateTrack: (id: string, input: Partial<Pick<Track, 'title' | 'categoryId' | 'volume' | 'loop' | 'fadeInMs' | 'fadeOutMs' | 'startTimeMs' | 'endTimeMs' | 'color' | 'tags'>>) =>
     request<{ track: Track }>(`/api/tracks/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
   reorderTrack: (id: string, input: { categoryId: string | null; beforeTrackId?: string | null }) =>
     request<{ tracks: Track[] }>(`/api/tracks/${id}/reorder`, { method: 'PATCH', body: JSON.stringify(input) }),
