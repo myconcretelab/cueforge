@@ -195,8 +195,6 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .playlist-drop-hint { min-height: 82px; display: grid; place-content: center; justify-items: center; gap: 3px; color: color-mix(in srgb, var(--playlist-color) 65%, #71717a); text-align: center; }
 .playlist-drop-hint strong { color: #a1a1aa; font-size: .64rem; }
 .playlist-drop-hint span { color: #62626a; font-size: .55rem; }
-.playlist-drop-guide { min-height: 22px; padding: 2px 5px 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 9px; color: #71717a; font-size: .5rem; }
-.playlist-drop-guide span { display: flex; align-items: center; gap: 3px; }
 .playlist-row-block { min-width: 0; display: grid; }
 .playlist-row-insert { height: 8px; display: grid; place-items: center; overflow: hidden; color: transparent; font-size: .5rem; transition: height .12s ease, color .12s ease, background .12s ease; }
 .playlist-row-insert.last { height: 11px; }
@@ -204,16 +202,25 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .playlist-row-insert:has(+ .playlist-row) { border-radius: 5px 5px 0 0; }
 .playlist-row-insert:hover, .playlist-row-insert:focus-within { height: 22px; color: color-mix(in srgb, var(--playlist-color) 78%, #fff); background: color-mix(in srgb, var(--playlist-color) 13%, transparent); }
 .playlist-row-insert:hover span, .playlist-row-insert:focus-within span { opacity: 1; }
+.playlist-dropzone.is-dragging .playlist-row-insert { height: 22px; color: color-mix(in srgb, var(--playlist-color) 72%, #fff); background: color-mix(in srgb, var(--playlist-color) 9%, transparent); }
+.playlist-dropzone.is-dragging .playlist-row-insert span { opacity: .72; }
+.playlist-dropzone.is-dragging .playlist-row-insert:hover { color: #fff; background: color-mix(in srgb, var(--playlist-color) 22%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--playlist-color) 32%, transparent); }
+.playlist-dropzone.is-dragging .playlist-row-insert:hover span { opacity: 1; }
 .playlist-row { min-width: 0; min-height: 35px; padding: 3px; display: grid; grid-template-columns: 31px minmax(0, 1fr) auto; align-items: center; gap: 4px; border: 1px solid var(--border); border-radius: 7px; background: #121214; }
 .playlist-row.current { border-color: color-mix(in srgb, var(--playlist-color) 70%, var(--border)); background: color-mix(in srgb, var(--playlist-color) 9%, #171719); }
 .playlist-row-play { height: 27px; padding: 0; display: grid; grid-template-columns: 10px 1fr; place-items: center; gap: 2px; border: 0; border-radius: 5px; color: color-mix(in srgb, var(--playlist-color) 78%, #a1a1aa); background: color-mix(in srgb, var(--playlist-color) 10%, transparent); cursor: pointer; font: .54rem ui-monospace, monospace; }
-.playlist-row-items { min-width: 0; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: thin; }
-.playlist-row-items article { min-width: 94px; min-height: 27px; padding: 2px 2px 2px 4px; display: grid; grid-template-columns: 12px minmax(48px, 1fr) 20px; align-items: center; gap: 3px; border: 1px solid color-mix(in srgb, var(--playlist-color) 22%, var(--border)); border-radius: 5px; color: #62626a; background: #19191c; cursor: grab; }
+.playlist-row-items { --playlist-row-item-count: 1; min-width: 0; display: grid; grid-template-columns: repeat(var(--playlist-row-item-count), minmax(0, 1fr)); gap: 4px; overflow: hidden; }
+.playlist-row-items article { width: 100%; min-width: 0; min-height: 27px; padding: 2px; display: grid; grid-template-columns: 11px minmax(0, 1fr) 18px; align-items: center; gap: 2px; border: 1px solid color-mix(in srgb, var(--playlist-color) 22%, var(--border)); border-radius: 5px; color: #62626a; background: #19191c; cursor: grab; }
+.playlist-row-items article:focus-visible { outline: 1px solid color-mix(in srgb, var(--playlist-color) 80%, #fff); outline-offset: -1px; }
 .playlist-row-items article strong { overflow: hidden; color: #d4d4d8; font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }
-.playlist-row-items article button { width: 20px; height: 22px; padding: 0; display: grid; place-items: center; border: 0; color: #71717a; background: transparent; cursor: pointer; }
+.playlist-row-items article button { width: 18px; height: 22px; padding: 0; display: grid; place-items: center; border: 0; color: #71717a; background: transparent; cursor: pointer; }
 .playlist-row-items article button:hover { color: #fca5a5; }
 .playlist-row-group, .playlist-row-limit { height: 20px; padding: 0 5px; display: flex; align-items: center; gap: 2px; border-radius: 999px; color: color-mix(in srgb, var(--playlist-color) 72%, #d4d4d8); background: color-mix(in srgb, var(--playlist-color) 13%, transparent); font-size: .5rem; }
 .playlist-row-limit { color: #a1a1aa; background: #242428; text-transform: uppercase; }
+.playlist-title-popover { position: fixed; z-index: 400; width: max-content; max-width: min(300px, calc(100vw - 20px)); padding: 8px 10px; display: grid; gap: 3px; transform: translateY(-100%); border: 1px solid color-mix(in srgb, var(--playlist-color) 38%, #3f3f46); border-radius: 8px; color: #f4f4f5; background: rgba(24,24,27,.98); box-shadow: 0 12px 34px rgba(0,0,0,.42); pointer-events: none; }
+.playlist-title-popover::after { position: absolute; top: 100%; left: 15px; border: 5px solid transparent; border-top-color: color-mix(in srgb, var(--playlist-color) 38%, #3f3f46); content: ''; }
+.playlist-title-popover span { color: color-mix(in srgb, var(--playlist-color) 75%, #a1a1aa); font-size: .48rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.playlist-title-popover strong { overflow-wrap: anywhere; font-size: .66rem; line-height: 1.35; }
 .file-drop-overlay { position: fixed; z-index: 300; inset: 0; padding: 18px; display: grid; place-items: center; pointer-events: none; background: rgba(9,9,11,.76); backdrop-filter: blur(8px); animation: file-drop-in .16s ease-out both; }
 .file-drop-overlay.is-uploading { pointer-events: auto; }
 .file-drop-overlay::before { position: absolute; inset: 14px; border: 2px dashed rgba(34,211,182,.72); border-radius: 22px; content: ''; }

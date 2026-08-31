@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.8.1 — 31 août 2026
+
+- largeur des rangées de playlist partagée également entre leurs morceaux ;
+- titre complet disponible dans une infobulle ;
+- zones d’insertion visibles pendant tous les glisser-déposer.
+
+[Détails de la version 1.8.1](./1.8.1.md)
+
 ## Version 1.8.0 — 31 août 2026
 
 - import récursif des dossiers déposés ;

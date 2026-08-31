@@ -11,6 +11,21 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.8.1',
+    date: '2026-08-31',
+    title: 'Rangées de playlist plus lisibles',
+    summary: 'Les morceaux groupés partagent toute la largeur et les positions de déplacement restent visibles pendant le glisser-déposer.',
+    important: false,
+    changes: [
+      'Deux, trois ou quatre morceaux se répartissent la largeur disponible sans défilement horizontal.',
+      'Une infobulle affiche le titre complet lorsqu’il est tronqué.',
+      'Toutes les bandes d’insertion apparaissent pendant le déplacement d’un morceau externe ou interne.',
+      'Un morceau groupé peut être extrait et replacé seul ailleurs dans la playlist.',
+      'Les légendes permanentes de glisser-déposer ont été supprimées.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.8.0',
     date: '2026-08-31',
     title: 'Importer une arborescence de sons',

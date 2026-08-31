@@ -35,6 +35,14 @@ describe('rangées de playlist', () => {
     expect(playlistRows(result.items).map((row) => row.items.map((item) => item.id))).toEqual([['one'], ['two'], ['three']]);
   });
 
+  it('déplace un morceau groupé après une autre rangée', () => {
+    const grouped = [items[0]!, { ...items[1]!, rowId: 'row-one' }, items[2]!];
+    const result = movePlaylistItem(grouped, 'two', 'row-three', 'after', 4);
+
+    expect(result.changed).toBe(true);
+    expect(playlistRows(result.items).map((row) => row.items.map((item) => item.id))).toEqual([['one'], ['three'], ['two']]);
+  });
+
   it('reconstruit les identifiants locaux en conservant les rangées enregistrées', () => {
     let sequence = 0;
     const queue = playlistQueueItems([

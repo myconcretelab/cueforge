@@ -55,7 +55,10 @@ export function PlaylistPanel({ items, tracks, colors, options, currentRowIndex,
     const storedHeight = Number(localStorage.getItem(panelHeightStorageKey));
     return clampPanelHeight(Number.isFinite(storedHeight) && storedHeight > 0 ? storedHeight : 320);
   });
+  const [playlistDragActive, setPlaylistDragActive] = useState(false);
+  const [titlePopover, setTitlePopover] = useState<{ title: string; left: number; top: number }>();
   const resizeRef = useRef<{ startY: number; startHeight: number; latestHeight: number } | undefined>(undefined);
+  const dragDepthRef = useRef(0);
   const renderedHeight = clampPanelHeight(optionsOpen ? Math.max(panelHeight, 560) : panelHeight);
   const rows = playlistRows(items);
 
@@ -67,10 +70,26 @@ export function PlaylistPanel({ items, tracks, colors, options, currentRowIndex,
     if (!acceptsPlaylistDrop(event)) return;
     event.preventDefault();
     event.stopPropagation();
+    dragDepthRef.current = 0;
+    setPlaylistDragActive(false);
     const itemId = event.dataTransfer.getData(playlistItemMime);
     const trackId = event.dataTransfer.getData(trackMime);
     if (itemId) onMoveItem(itemId, rowId, placement);
     else if (trackId) onDropTrack(trackId, rowId, placement);
+  }
+
+  function showFullTitle(element: HTMLElement, title: string) {
+    const titleElement = element.querySelector('strong');
+    if (titleElement && titleElement.scrollWidth <= titleElement.clientWidth) {
+      setTitlePopover(undefined);
+      return;
+    }
+    const bounds = element.getBoundingClientRect();
+    setTitlePopover({
+      title,
+      left: Math.min(Math.max(10, bounds.left), Math.max(10, window.innerWidth - 310)),
+      top: bounds.top - 7,
+    });
   }
 
   function persistHeight(height: number) {
@@ -114,23 +133,26 @@ export function PlaylistPanel({ items, tracks, colors, options, currentRowIndex,
       </div>
       {saved && <button type="button" className="playlist-delete-saved" onClick={onDelete}><Trash2 size={13} />Supprimer la playlist enregistrée</button>}
     </div>}
-    <div className={`playlist-dropzone ${items.length === 0 ? 'empty' : ''}`}
-      onDragOver={(event) => { if (event.dataTransfer.types.includes(trackMime)) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } }}
-      onDrop={(event) => { const trackId = event.dataTransfer.getData(trackMime); if (!trackId) return; event.preventDefault(); onDropTrack(trackId); }}>
+    <div className={`playlist-dropzone ${items.length === 0 ? 'empty' : ''} ${playlistDragActive ? 'is-dragging' : ''}`}
+      onDragEnter={(event) => { if (!acceptsPlaylistDrop(event)) return; dragDepthRef.current += 1; setPlaylistDragActive(true); }}
+      onDragLeave={(event) => { if (!acceptsPlaylistDrop(event)) return; dragDepthRef.current = Math.max(0, dragDepthRef.current - 1); if (dragDepthRef.current === 0) setPlaylistDragActive(false); }}
+      onDragOver={(event) => { if (acceptsPlaylistDrop(event)) { event.preventDefault(); setPlaylistDragActive(true); event.dataTransfer.dropEffect = event.dataTransfer.types.includes(trackMime) ? 'copy' : 'move'; } }}
+      onDrop={(event) => { const trackId = event.dataTransfer.getData(trackMime); if (!trackId) return; event.preventDefault(); dragDepthRef.current = 0; setPlaylistDragActive(false); onDropTrack(trackId); }}>
       {items.length === 0 && <div className="playlist-drop-hint"><ListMusic size={22} /><strong>Glissez des morceaux ici</strong><span>Une rangée est lue simultanément.</span></div>}
-      {items.length > 0 && <div className="playlist-drop-guide"><span><Layers3 size={11} />Sur une rangée : jouer ensemble</span><span><GripHorizontal size={11} />Entre deux rangées : insérer</span></div>}
       {rows.map((row, rowIndex) => <div className="playlist-row-block" key={row.id}>
         <div className="playlist-row-insert" aria-label={`Insérer avant la rangée ${rowIndex + 1}`}
           onDragOver={(event) => { if (acceptsPlaylistDrop(event)) { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = event.dataTransfer.types.includes(trackMime) ? 'copy' : 'move'; } }}
           onDrop={(event) => dropOnRow(event, row.id, 'before')}><span>Insérer ici</span></div>
         <div className={`playlist-row ${rowIndex === currentRowIndex ? 'current' : ''}`}>
           <button type="button" className="playlist-row-play" onClick={() => onPlayRow(rowIndex)} aria-label={`Lire la rangée ${rowIndex + 1}`}><Play size={11} fill="currentColor" /><span>{rowIndex + 1}</span></button>
-          <div className="playlist-row-items">
+          <div className="playlist-row-items" style={{ '--playlist-row-item-count': row.items.length } as React.CSSProperties}>
             {row.items.map((item) => {
               const track = tracks.find((candidate) => candidate.id === item.trackId);
               if (!track) return null;
-              return <article key={item.id} draggable title="Glisser au centre d’une rangée pour grouper, ou entre deux rangées pour déplacer"
-                onDragStart={(event) => { event.stopPropagation(); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData(playlistItemMime, item.id); }}
+              return <article key={item.id} draggable tabIndex={0} aria-label={`${track.title}. Glisser pour déplacer ce morceau.`}
+                onMouseEnter={(event) => showFullTitle(event.currentTarget, track.title)} onMouseLeave={() => setTitlePopover(undefined)} onFocus={(event) => showFullTitle(event.currentTarget, track.title)} onBlur={() => setTitlePopover(undefined)}
+                onDragStart={(event) => { event.stopPropagation(); setTitlePopover(undefined); setPlaylistDragActive(true); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData(playlistItemMime, item.id); }}
+                onDragEnd={() => { dragDepthRef.current = 0; setPlaylistDragActive(false); }}
                 onDragOver={(event) => { if (acceptsPlaylistDrop(event)) { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = event.dataTransfer.types.includes(trackMime) ? 'copy' : 'move'; } }}
                 onDrop={(event) => dropOnRow(event, row.id, 'group')}>
                 <GripVertical size={12} aria-hidden="true" /><strong>{track.title}</strong><button type="button" onClick={() => onRemoveItem(item.id)} aria-label={`Retirer ${track.title}`}><X size={12} /></button>
@@ -145,5 +167,6 @@ export function PlaylistPanel({ items, tracks, colors, options, currentRowIndex,
         onDragOver={(event) => { if (acceptsPlaylistDrop(event)) { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = event.dataTransfer.types.includes(trackMime) ? 'copy' : 'move'; } }}
         onDrop={(event) => dropOnRow(event, rows.at(-1)!.id, 'after')}><span>Insérer à la fin</span></div>}
     </div>
+    {titlePopover && <div className="playlist-title-popover" style={{ left: titlePopover.left, top: titlePopover.top }} role="tooltip"><span>Titre du morceau</span><strong>{titlePopover.title}</strong></div>}
   </section>;
 }

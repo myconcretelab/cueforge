@@ -2,6 +2,23 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.8.1] - 2026-08-31
+
+### Ajouté
+
+- infobulle affichant le titre complet d’un morceau tronqué dans une rangée de playlist ;
+- affichage permanent des zones d’insertion pendant le glisser-déposer d’un morceau externe ou déjà présent dans la playlist.
+
+### Corrigé
+
+- largeur des morceaux d’une rangée répartie également sans défilement horizontal ;
+- extraction et déplacement d’un morceau hors d’une rangée groupée rendus directement accessibles.
+
+### Modifié
+
+- retrait des légendes de glisser-déposer au-dessus des rangées ;
+- passage de l’application à la version `1.8.1`.
+
 ## [1.8.0] - 2026-08-31
 
 ### Ajouté

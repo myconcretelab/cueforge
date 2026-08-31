@@ -79,7 +79,9 @@ Pour les tags, l’édition de lot propose trois opérations : ajouter les tags 
 
 Une playlist contient une suite ordonnée de rangées. Une rangée contient un ou plusieurs morceaux qui démarrent ensemble. La playlist passe à la rangée suivante lorsque le dernier morceau de la rangée courante est terminé.
 
-Les morceaux sont ajoutés depuis la grille. Un dépôt au centre d’une rangée ajoute le morceau à son groupe. Un dépôt dans la zone fine située entre deux rangées place le morceau seul à cet emplacement. Ce second dépôt permet également de retirer un morceau d’un groupe.
+Les morceaux sont ajoutés depuis la grille. Un dépôt au centre d’une rangée ajoute le morceau à son groupe. Un dépôt dans la zone fine située entre deux rangées place le morceau seul à cet emplacement. Ce second dépôt permet également de retirer un morceau d’un groupe. Pendant le déplacement d’un morceau de la grille ou de la playlist, toutes les zones d’insertion s’agrandissent et affichent leur libellé.
+
+Dans une rangée groupée, la largeur disponible est répartie également entre les morceaux et aucun défilement horizontal n’est utilisé. Le survol ou le focus clavier d’un titre tronqué affiche son texte complet.
 
 La section **Paramètres → Playlists** fixe la limite des rangées entre deux et huit morceaux pour le spectacle. La limite ne peut pas être abaissée sous la taille d’une rangée déjà enregistrée ou ouverte.
 
