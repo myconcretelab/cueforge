@@ -176,6 +176,13 @@
       "when": 1788170909164,
       "tag": "0024_nebulous_thor_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1788175263716,
+      "tag": "0025_simple_killmonger",
+      "breakpoints": true
     }
   ]
 }

@@ -26,7 +26,7 @@ import { audioEngine, playbackPositionAt, playbackVolumeAt, type ActivePlayback 
 import { bridgeClient } from './lib/bridge-client';
 import type { RoutedBridgeOutput } from './lib/bridge-output-routing';
 import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
-import { projectShortcut, projectShortcutDefinitions, shortcutFromKeyboardEvent, shortcutMainKey, shortcutModifierKeys, trackIndexFromKeyboardEvent } from './lib/keyboard-shortcuts';
+import { formatShortcut, projectShortcut, projectShortcutDefinitions, resolvePrimaryShortcut, shortcutFromKeyboardEvent, shortcutMainKey, shortcutMatchesKeyboardEvent, shortcutModifierKeys, trackIndexFromKeyboardEvent, trackShortcutLabel } from './lib/keyboard-shortcuts';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
 import { intersectsSelection, type SelectionRectangle } from './lib/track-selection';
@@ -139,6 +139,7 @@ export default function App() {
   const playlistPlayedItemIdsRef = useRef(new Set<string>());
   const releaseAutoShownRef = useRef(false);
   const secondaryOutputHeldRef = useRef(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const remote = new URLSearchParams(window.location.search).get('remote') === '1';
   const unseenReleases = useMemo(() => releaseInfo?.releases.filter((release) => releaseInfo.unseenVersions.includes(release.version)) ?? [], [releaseInfo]);
   const releasesForDialog = unseenReleases.length > 0 ? unseenReleases : releaseInfo?.releases ?? [];
@@ -406,6 +407,7 @@ export default function App() {
         window.dispatchEvent(new Event('sonoriva:stop-temporary-audio'));
         return audioEngine.stopAll(currentTracks, command.type === 'stop-all-immediate' ? 0 : undefined);
       }
+      if (command.type === 'stop-last') return audioEngine.stopLast(currentTracks, command.immediate);
       const track = currentTracks.find((candidate) => candidate.id === command.trackId);
       if (!track) return;
       if (command.type === 'run-action') audioEngine.runAction(command.action, track, currentTracks, command.volumeMultiplier, command.outputId).catch((cause) => setError(cause.message));
@@ -516,6 +518,7 @@ export default function App() {
       window.dispatchEvent(new Event('sonoriva:stop-temporary-audio'));
       audioEngine.stopAll(detail?.tracks ?? [], preparedCommand.type === 'stop-all-immediate' ? 0 : undefined);
     }
+    else if (preparedCommand.type === 'stop-last') audioEngine.stopLast(detail?.tracks ?? [], preparedCommand.immediate);
     else if (preparedCommand.type === 'stop' && track) audioEngine.stop(track.id, track.fadeOutMs);
     else if (preparedCommand.type === 'play' && track) audioEngine.play(track, track.fadeInMs, preparedCommand.volumeMultiplier, preparedCommand.outputId ?? shortcutLaunchOutputId()).catch((cause) => setError(cause.message));
   }, [consumeNextTrackVolume, detail, remote, shortcutLaunchOutputId, socket]);
@@ -810,6 +813,12 @@ export default function App() {
       selectCategory(ids[(currentIndex + direction + ids.length) % ids.length]!);
     };
     const onKey = (event: KeyboardEvent) => {
+      if (shortcutMatchesKeyboardEvent(event, projectShortcut(detail.project, 'searchShortcut'))) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
       if ((event.target instanceof HTMLInputElement && event.target.type !== 'range') || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement || (event.target instanceof HTMLElement && event.target.isContentEditable)) return;
       if (selectionMode) {
         if (event.key === 'Escape') {
@@ -821,20 +830,30 @@ export default function App() {
         return;
       }
       const shortcut = shortcutFromKeyboardEvent(event);
-      if (shortcut === holdShortcut) {
+      if (shortcutMatchesKeyboardEvent(event, holdShortcut)) {
         event.preventDefault();
         secondaryOutputHeldRef.current = true;
         return;
       }
-      const keyAction = event.key === 'Escape' ? detail.project.escapeKeyAction ?? 'stop-all'
-        : event.key === 'Backspace' ? detail.project.backspaceKeyAction ?? 'stop-all'
-          : event.key === ' ' ? detail.project.spaceKeyAction ?? 'stop-all-immediate' : undefined;
+      const keyAction = event.key === 'Escape'
+        ? detail.project.escapeKeyAction ?? 'stop-all'
+        : event.key === 'Backspace' && event.shiftKey
+          ? detail.project.shiftBackspaceKeyAction ?? 'stop-last'
+          : event.key === 'Backspace'
+            ? detail.project.backspaceKeyAction ?? 'stop-last-immediate'
+            : event.key === ' '
+              ? detail.project.spaceKeyAction ?? 'stop-all-immediate'
+              : undefined;
       if (keyAction && keyAction !== 'none') {
         event.preventDefault();
         if (keyAction === 'stop-all') {
           sendOrRun({ type: 'stop-all' });
         } else if (keyAction === 'stop-all-immediate') {
           sendOrRun({ type: 'stop-all-immediate' });
+        } else if (keyAction === 'stop-last') {
+          sendOrRun({ type: 'stop-last', immediate: false });
+        } else if (keyAction === 'stop-last-immediate') {
+          sendOrRun({ type: 'stop-last', immediate: true });
         }
         return;
       }
@@ -843,10 +862,10 @@ export default function App() {
         event.preventDefault();
         if (!event.repeat || repeat) callback();
       };
-      if (shortcut === projectShortcut(detail.project, 'nextCategoryShortcut')) return run(() => moveCategory(1));
-      if (shortcut === projectShortcut(detail.project, 'previousCategoryShortcut')) return run(() => moveCategory(-1));
-      if (shortcut === projectShortcut(detail.project, 'loadCategoryShortcut')) return run(() => { preloadCategory().catch(() => undefined); });
-      if (shortcut === projectShortcut(detail.project, 'toggleOutputShortcut')) return run(() => {
+      if (shortcutMatchesKeyboardEvent(event, projectShortcut(detail.project, 'nextCategoryShortcut'))) return run(() => moveCategory(1));
+      if (shortcutMatchesKeyboardEvent(event, projectShortcut(detail.project, 'previousCategoryShortcut'))) return run(() => moveCategory(-1));
+      if (shortcutMatchesKeyboardEvent(event, projectShortcut(detail.project, 'loadCategoryShortcut'))) return run(() => { preloadCategory().catch(() => undefined); });
+      if (shortcutMatchesKeyboardEvent(event, projectShortcut(detail.project, 'toggleOutputShortcut'))) return run(() => {
         if (!secondaryBridgeOutputId) {
           setShortcutNotice('La sortie secondaire nécessite SonoRiva Bridge et deux sorties audio routées.');
           return;
@@ -856,22 +875,22 @@ export default function App() {
           return !current;
         });
       });
-      if (shortcut === projectShortcut(detail.project, 'masterVolumeUpFastShortcut')) return run(() => adjustMasterVolume(10), true);
-      if (shortcut === projectShortcut(detail.project, 'masterVolumeDownFastShortcut')) return run(() => adjustMasterVolume(-10), true);
-      if (shortcut === projectShortcut(detail.project, 'masterVolumeUpShortcut')) return run(() => adjustMasterVolume(2), true);
-      if (shortcut === projectShortcut(detail.project, 'masterVolumeDownShortcut')) return run(() => adjustMasterVolume(-2), true);
+      if (shortcutMatchesKeyboardEvent(event, projectShortcut(detail.project, 'masterVolumeUpFastShortcut'))) return run(() => adjustMasterVolume(10), true);
+      if (shortcutMatchesKeyboardEvent(event, projectShortcut(detail.project, 'masterVolumeDownFastShortcut'))) return run(() => adjustMasterVolume(-10), true);
+      if (shortcutMatchesKeyboardEvent(event, projectShortcut(detail.project, 'masterVolumeUpShortcut'))) return run(() => adjustMasterVolume(2), true);
+      if (shortcutMatchesKeyboardEvent(event, projectShortcut(detail.project, 'masterVolumeDownShortcut'))) return run(() => adjustMasterVolume(-2), true);
 
       const ignoredModifiers = secondaryOutputHeldRef.current ? shortcutModifierKeys(holdShortcut) : [];
-      const trackShortcut = shortcutFromKeyboardEvent(event, ignoredModifiers);
+      const trackShortcut = shortcutFromKeyboardEvent(event, ignoredModifiers, true);
       const index = trackIndexFromKeyboardEvent(event);
       const track = index === undefined ? undefined : visibleTracks[index];
       if (!track || !trackShortcut) return;
-      if (trackShortcut === projectShortcut(detail.project, 'crossfadeTrackShortcut')) return run(() => runTrackAction('crossfade', track));
-      if (trackShortcut === projectShortcut(detail.project, 'startTrackShortcut')) run(() => runTrackAction('start', track));
+      if (trackShortcut === resolvePrimaryShortcut(projectShortcut(detail.project, 'crossfadeTrackShortcut'))) return run(() => runTrackAction('crossfade', track));
+      if (trackShortcut === resolvePrimaryShortcut(projectShortcut(detail.project, 'startTrackShortcut'))) run(() => runTrackAction(detail.project.keyboardAction ?? 'start', track));
     };
     const onKeyUp = (event: KeyboardEvent) => {
       const released = shortcutFromKeyboardEvent(event);
-      if (released && shortcutMainKey(released) === shortcutMainKey(holdShortcut)) secondaryOutputHeldRef.current = false;
+      if (released && shortcutMainKey(released) === shortcutMainKey(resolvePrimaryShortcut(holdShortcut))) secondaryOutputHeldRef.current = false;
     };
     const resetHeldOutput = () => { secondaryOutputHeldRef.current = false; };
     window.addEventListener('keydown', onKey);
@@ -1024,20 +1043,24 @@ export default function App() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Suppression du spectacle impossible.'); }
   }
 
-  async function updateMouseAction(side: 'left' | 'right', action: MouseAction) {
+  async function updateMouseAction(side: 'left' | 'right' | 'keyboard', action: MouseAction) {
     if (!detail) return;
-    const input = side === 'left' ? { leftClickAction: action } : { rightClickAction: action };
+    const input = side === 'left' ? { leftClickAction: action }
+      : side === 'right' ? { rightClickAction: action }
+        : { keyboardAction: action };
     try {
       const { project } = await api.updateProjectActions(detail.project.id, input);
       setDetail((current) => current ? { ...current, project } : current);
+      setProjects((current) => current.map((candidate) => candidate.id === project.id ? project : candidate));
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Configuration impossible.'); }
   }
 
-  async function updateKeyAction(key: 'escape' | 'backspace' | 'space', action: KeyAction) {
+  async function updateKeyAction(key: 'escape' | 'backspace' | 'shift-backspace' | 'space', action: KeyAction) {
     if (!detail) return;
     const input = key === 'escape' ? { escapeKeyAction: action }
       : key === 'backspace' ? { backspaceKeyAction: action }
-        : { spaceKeyAction: action };
+        : key === 'shift-backspace' ? { shiftBackspaceKeyAction: action }
+          : { spaceKeyAction: action };
     try {
       const { project } = await api.updateProjectActions(detail.project.id, input);
       setDetail((current) => current ? { ...current, project } : current);
@@ -1047,14 +1070,15 @@ export default function App() {
 
   async function updateKeyboardShortcut(key: ProjectKeyboardShortcutKey, shortcut: string) {
     if (!detail) return;
-    const conflict = projectShortcutDefinitions.find((definition) => definition.key !== key && projectShortcut(detail.project, definition.key) === shortcut);
+    const conflict = projectShortcutDefinitions.find((definition) => definition.key !== key && resolvePrimaryShortcut(projectShortcut(detail.project, definition.key)) === resolvePrimaryShortcut(shortcut));
     if (conflict) {
       setError(`Cette combinaison est déjà utilisée pour « ${conflict.label} ».`);
       return;
     }
     const reservedStopKey = shortcut === 'Escape' ? detail.project.escapeKeyAction
-      : shortcut === 'Backspace' ? detail.project.backspaceKeyAction
-        : shortcut === 'Space' ? detail.project.spaceKeyAction : 'none';
+      : shortcut === 'Shift+Backspace' ? detail.project.shiftBackspaceKeyAction
+        : shortcut === 'Backspace' ? detail.project.backspaceKeyAction
+          : shortcut === 'Space' ? detail.project.spaceKeyAction : 'none';
     if (reservedStopKey !== 'none') {
       setError('Cette touche est encore affectée à une commande d’arrêt globale. Sélectionnez d’abord « Aucune action ».');
       return;
@@ -1405,9 +1429,10 @@ export default function App() {
     <aside className={sidebarOpen ? 'sidebar open' : 'sidebar'}>
       <header className="brand"><span className="brand-mark small" aria-hidden="true">SR</span><strong>SonoRiva</strong><button className="icon-button sidebar-close" onClick={() => setSidebarOpen(false)}><X /></button></header>
       {detail && <section className="mouse-actions">
-        <div className="side-label"><span>Actions souris</span></div>
+        <div className="side-label"><span>Actions de déclenchement</span></div>
         <label><span><i>G</i>Clic gauche</span><select value={detail.project.leftClickAction ?? 'start'} onChange={(event) => updateMouseAction('left', event.target.value as MouseAction)}>{mouseActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
         <label><span><i>D</i>Clic droit</span><select value={detail.project.rightClickAction ?? 'crossfade'} onChange={(event) => updateMouseAction('right', event.target.value as MouseAction)}>{mouseActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
+        <label><span><i>K</i>Clavier</span><select value={detail.project.keyboardAction ?? 'start'} onChange={(event) => updateMouseAction('keyboard', event.target.value as MouseAction)}>{mouseActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
       </section>}
       <div className="side-label player-heading"><span>En lecture</span><em>{playingTracks.length}</em>{playingTracks.length > 0 && <button onClick={() => sendOrRun({ type: 'stop-all' })} aria-label="Tout arrêter"><Square size={13} fill="currentColor" /></button>}</div>
       <div className="now-playing-list">
@@ -1490,7 +1515,7 @@ export default function App() {
       </section>}
 
       <section className="dashboard" aria-label="Tableau de bord des morceaux">
-        <div className="search"><select className="search-scope" aria-label="Rechercher par" value={searchScope} onChange={(event) => setSearchScope(event.target.value as TrackSearchScope)}><option value="name">Noms</option><option value="tags">Tags</option></select><Search size={18} /><input aria-label={searchScope === 'tags' ? 'Rechercher des tags' : 'Rechercher un son par son nom'} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchScope === 'tags' ? 'Rechercher des tags…' : 'Rechercher un son…'} />{!remote && <button type="button" className="search-freesound" onClick={() => { setFreesoundAutoSearch(true); setFreesoundOpen(true); }} aria-label={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Ouvrir la recherche Freesound'} title={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Rechercher sur Freesound'}><Waves size={17} /></button>}<kbd>⌘ K</kbd></div>
+        <div className="search"><select className="search-scope" aria-label="Rechercher par" value={searchScope} onChange={(event) => setSearchScope(event.target.value as TrackSearchScope)}><option value="name">Noms</option><option value="tags">Tags</option></select><Search size={18} /><input ref={searchInputRef} aria-label={searchScope === 'tags' ? 'Rechercher des tags' : 'Rechercher un son par son nom'} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchScope === 'tags' ? 'Rechercher des tags…' : 'Rechercher un son…'} />{!remote && <button type="button" className="search-freesound" onClick={() => { setFreesoundAutoSearch(true); setFreesoundOpen(true); }} aria-label={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Ouvrir la recherche Freesound'} title={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Rechercher sur Freesound'}><Waves size={17} /></button>}<kbd>{formatShortcut(projectShortcut(detail?.project ?? {}, 'searchShortcut'))}</kbd></div>
         <div className="dashboard-actions">
           {!remote && <button className={`dashboard-button ${preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'is-loaded' : ''}`} onClick={() => preloadCategory()} disabled={!tracksToPreload.length || Boolean(preloadProgress) || preloadedInCategory === tracksToPreload.length}
             aria-label={preloadProgress ? `Mise hors ligne ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'}>
@@ -1537,7 +1562,7 @@ export default function App() {
             const track = boardItem.track;
             const category = detail.categories.find((item) => item.id === track.categoryId);
             const shortcutIndex = visibleTracks.findIndex((candidate) => candidate.id === track.id);
-            return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={!selectionMode && sidebarTool === 'playlist' && !remote} selectionMode={selectionMode} selected={selectedTrackIds.has(track.id)} dropTarget={dropTrackId === track.id} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={shortcutIndex < 9 ? shortcutIndex + 1 : undefined} bridgeOutputs={remote || reorderMode || selectionMode ? [] : routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId}
+            return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={!selectionMode && sidebarTool === 'playlist' && !remote} selectionMode={selectionMode} selected={selectedTrackIds.has(track.id)} dropTarget={dropTrackId === track.id} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={trackShortcutLabel(shortcutIndex)} bridgeOutputs={remote || reorderMode || selectionMode ? [] : routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId}
               onPrimary={() => runTrackAction(detail.project.leftClickAction ?? 'start', track)}
               onOutputPlay={(outputId) => playTrackOnOutput(track, outputId)}
               onSecondary={() => runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}

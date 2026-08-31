@@ -37,7 +37,7 @@ export interface ReleaseInfo {
 }
 
 export type MouseAction = 'start' | 'crossfade' | 'fade-in' | 'replace' | 'stop' | 'none';
-export type KeyAction = 'stop-all' | 'stop-all-immediate' | 'none';
+export type KeyAction = 'stop-all' | 'stop-all-immediate' | 'stop-last' | 'stop-last-immediate' | 'none';
 
 export interface ProjectKeyboardShortcuts {
   nextCategoryShortcut: string;
@@ -51,6 +51,7 @@ export interface ProjectKeyboardShortcuts {
   masterVolumeUpFastShortcut: string;
   masterVolumeDownShortcut: string;
   masterVolumeDownFastShortcut: string;
+  searchShortcut: string;
 }
 
 export type ProjectKeyboardShortcutKey = keyof ProjectKeyboardShortcuts;
@@ -61,8 +62,10 @@ export interface Project extends ProjectKeyboardShortcuts {
   accountId: string;
   leftClickAction: MouseAction;
   rightClickAction: MouseAction;
+  keyboardAction: MouseAction;
   escapeKeyAction: KeyAction;
   backspaceKeyAction: KeyAction;
+  shiftBackspaceKeyAction: KeyAction;
   spaceKeyAction: KeyAction;
   position: number;
   createdAt: string;
@@ -301,4 +304,5 @@ export type RemoteCommand =
   | { type: 'stop'; trackId: string }
   | { type: 'stop-all' }
   | { type: 'stop-all-immediate' }
+  | { type: 'stop-last'; immediate: boolean }
   | { type: 'run-action'; trackId: string; action: MouseAction; volumeMultiplier?: number; outputId?: string };

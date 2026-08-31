@@ -543,6 +543,15 @@ class AudioEngine {
     for (const track of tracks) this.stop(track.id, fadeOutMs ?? track.fadeOutMs);
   }
 
+  stopLast(tracks: Track[], immediate: boolean): void {
+    const playbacks = this.getActivePlaybacks();
+    const playback = immediate ? playbacks.at(-1) : [...playbacks].reverse().find((candidate) => !candidate.fadingOut);
+    if (!playback) return;
+    const track = tracks.find((candidate) => candidate.id === playback.trackId);
+    const fadeOutMs = immediate ? 0 : track && track.fadeOutMs > 0 ? track.fadeOutMs : 1_200;
+    this.stopInstance(playback.id, fadeOutMs);
+  }
+
   resetProjectSession(tracks: Track[]): void {
     if (bridgeClient.isEnabled()) {
       bridgeClient.stopAll(0);

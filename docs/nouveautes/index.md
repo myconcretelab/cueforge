@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.4.0 — 31 août 2026
+
+- retrait immédiat ou avec fondu du dernier lecteur par Retour arrière ;
+- touches `1` à `9` puis `A` à `Z` pour les morceaux visibles ;
+- action clavier distincte et raccourci de recherche fonctionnel sur macOS et Windows.
+
+[Détails de la version 1.4.0](./1.4.0.md)
+
 ## Version 1.3.0 — 31 août 2026
 
 - raccourcis configurables pour la navigation, les départs et le chargement ;

@@ -16,7 +16,7 @@ interface Props {
   selected: boolean;
   dropTarget: boolean;
   playlistPositionTarget?: 'before' | 'after';
-  shortcut?: number;
+  shortcut?: string;
   bridgeOutputs: RoutedBridgeOutput[];
   mainBridgeOutputId?: string;
   onPrimary: () => void;

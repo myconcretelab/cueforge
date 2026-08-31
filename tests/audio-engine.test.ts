@@ -144,6 +144,18 @@ describe('audio player instance controls', () => {
     expect(audioEngine.getMasterVolume()).toBe(1);
   });
 
+  it('retire le dernier lecteur immédiatement ou avec son fondu', async () => {
+    const firstId = await audioEngine.play(track, 0);
+    const secondId = await audioEngine.play(track, 0);
+    audioEngine.stopLast([track], true);
+    expect(latest.map((playback) => playback.id)).toEqual([firstId]);
+
+    audioEngine.stopLast([{ ...track, fadeOutMs: 400 }], false);
+    expect(latest[0]).toMatchObject({ id: firstId, fadingOut: true, volumeTransitionDurationMs: 400 });
+    audioEngine.stopInstance(firstId, 0);
+    expect(secondId).not.toBe(firstId);
+  });
+
   it('réinitialise le spectacle sans recréer une progression lors de l’arrêt', async () => {
     await audioEngine.play(track, 0);
     const playbackId = latest[0]?.id;

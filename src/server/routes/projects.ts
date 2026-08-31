@@ -13,7 +13,7 @@ import { accountForUser } from '../services/accounts.js';
 
 const idParams = z.object({ id: z.string().uuid() });
 const mouseActionSchema = z.enum(['start', 'crossfade', 'fade-in', 'replace', 'stop', 'none']);
-const keyActionSchema = z.enum(['stop-all', 'stop-all-immediate', 'none']);
+const keyActionSchema = z.enum(['stop-all', 'stop-all-immediate', 'stop-last', 'stop-last-immediate', 'none']);
 const keyboardShortcutSchema = z.string().trim().min(1).max(100).regex(/^[A-Za-z0-9+]+$/);
 const playlistInputSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -101,8 +101,10 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     const input = z.object({
       leftClickAction: mouseActionSchema.optional(),
       rightClickAction: mouseActionSchema.optional(),
+      keyboardAction: mouseActionSchema.optional(),
       escapeKeyAction: keyActionSchema.optional(),
       backspaceKeyAction: keyActionSchema.optional(),
+      shiftBackspaceKeyAction: keyActionSchema.optional(),
       spaceKeyAction: keyActionSchema.optional(),
       nextCategoryShortcut: keyboardShortcutSchema.optional(),
       previousCategoryShortcut: keyboardShortcutSchema.optional(),
@@ -115,6 +117,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       masterVolumeUpFastShortcut: keyboardShortcutSchema.optional(),
       masterVolumeDownShortcut: keyboardShortcutSchema.optional(),
       masterVolumeDownFastShortcut: keyboardShortcutSchema.optional(),
+      searchShortcut: keyboardShortcutSchema.optional(),
     }).refine((value) => Object.keys(value).length > 0, { message: 'Sélectionnez une action.' }).parse(request.body);
     const [project] = await db.update(projects).set({ ...input, updatedAt: new Date() }).where(eq(projects.id, id)).returning();
     return { project };

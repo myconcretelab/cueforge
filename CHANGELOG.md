@@ -2,6 +2,22 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.4.0] - 2026-08-31
+
+### Ajouté
+
+- affectation des touches `1` à `9` puis `A` à `Z` aux 35 premiers morceaux visibles ;
+- action de déclenchement clavier configurable à côté des actions souris ;
+- action configurable de `Maj + Retour arrière` ;
+- raccourci de recherche configurable et adapté à macOS ou Windows.
+
+### Modifié
+
+- `Retour arrière` retire par défaut le dernier lecteur immédiatement ;
+- `Maj + Retour arrière` retire par défaut le dernier lecteur avec son fondu ;
+- activation effective du raccourci de focus de la recherche ;
+- passage de l’application à la version `1.4.0`.
+
 ## [1.3.0] - 2026-08-31
 
 ### Ajouté

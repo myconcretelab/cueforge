@@ -32,7 +32,7 @@ interface Props {
   onOpenWhatsNew: () => void;
   onToggleRemote: () => void;
   onCacheOffline: () => void;
-  onUpdateKeyAction: (key: 'escape' | 'backspace' | 'space', action: KeyAction) => void;
+  onUpdateKeyAction: (key: 'escape' | 'backspace' | 'shift-backspace' | 'space', action: KeyAction) => void;
   onUpdateKeyboardShortcut: (key: ProjectKeyboardShortcutKey, shortcut: string) => void;
   onLogout: () => void;
   onClose: () => void;
@@ -41,6 +41,8 @@ interface Props {
 const keyActions: Array<{ value: KeyAction; label: string }> = [
   { value: 'stop-all', label: 'Arrêter avec les fondus' },
   { value: 'stop-all-immediate', label: 'Arrêter immédiatement' },
+  { value: 'stop-last', label: 'Retirer le dernier lecteur avec fondu' },
+  { value: 'stop-last-immediate', label: 'Retirer immédiatement le dernier lecteur' },
   { value: 'none', label: 'Aucune action' },
 ];
 
@@ -65,7 +67,7 @@ function ShortcutRecorder({ value, trackKeys = false, disabled = false, onChange
       if (!recording) return;
       event.preventDefault();
       event.stopPropagation();
-      const shortcut = shortcutFromKeyboardEvent(event.nativeEvent);
+      const shortcut = shortcutFromKeyboardEvent(event.nativeEvent, [], trackKeys);
       if (!shortcut) return;
       if (['Control', 'Alt', 'Shift', 'Meta', 'AltGraph'].includes(shortcutMainKey(shortcut))) {
         pendingModifier.current = shortcut;
@@ -78,9 +80,9 @@ function ShortcutRecorder({ value, trackKeys = false, disabled = false, onChange
       event.preventDefault();
       event.stopPropagation();
       const shortcut = pendingModifier.current;
-      if (shortcutMainKey(shortcut) === shortcutMainKey(shortcutFromKeyboardEvent(event.nativeEvent) ?? '')) commit(shortcut, event.currentTarget);
+      if (shortcutMainKey(shortcut) === shortcutMainKey(shortcutFromKeyboardEvent(event.nativeEvent, [], trackKeys) ?? '')) commit(shortcut, event.currentTarget);
     }}
-  >{recording ? (trackKeys ? 'Pressez 1 à 9…' : 'Pressez les touches…') : formatShortcut(value)}</button>;
+  >{recording ? (trackKeys ? 'Pressez 1–9 ou A–Z…' : 'Pressez les touches…') : formatShortcut(value)}</button>;
 }
 
 function formatBytes(bytes: number): string {
@@ -472,7 +474,8 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         <div className="settings-section-title"><Keyboard size={16} /><div><strong>Raccourcis clavier</strong><span>Les raccourcis sont enregistrés pour le spectacle sélectionné.</span></div></div>
         <div className="settings-key-actions">
           <label><span><kbd>Échap</kbd> Touche Échap</span><select value={selectedProject?.escapeKeyAction ?? 'stop-all'} onChange={(event) => onUpdateKeyAction('escape', event.target.value as KeyAction)}>{keyActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
-          <label><span><kbd>⌫</kbd> Retour arrière</span><select value={selectedProject?.backspaceKeyAction ?? 'stop-all'} onChange={(event) => onUpdateKeyAction('backspace', event.target.value as KeyAction)}>{keyActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
+          <label><span><kbd>⌫</kbd> Retour arrière</span><select value={selectedProject?.backspaceKeyAction ?? 'stop-last-immediate'} onChange={(event) => onUpdateKeyAction('backspace', event.target.value as KeyAction)}>{keyActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
+          <label><span><kbd>Maj + ⌫</kbd> Maj + retour arrière</span><select value={selectedProject?.shiftBackspaceKeyAction ?? 'stop-last'} onChange={(event) => onUpdateKeyAction('shift-backspace', event.target.value as KeyAction)}>{keyActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
           <label><span><kbd>Espace</kbd> Barre d’espace</span><select value={selectedProject?.spaceKeyAction ?? 'stop-all-immediate'} onChange={(event) => onUpdateKeyAction('space', event.target.value as KeyAction)}>{keyActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
         </div>
         <div className="settings-shortcut-list">

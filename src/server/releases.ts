@@ -11,6 +11,22 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.4.0',
+    date: '2026-08-31',
+    title: 'Clavier étendu et dernier lecteur',
+    summary: 'Les morceaux visibles reçoivent des touches de 1 à 9 puis de A à Z, tandis que la recherche et le retrait du dernier lecteur disposent de commandes corrigées.',
+    important: false,
+    changes: [
+      'Retour arrière retire immédiatement le dernier lecteur et Maj + Retour arrière le retire avec son fondu.',
+      'Les deux commandes de retour arrière restent configurables par spectacle.',
+      'Les 35 premiers morceaux visibles utilisent successivement les touches 1 à 9 puis A à Z.',
+      'L’action du déclenchement clavier se règle à côté des actions des clics gauche et droit.',
+      'Le raccourci de recherche place désormais réellement le curseur dans le champ.',
+      'La recherche affiche ⌘ K sur macOS et Ctrl K sur Windows.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.3.0',
     date: '2026-08-31',
     title: 'Raccourcis de régie configurables',
