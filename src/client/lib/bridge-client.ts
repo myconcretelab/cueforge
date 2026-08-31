@@ -131,6 +131,7 @@ class BridgeClient {
       id: `freesound-${input.id}`,
       projectId: '',
       categoryId: null,
+      subcategoryId: null,
       title: input.name,
       originalFilename: input.name,
       mimeType: 'audio/mpeg',

@@ -11,6 +11,22 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.6.0',
+    date: '2026-08-31',
+    title: 'Sous-catégories en tiroir',
+    summary: 'Les morceaux peuvent être regroupés dans une tuile compacte qui ouvre son contenu dans un tiroir sous la grille.',
+    important: false,
+    changes: [
+      'Déposer un morceau au centre d’un autre crée une sous-catégorie contenant les deux morceaux.',
+      'Les bords gauche et droit restent des zones d’insertion avant et après.',
+      'Une tuile d’une case affiche un petit titre, une mosaïque et le nombre de morceaux.',
+      'Un clic ouvre ou ferme un tiroir pleine largeur sous la ligne de la tuile.',
+      'Le nom, la couleur et la catégorie parente sont modifiables depuis la tuile ou le tiroir.',
+      'Supprimer le groupe conserve les morceaux et la recherche les affiche directement.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.5.0',
     date: '2026-08-31',
     title: 'Rangées de playlist simultanées',

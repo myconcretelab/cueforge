@@ -1,11 +1,11 @@
 import { unlink } from 'node:fs/promises';
 import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { db } from '../db/index.js';
-import { categories, playlistItems, playlists, projectColors, projects, tracks } from '../db/schema.js';
+import { categories, playlistItems, playlists, projectColors, projects, tracks, trackSubcategories } from '../db/schema.js';
 import { requireUser } from '../services/auth.js';
 import { sameIds } from '../services/order.js';
 import { ownsProject } from '../services/ownership.js';
@@ -81,12 +81,13 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
     const [project] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
 
-    const [colors, savedPlaylists, savedPlaylistItems, projectCategories, projectTracks] = await Promise.all([
+    const [colors, savedPlaylists, savedPlaylistItems, projectCategories, projectSubcategories, projectTracks] = await Promise.all([
       db.select().from(projectColors).where(eq(projectColors.projectId, id)).orderBy(asc(projectColors.position)),
       db.select().from(playlists).where(eq(playlists.projectId, id)).orderBy(asc(playlists.position), asc(playlists.createdAt)),
       db.select({ playlistId: playlistItems.playlistId, trackId: playlistItems.trackId, rowIndex: playlistItems.rowIndex }).from(playlistItems)
         .innerJoin(playlists, eq(playlistItems.playlistId, playlists.id)).where(eq(playlists.projectId, id)).orderBy(asc(playlistItems.position)),
       db.select().from(categories).where(eq(categories.projectId, id)).orderBy(asc(categories.position)),
+      db.select().from(trackSubcategories).where(eq(trackSubcategories.projectId, id)).orderBy(asc(trackSubcategories.position), asc(trackSubcategories.createdAt)),
       db.select().from(tracks).where(eq(tracks.projectId, id)).orderBy(asc(tracks.position), asc(tracks.createdAt)),
     ]);
     return {
@@ -97,6 +98,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
         return { ...playlist, trackIds: items.map((item) => item.trackId), items };
       }),
       categories: projectCategories,
+      subcategories: projectSubcategories,
       tracks: projectTracks,
     };
   });
@@ -212,6 +214,103 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       }
     });
     return reply.code(204).send();
+  });
+
+  app.post('/api/projects/:id/subcategories', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    const { id } = idParams.parse(request.params);
+    if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    const input = z.object({
+      name: z.string().trim().min(1).max(80),
+      categoryId: z.string().uuid().nullable(),
+      color: z.string().toLowerCase().regex(/^#[0-9a-f]{6}$/),
+      trackIds: z.array(z.string().uuid()).max(100).default([]),
+    }).parse(request.body);
+    if (input.categoryId) {
+      const [category] = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.id, input.categoryId), eq(categories.projectId, id))).limit(1);
+      if (!category) return reply.code(400).send({ error: 'Catégorie parente invalide.' });
+    }
+    const uniqueTrackIds = [...new Set(input.trackIds)];
+    const groupedTracks = uniqueTrackIds.length > 0
+      ? await db.select().from(tracks).where(and(eq(tracks.projectId, id), inArray(tracks.id, uniqueTrackIds)))
+      : [];
+    if (groupedTracks.length !== uniqueTrackIds.length) return reply.code(400).send({ error: 'Le groupe contient un morceau invalide.' });
+    const [projectTracks, projectGroups, projectPlaylists] = await Promise.all([
+      db.select({ position: tracks.position }).from(tracks).where(eq(tracks.projectId, id)),
+      db.select({ position: trackSubcategories.position }).from(trackSubcategories).where(eq(trackSubcategories.projectId, id)),
+      db.select({ position: playlists.position }).from(playlists).where(eq(playlists.projectId, id)),
+    ]);
+    const position = groupedTracks.length > 0
+      ? Math.min(...groupedTracks.map((track) => track.position))
+      : Math.max(-1, ...projectTracks.map((track) => track.position), ...projectGroups.map((group) => group.position), ...projectPlaylists.map((playlist) => playlist.position)) + 1;
+    const result = await db.transaction(async (transaction) => {
+      const [subcategory] = await transaction.insert(trackSubcategories).values({ projectId: id, categoryId: input.categoryId, name: input.name, color: input.color, position }).returning();
+      if (uniqueTrackIds.length > 0) {
+        await transaction.update(tracks).set({ categoryId: input.categoryId, subcategoryId: subcategory.id }).where(and(eq(tracks.projectId, id), inArray(tracks.id, uniqueTrackIds)));
+      }
+      const updatedTracks = uniqueTrackIds.length > 0
+        ? await transaction.select().from(tracks).where(and(eq(tracks.projectId, id), inArray(tracks.id, uniqueTrackIds))).orderBy(asc(tracks.position), asc(tracks.createdAt))
+        : [];
+      return { subcategory, tracks: updatedTracks };
+    });
+    return reply.code(201).send(result);
+  });
+
+  app.patch('/api/projects/:id/subcategories/:subcategoryId', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    const { id, subcategoryId } = z.object({ id: z.string().uuid(), subcategoryId: z.string().uuid() }).parse(request.params);
+    if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    const input = z.object({
+      name: z.string().trim().min(1).max(80).optional(),
+      categoryId: z.string().uuid().nullable().optional(),
+      color: z.string().toLowerCase().regex(/^#[0-9a-f]{6}$/).optional(),
+      position: z.number().finite().min(-1_000_000).max(1_000_000).optional(),
+    }).refine((value) => Object.keys(value).length > 0, { message: 'Aucune modification fournie.' }).parse(request.body);
+    const [existing] = await db.select().from(trackSubcategories).where(and(eq(trackSubcategories.id, subcategoryId), eq(trackSubcategories.projectId, id))).limit(1);
+    if (!existing) return reply.code(404).send({ error: 'Sous-catégorie introuvable.' });
+    if (input.categoryId) {
+      const [category] = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.id, input.categoryId), eq(categories.projectId, id))).limit(1);
+      if (!category) return reply.code(400).send({ error: 'Catégorie parente invalide.' });
+    }
+    const result = await db.transaction(async (transaction) => {
+      const [subcategory] = await transaction.update(trackSubcategories).set({ ...input, updatedAt: new Date() }).where(eq(trackSubcategories.id, subcategoryId)).returning();
+      if (input.categoryId !== undefined) await transaction.update(tracks).set({ categoryId: input.categoryId }).where(eq(tracks.subcategoryId, subcategoryId));
+      const updatedTracks = await transaction.select().from(tracks).where(eq(tracks.subcategoryId, subcategoryId)).orderBy(asc(tracks.position), asc(tracks.createdAt));
+      return { subcategory, tracks: updatedTracks };
+    });
+    return result;
+  });
+
+  app.delete('/api/projects/:id/subcategories/:subcategoryId', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    const { id, subcategoryId } = z.object({ id: z.string().uuid(), subcategoryId: z.string().uuid() }).parse(request.params);
+    if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    const result = await db.transaction(async (transaction) => {
+      const memberTracks = await transaction.update(tracks).set({ subcategoryId: null }).where(and(eq(tracks.projectId, id), eq(tracks.subcategoryId, subcategoryId))).returning();
+      const deleted = await transaction.delete(trackSubcategories).where(and(eq(trackSubcategories.id, subcategoryId), eq(trackSubcategories.projectId, id))).returning({ id: trackSubcategories.id });
+      return { deleted, tracks: memberTracks };
+    });
+    if (result.deleted.length === 0) return reply.code(404).send({ error: 'Sous-catégorie introuvable.' });
+    return { tracks: result.tracks };
+  });
+
+  app.patch('/api/projects/:id/tracks/:trackId/subcategory', async (request, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    const { id, trackId } = z.object({ id: z.string().uuid(), trackId: z.string().uuid() }).parse(request.params);
+    if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    const { subcategoryId } = z.object({ subcategoryId: z.string().uuid().nullable() }).parse(request.body);
+    const [track] = await db.select().from(tracks).where(and(eq(tracks.id, trackId), eq(tracks.projectId, id))).limit(1);
+    if (!track) return reply.code(404).send({ error: 'Morceau introuvable.' });
+    const [subcategory] = subcategoryId
+      ? await db.select().from(trackSubcategories).where(and(eq(trackSubcategories.id, subcategoryId), eq(trackSubcategories.projectId, id))).limit(1)
+      : [undefined];
+    if (subcategoryId && !subcategory) return reply.code(400).send({ error: 'Sous-catégorie invalide.' });
+    const [updated] = await db.update(tracks).set({ subcategoryId, ...(subcategory ? { categoryId: subcategory.categoryId } : {}) }).where(eq(tracks.id, trackId)).returning();
+    return { track: updated };
   });
 
   app.post('/api/projects/:id/playlists', async (request, reply) => {

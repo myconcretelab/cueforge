@@ -1,4 +1,4 @@
-import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, BatchTrackUpdateInput, BridgeDevice, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, PlaylistEntry, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcuts, PublicPlan, ReleaseInfo, SoundShowAnalysis, Track, User } from '../types';
+import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, BatchTrackUpdateInput, BridgeDevice, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, PlaylistEntry, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcuts, PublicPlan, ReleaseInfo, SoundShowAnalysis, Track, TrackSubcategory, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -91,6 +91,10 @@ export const api = {
     method: 'PATCH', body: JSON.stringify(categoryId === undefined ? { position } : { position, categoryId }),
   }),
   deletePlaylist: (projectId: string, playlistId: string) => request<void>(`/api/projects/${projectId}/playlists/${playlistId}`, { method: 'DELETE' }),
+  createTrackSubcategory: (projectId: string, input: { name: string; categoryId: string | null; color: string; trackIds?: string[] }) => request<{ subcategory: TrackSubcategory; tracks: Track[] }>(`/api/projects/${projectId}/subcategories`, { method: 'POST', body: JSON.stringify(input) }),
+  updateTrackSubcategory: (projectId: string, subcategoryId: string, input: Partial<Pick<TrackSubcategory, 'name' | 'categoryId' | 'color' | 'position'>>) => request<{ subcategory: TrackSubcategory; tracks: Track[] }>(`/api/projects/${projectId}/subcategories/${subcategoryId}`, { method: 'PATCH', body: JSON.stringify(input) }),
+  deleteTrackSubcategory: (projectId: string, subcategoryId: string) => request<{ tracks: Track[] }>(`/api/projects/${projectId}/subcategories/${subcategoryId}`, { method: 'DELETE' }),
+  moveTrackToSubcategory: (projectId: string, trackId: string, subcategoryId: string | null) => request<{ track: Track }>(`/api/projects/${projectId}/tracks/${trackId}/subcategory`, { method: 'PATCH', body: JSON.stringify({ subcategoryId }) }),
   createCategory: (projectId: string, name: string, color: string, position?: number) =>
     request<{ category: Category }>(`/api/projects/${projectId}/categories`, {
       method: 'POST', body: JSON.stringify({ name, color, position }),
@@ -105,7 +109,7 @@ export const api = {
   batchUpdateTracks: (input: BatchTrackUpdateInput) => request<{ tracks: Track[] }>('/api/tracks/batch', {
     method: 'PATCH', body: JSON.stringify(input),
   }),
-  reorderTrack: (id: string, input: { categoryId: string | null; beforeTrackId?: string | null }) =>
+  reorderTrack: (id: string, input: { categoryId: string | null; beforeTrackId?: string | null; subcategoryId?: string | null }) =>
     request<{ tracks: Track[] }>(`/api/tracks/${id}/reorder`, { method: 'PATCH', body: JSON.stringify(input) }),
   deleteTrack: (id: string) => request<void>(`/api/tracks/${id}`, { method: 'DELETE' }),
   analyzeSoundShow: (file: File) => {

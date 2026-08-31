@@ -187,6 +187,17 @@ export interface Category {
   position: number;
 }
 
+export interface TrackSubcategory {
+  id: string;
+  projectId: string;
+  categoryId: string | null;
+  name: string;
+  color: string;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProjectColor {
   id: string;
   projectId: string;
@@ -216,6 +227,7 @@ export interface Track {
   id: string;
   projectId: string;
   categoryId: string | null;
+  subcategoryId: string | null;
   title: string;
   originalFilename: string;
   mimeType: string;
@@ -248,6 +260,7 @@ export interface ProjectDetail {
   project: Project;
   colors: ProjectColor[];
   playlists: Playlist[];
+  subcategories: TrackSubcategory[];
   categories: Category[];
   tracks: Track[];
 }

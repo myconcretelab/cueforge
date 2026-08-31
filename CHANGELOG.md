@@ -2,6 +2,24 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.6.0] - 2026-08-31
+
+### Ajouté
+
+- sous-catégories persistantes de morceaux dans chaque catégorie ;
+- création par dépôt d’un morceau au centre d’un autre ou depuis un bouton du tableau de bord ;
+- tuile compacte avec titre sur la bordure, mosaïque d’aperçu et compteur ;
+- tiroir pleine largeur pour afficher et utiliser les morceaux d’une sous-catégorie ;
+- modification du nom, de la couleur et de la catégorie parente ;
+- déplacement et réorganisation d’un groupe complet depuis sa tuile.
+
+### Modifié
+
+- bandes latérales des morceaux réservées à l’insertion avant ou après pendant la réorganisation ;
+- recherche affichant directement les morceaux, même lorsqu’ils appartiennent à une sous-catégorie fermée ;
+- suppression d’une sous-catégorie conservant ses morceaux dans la catégorie parente ;
+- passage de l’application à la version `1.6.0`.
+
 ## [1.5.0] - 2026-08-31
 
 ### Ajouté

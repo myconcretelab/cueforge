@@ -9,7 +9,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { db } from '../db/index.js';
-import { accountMemberships, categories, projects, tracks } from '../db/schema.js';
+import { accountMemberships, categories, projects, tracks, trackSubcategories } from '../db/schema.js';
 import { DemoUploadError, insertTrackWithinQuota } from '../services/accounts.js';
 import { requireUser } from '../services/auth.js';
 import { demoMaxFileBytes } from '../services/demo.js';
@@ -297,7 +297,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
 
     await db.transaction(async (transaction) => {
       if (input.updates) {
-        await transaction.update(tracks).set(input.updates)
+        await transaction.update(tracks).set({ ...input.updates, ...(input.updates.categoryId !== undefined ? { subcategoryId: null } : {}) })
           .where(and(eq(tracks.projectId, input.projectId), inArray(tracks.id, input.trackIds)));
       }
       if (nextTags) {
@@ -338,7 +338,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     if (nextEndTimeMs !== null && nextEndTimeMs <= nextStartTimeMs) {
       return reply.code(400).send({ error: 'La fin du son doit être située après son début.' });
     }
-    const [track] = await db.update(tracks).set(input).where(eq(tracks.id, id)).returning();
+    const [track] = await db.update(tracks).set({ ...input, ...(input.categoryId !== undefined && input.categoryId !== existingTrack.categoryId ? { subcategoryId: null } : {}) }).where(eq(tracks.id, id)).returning();
     return { track };
   });
 
@@ -351,9 +351,14 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     const input = z.object({
       categoryId: z.string().uuid().nullable(),
       beforeTrackId: z.string().uuid().nullable().optional(),
+      subcategoryId: z.string().uuid().nullable().optional(),
     }).parse(request.body);
     if (input.categoryId && !(await categoryBelongsToProject(input.categoryId, existingTrack.projectId))) {
       return reply.code(400).send({ error: 'Catégorie invalide pour ce projet.' });
+    }
+    if (input.subcategoryId) {
+      const [subcategory] = await db.select().from(trackSubcategories).where(and(eq(trackSubcategories.id, input.subcategoryId), eq(trackSubcategories.projectId, existingTrack.projectId))).limit(1);
+      if (!subcategory || subcategory.categoryId !== input.categoryId) return reply.code(400).send({ error: 'Sous-catégorie invalide pour cette catégorie.' });
     }
 
     const projectTracks = await db.select().from(tracks)
@@ -363,12 +368,13 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     if (input.beforeTrackId && !target) return reply.code(400).send({ error: 'Position de destination invalide.' });
     if (target && target.categoryId !== input.categoryId) return reply.code(400).send({ error: 'La destination ne correspond pas à la catégorie.' });
 
-    const positioned = reorderTracks(projectTracks, id, input.categoryId, input.beforeTrackId);
+    const positioned = reorderTracks(projectTracks, id, input.categoryId, input.beforeTrackId)
+      .map((track) => track.id === id && input.subcategoryId !== undefined ? { ...track, subcategoryId: input.subcategoryId } : track);
 
     await db.transaction(async (transaction) => {
       for (const track of positioned) {
         await transaction.update(tracks)
-          .set({ position: track.position, ...(track.id === id ? { categoryId: input.categoryId } : {}) })
+          .set({ position: track.position, ...(track.id === id ? { categoryId: input.categoryId, ...(input.subcategoryId !== undefined ? { subcategoryId: input.subcategoryId } : {}) } : {}) })
           .where(eq(tracks.id, track.id));
       }
     });

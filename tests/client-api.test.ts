@@ -154,6 +154,25 @@ describe('client API', () => {
     expect(fetcher).toHaveBeenCalledWith(`/api/projects/${projectId}/playlists/${playlistId}/position`, expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ position: 4, categoryId }) }));
   });
 
+  it('crée, modifie et supprime une sous-catégorie de morceaux', async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ subcategory: { id: '55555555-5555-4555-8555-555555555555' }, tracks: [], track: {} }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetcher);
+    const projectId = '11111111-1111-4111-8111-111111111111';
+    const subcategoryId = '55555555-5555-4555-8555-555555555555';
+    const trackId = '22222222-2222-4222-8222-222222222222';
+    const input = { name: 'Ambiances', categoryId: '44444444-4444-4444-8444-444444444444', color: '#8b5cf6', trackIds: [trackId] };
+
+    await api.createTrackSubcategory(projectId, input);
+    await api.updateTrackSubcategory(projectId, subcategoryId, { name: 'Fonds sonores' });
+    await api.moveTrackToSubcategory(projectId, trackId, subcategoryId);
+    await api.deleteTrackSubcategory(projectId, subcategoryId);
+
+    expect(fetcher).toHaveBeenNthCalledWith(1, `/api/projects/${projectId}/subcategories`, expect.objectContaining({ method: 'POST', body: JSON.stringify(input) }));
+    expect(fetcher).toHaveBeenNthCalledWith(2, `/api/projects/${projectId}/subcategories/${subcategoryId}`, expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ name: 'Fonds sonores' }) }));
+    expect(fetcher).toHaveBeenNthCalledWith(3, `/api/projects/${projectId}/tracks/${trackId}/subcategory`, expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ subcategoryId }) }));
+    expect(fetcher).toHaveBeenNthCalledWith(4, `/api/projects/${projectId}/subcategories/${subcategoryId}`, expect.objectContaining({ method: 'DELETE' }));
+  });
+
   it('supprime un forfait commercial sans envoyer de corps JSON', async () => {
     const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetcher);

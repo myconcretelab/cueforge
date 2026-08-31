@@ -21,6 +21,24 @@ Une catégorie regroupe des pistes. La catégorie sélectionnée filtre la grill
 
 Les catégories possèdent un nom, une couleur et un ordre. Leur ordre est modifiable par glisser-déposer.
 
+## Sous-catégories
+
+Une sous-catégorie regroupe des morceaux à l’intérieur d’une catégorie parente. Elle occupe une case de la grille, quel que soit son nombre de morceaux. Sa tuile affiche son titre sur la bordure, une mosaïque de quatre aperçus et le nombre total de morceaux.
+
+Un clic sur la tuile ouvre un tiroir pleine largeur sous sa ligne. Les morceaux du tiroir conservent les commandes de lecture, d’édition, de sélection et de glisser-déposer des autres morceaux. Un second clic sur la tuile ou la commande de fermeture du tiroir le referme.
+
+En mode **Réorganiser** :
+
+- déposer un morceau au centre d’un morceau non groupé crée une sous-catégorie contenant les deux morceaux ;
+- déposer un morceau sur une tuile de sous-catégorie ou au centre d’un morceau de son tiroir l’ajoute à ce groupe ;
+- déposer sur le bord gauche ou droit d’un morceau l’insère avant ou après à ce même niveau ;
+- déposer un morceau du tiroir sur le bord d’un morceau de la grille principale le retire du groupe ;
+- glisser la tuile d’une sous-catégorie réordonne le groupe complet ou le déplace avec ses morceaux vers une autre catégorie.
+
+Le bouton **Nouvelle sous-catégorie** du tableau de bord crée un groupe vide. La commande **Modifier** de la tuile et du tiroir change son nom, sa couleur ou sa catégorie parente. Changer la catégorie parente déplace également ses morceaux. Supprimer une sous-catégorie conserve ses morceaux dans sa catégorie parente.
+
+Pendant une recherche, les sous-catégories ne sont pas affichées : chaque morceau correspondant apparaît directement dans les résultats.
+
 ## Couleurs
 
 La palette du spectacle fournit les couleurs disponibles pour les catégories et les pistes. Les couleurs sont ajoutées, supprimées et réordonnées dans les paramètres.

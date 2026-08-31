@@ -17,6 +17,7 @@ import {
   plans,
   projects,
   tracks,
+  trackSubcategories,
 } from '../db/schema.js';
 import { accountForUser } from '../services/accounts.js';
 import { requireUser } from '../services/auth.js';
@@ -233,8 +234,9 @@ export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
       eq(projects.accountId, device.accountId),
     )).limit(1);
     if (!project) return reply.code(404).send({ error: 'Projet introuvable.' });
-    const [projectCategories, projectTracks, savedPlaylists, savedItems] = await Promise.all([
+    const [projectCategories, projectSubcategories, projectTracks, savedPlaylists, savedItems] = await Promise.all([
       db.select().from(categories).where(eq(categories.projectId, id)).orderBy(asc(categories.position)),
+      db.select().from(trackSubcategories).where(eq(trackSubcategories.projectId, id)).orderBy(asc(trackSubcategories.position), asc(trackSubcategories.createdAt)),
       db.select().from(tracks).where(eq(tracks.projectId, id)).orderBy(asc(tracks.position), asc(tracks.createdAt)),
       db.select().from(playlists).where(eq(playlists.projectId, id)).orderBy(asc(playlists.position), asc(playlists.createdAt)),
       db.select({ playlistId: playlistItems.playlistId, trackId: playlistItems.trackId, rowIndex: playlistItems.rowIndex }).from(playlistItems)
@@ -244,6 +246,7 @@ export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
     return {
       project,
       categories: projectCategories,
+      subcategories: projectSubcategories,
       tracks: projectTracks.map((track) => ({ ...track, audioPath: `/api/bridge/tracks/${track.id}/audio` })),
       playlists: savedPlaylists.map((playlist) => {
         const items = savedItems.filter((item) => item.playlistId === playlist.id).map(({ trackId, rowIndex }) => ({ trackId, rowIndex }));

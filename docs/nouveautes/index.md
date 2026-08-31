@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.6.0 — 31 août 2026
+
+- sous-catégories compactes créées par glisser-déposer ou par bouton ;
+- ouverture des morceaux dans un tiroir sous leur ligne ;
+- édition du titre, de la couleur et de la catégorie parente.
+
+[Détails de la version 1.6.0](./1.6.0.md)
+
 ## Version 1.5.0 — 31 août 2026
 
 - plusieurs morceaux déclenchés simultanément dans une même rangée de playlist ;

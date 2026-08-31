@@ -218,6 +218,17 @@ export const projectColors = pgTable('project_colors', {
   uniqueIndex('project_colors_project_color_idx').on(table.projectId, table.color),
 ]);
 
+export const trackSubcategories = pgTable('track_subcategories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'cascade' }),
+  name: text('name').notNull().default('Nouveau groupe'),
+  color: text('color').notNull().default('#8b5cf6'),
+  position: real('position').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [index('track_subcategories_project_id_idx').on(table.projectId), index('track_subcategories_category_id_idx').on(table.categoryId)]);
+
 export const playlists = pgTable('playlists', {
   id: uuid('id').primaryKey().defaultRandom(),
   projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
@@ -238,6 +249,7 @@ export const tracks = pgTable('tracks', {
   id: uuid('id').primaryKey().defaultRandom(),
   projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
+  subcategoryId: uuid('subcategory_id').references(() => trackSubcategories.id, { onDelete: 'set null' }),
   title: text('title').notNull(),
   originalFilename: text('original_filename').notNull(),
   storageKey: text('storage_key').notNull().unique(),
@@ -259,7 +271,7 @@ export const tracks = pgTable('tracks', {
   demoSeed: boolean('demo_seed').notNull().default(false),
   position: integer('position').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [index('tracks_project_id_idx').on(table.projectId), index('tracks_category_id_idx').on(table.categoryId)]);
+}, (table) => [index('tracks_project_id_idx').on(table.projectId), index('tracks_category_id_idx').on(table.categoryId), index('tracks_subcategory_id_idx').on(table.subcategoryId)]);
 
 export const playlistItems = pgTable('playlist_items', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -292,6 +304,7 @@ export type BillingPriceMapping = typeof billingPriceMappings.$inferSelect;
 export type BridgeDevice = typeof bridgeDevices.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type ProjectColor = typeof projectColors.$inferSelect;
+export type TrackSubcategory = typeof trackSubcategories.$inferSelect;
 export type Playlist = typeof playlists.$inferSelect;
 export type Category = typeof categories.$inferSelect;
 export type Track = typeof tracks.$inferSelect;
