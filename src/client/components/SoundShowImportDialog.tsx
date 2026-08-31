@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { CheckCircle2, FileArchive, FolderInput, LoaderCircle, Plus, TriangleAlert, X } from 'lucide-react';
 import { api } from '../lib/api';
+import { readAudioFileDurationMs } from '../lib/audio-file-metadata';
 import { findSoundShowFile, isSupportedRemote } from '../lib/soundshow-files';
 import type { SoundShowAnalysis, SoundShowTrack } from '../types';
 
@@ -113,7 +114,8 @@ function metadata(projectId: string, categoryId: string | undefined, track: Soun
 
 async function uploadLocal(projectId: string, categoryId: string | undefined, track: SoundShowTrack, file: File) {
   const form = new FormData();
-  const values = metadata(projectId, categoryId, track);
+  const durationMs = track.durationMs ?? await readAudioFileDurationMs(file);
+  const values = metadata(projectId, categoryId, track, { durationMs });
   Object.entries(values).forEach(([key, value]) => { if (value !== undefined) form.append(key, String(value)); });
   form.append('file', file);
   await api.uploadTrack(form);

@@ -24,6 +24,7 @@ import { WhatsNewDialog } from './components/WhatsNewDialog';
 import { api, ApiError } from './lib/api';
 import { applyAppUpdate, subscribeToAppUpdate } from './lib/app-update';
 import { appNoticesEnabled, shouldApplyAppUpdate, shouldOpenReleaseNotes } from './lib/app-mode';
+import { readAudioFileDurationMs } from './lib/audio-file-metadata';
 import { audioEngine, playbackPositionAt, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
 import { bridgeClient } from './lib/bridge-client';
 import type { RoutedBridgeOutput } from './lib/bridge-output-routing';
@@ -302,6 +303,8 @@ export default function App() {
       form.set('position', String(detail.tracks.length + index));
       form.set('file', file);
       try {
+        const durationMs = await readAudioFileDurationMs(file);
+        if (durationMs) form.set('durationMs', String(durationMs));
         await api.uploadTrack(form);
         uploaded += 1;
       } catch {
@@ -1972,7 +1975,10 @@ const PlaybackPositionControl = memo(function PlaybackPositionControl({ playback
   const { durationMs, elapsedMs, id, loop, paused, resumedAtMs } = playback;
 
   const displayPosition = useCallback((positionMs: number) => {
-    if (seekRef.current) seekRef.current.valueAsNumber = Math.round(positionMs);
+    if (seekRef.current) {
+      seekRef.current.valueAsNumber = Math.round(positionMs);
+      seekRef.current.style.setProperty('--slider-progress', `${Math.min(100, Math.max(0, positionMs / durationMs * 100))}%`);
+    }
     if (elapsedRef.current) elapsedRef.current.textContent = formatPlaybackDuration(positionMs);
     if (remainingRef.current) remainingRef.current.textContent = `−${formatPlaybackDuration(Math.max(0, durationMs - positionMs))}`;
   }, [durationMs]);
@@ -1989,7 +1995,7 @@ const PlaybackPositionControl = memo(function PlaybackPositionControl({ playback
 
   return <div className="player-card-time">
     <span ref={elapsedRef}>{formatPlaybackDuration(initialPositionMs)}</span>
-    <input ref={seekRef} className="player-card-seek" type="range" min="0" max={durationMs} step="10" defaultValue={Math.round(initialPositionMs)} disabled={playback.fadingOut}
+    <input ref={seekRef} className="player-card-seek" type="range" min="0" max={durationMs} step="10" defaultValue={Math.round(initialPositionMs)} disabled={playback.fadingOut} style={{ '--slider-progress': `${Math.min(100, Math.max(0, initialPositionMs / durationMs * 100))}%` } as React.CSSProperties}
       onPointerDown={() => { seekingRef.current = true; }} onPointerUp={() => { seekingRef.current = false; }} onPointerCancel={() => { seekingRef.current = false; }} onBlur={() => { seekingRef.current = false; }}
       onChange={(event) => {
         const positionMs = Number(event.target.value);
@@ -2018,7 +2024,7 @@ function PlaybackVolumeControl({ playback, title }: { playback: ActivePlayback; 
   }, [id, volume, volumeFrom, volumeTransitionDurationMs, volumeTransitionStartedAtMs]);
 
   const percentage = Math.round(displayVolume * 100);
-  return <label className="player-card-volume"><Volume2 size={14} /><input type="range" min="0" max="100" value={percentage} disabled={playback.fadingOut} onPointerUp={(event) => event.currentTarget.blur()} onPointerCancel={(event) => event.currentTarget.blur()} onChange={(event) => {
+  return <label className="player-card-volume"><Volume2 size={14} /><input type="range" min="0" max="100" value={percentage} disabled={playback.fadingOut} style={{ '--slider-progress': `${percentage}%` } as React.CSSProperties} onPointerUp={(event) => event.currentTarget.blur()} onPointerCancel={(event) => event.currentTarget.blur()} onChange={(event) => {
     const nextVolume = Number(event.target.value) / 100;
     setDisplayVolume(nextVolume);
     audioEngine.setInstanceVolume(playback.id, nextVolume);

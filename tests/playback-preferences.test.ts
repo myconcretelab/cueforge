@@ -41,6 +41,12 @@ describe('commandes de lecture et préférences de session', () => {
     expect(styles).toContain('grid-template-columns: minmax(0, 1fr) 49px');
   });
 
+  it('affine les deux réglettes du lecteur compact', () => {
+    expect(styles).toContain('appearance: none; height: 3px;');
+    expect(styles).toContain('width: 10px; height: 10px; margin-top: -3.5px;');
+    expect(source).toContain("style.setProperty('--slider-progress'");
+  });
+
   it('conserve le nombre de colonnes lors de la déconnexion', () => {
     expect(source).toContain("!key.startsWith('sonoriva-track-columns')");
     expect(source).toContain('trackColumnsStorageKey(detail.project.id, columnCategoryId');

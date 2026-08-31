@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.7.1 — 31 août 2026
+
+- réglettes plus fines dans les lecteurs compacts ;
+- durée audio mesurée pendant chaque parcours d’import ;
+- correction des morceaux de production dont la durée était absente.
+
+[Détails de la version 1.7.1](./1.7.1.md)
+
 ## Version 1.7.0 — 31 août 2026
 
 - limite configurable des lectures simultanées, fixée à huit par défaut ;

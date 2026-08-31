@@ -11,6 +11,19 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.7.1',
+    date: '2026-08-31',
+    title: 'Réglettes fines et durées audio fiables',
+    summary: 'Les lecteurs compacts utilisent des curseurs plus discrets et les imports enregistrent désormais la durée réelle des fichiers.',
+    important: false,
+    changes: [
+      'Les pistes et poignées des réglettes de position et de volume sont affinées en mode compact.',
+      'Les imports unitaires, multiples et SoundShow mesurent la durée du fichier avant son envoi.',
+      'Les morceaux dont la durée était absente peuvent de nouveau être lus normalement avec SonoRiva Bridge.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.7.0',
     date: '2026-08-31',
     title: 'Colonne de lecture compacte',

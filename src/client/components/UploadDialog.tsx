@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { FileAudio, LoaderCircle, Upload, X } from 'lucide-react';
 import { api } from '../lib/api';
+import { readAudioFileDurationMs } from '../lib/audio-file-metadata';
 import type { Category } from '../types';
 import { TrackTagsInput } from './TrackTagsInput';
 
@@ -28,6 +29,8 @@ export function UploadDialog({ projectId, categories, onClose, onUploaded }: Pro
     setLoading(true);
     setError('');
     try {
+      const durationMs = await readAudioFileDurationMs(file);
+      if (durationMs) data.set('durationMs', String(durationMs));
       await api.uploadTrack(data);
       onUploaded();
     } catch (cause) {

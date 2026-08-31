@@ -2,6 +2,18 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.7.1] - 2026-08-31
+
+### Corrigé
+
+- réglettes de position et de volume affinées dans les lecteurs compacts ;
+- mesure de la durée réelle des fichiers lors des imports unitaires, multiples et SoundShow ;
+- lecture Bridge des morceaux importés sans durée exploitable après réparation de leurs métadonnées.
+
+### Modifié
+
+- passage de l’application à la version `1.7.1`.
+
 ## [1.7.0] - 2026-08-31
 
 ### Ajouté
