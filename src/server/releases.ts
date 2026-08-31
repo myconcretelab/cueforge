@@ -11,6 +11,19 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.11.1',
+    date: '2026-08-31',
+    title: 'Catégories entièrement visibles',
+    summary: 'Le bloc Catégories gagne une rangée afin que les cartes et leurs titres ne soient plus coupés.',
+    important: false,
+    changes: [
+      'Le bloc Catégories occupe au minimum trois rangées dans chaque modèle de disposition.',
+      'Les dispositions enregistrées avec l’ancienne hauteur sont adaptées automatiquement.',
+      'Le Soundboard et les autres blocs situés dessous conservent tout l’espace restant.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.11.0',
     date: '2026-08-31',
     title: 'Colonne gauche réorganisable',

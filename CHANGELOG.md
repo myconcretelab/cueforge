@@ -2,6 +2,17 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.11.1] - 2026-08-31
+
+### Corrigé
+
+- hauteur minimale du bloc Catégories augmentée de deux à trois rangées pour afficher entièrement les cartes et leurs titres ;
+- migration automatique des dispositions enregistrées avec l’ancienne hauteur, avec rééquilibrage du Soundboard et des blocs situés dessous.
+
+### Modifié
+
+- passage de l’application à la version `1.11.1`.
+
 ## [1.11.0] - 2026-08-31
 
 ### Ajouté

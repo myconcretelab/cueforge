@@ -44,37 +44,37 @@ export const workspacePresetLabels: Record<Exclude<WorkspacePreset, 'custom'>, s
 const basePresets: Record<Exclude<WorkspacePreset, 'custom'>, WorkspaceLayoutItem[]> = {
   classic: [
     { id: 'actions', x: 0, y: 0, w: 3, h: 4 },
-    { id: 'categories', x: 0, y: 0, w: 9, h: 2 },
-    { id: 'soundboard', x: 0, y: 2, w: 9, h: 10 },
+    { id: 'categories', x: 0, y: 0, w: 9, h: 3 },
+    { id: 'soundboard', x: 0, y: 3, w: 9, h: 9 },
     { id: 'players', x: 9, y: 0, w: 3, h: 6 },
     { id: 'playlist', x: 9, y: 6, w: 3, h: 6 },
   ],
   'compact-control': [
     { id: 'actions', x: 0, y: 0, w: 3, h: 4 },
-    { id: 'categories', x: 0, y: 0, w: 9, h: 2 },
-    { id: 'soundboard', x: 0, y: 2, w: 9, h: 10 },
+    { id: 'categories', x: 0, y: 0, w: 9, h: 3 },
+    { id: 'soundboard', x: 0, y: 3, w: 9, h: 9 },
     { id: 'players', x: 9, y: 0, w: 3, h: 8 },
     { id: 'playlist', x: 9, y: 8, w: 3, h: 4 },
   ],
   'playlist-vertical': [
     { id: 'actions', x: 0, y: 0, w: 3, h: 4 },
     { id: 'playlist', x: 0, y: 0, w: 4, h: 12 },
-    { id: 'categories', x: 4, y: 0, w: 8, h: 2 },
-    { id: 'soundboard', x: 4, y: 2, w: 6, h: 10 },
-    { id: 'players', x: 10, y: 2, w: 2, h: 10 },
+    { id: 'categories', x: 4, y: 0, w: 8, h: 3 },
+    { id: 'soundboard', x: 4, y: 3, w: 6, h: 9 },
+    { id: 'players', x: 10, y: 3, w: 2, h: 9 },
   ],
   'playlist-focus': [
     { id: 'actions', x: 0, y: 0, w: 3, h: 4 },
-    { id: 'categories', x: 0, y: 0, w: 12, h: 2 },
-    { id: 'playlist', x: 0, y: 2, w: 8, h: 10 },
-    { id: 'players', x: 8, y: 2, w: 4, h: 4 },
-    { id: 'soundboard', x: 8, y: 6, w: 4, h: 6 },
+    { id: 'categories', x: 0, y: 0, w: 12, h: 3 },
+    { id: 'playlist', x: 0, y: 3, w: 8, h: 9 },
+    { id: 'players', x: 8, y: 3, w: 4, h: 4 },
+    { id: 'soundboard', x: 8, y: 7, w: 4, h: 5 },
   ],
 };
 
 const minimumSizes: Record<WorkspaceBlockId, { w: number; h: number }> = {
   actions: { w: 2, h: 3 },
-  categories: { w: 2, h: 2 },
+  categories: { w: 2, h: 3 },
   soundboard: { w: 2, h: 4 },
   players: { w: 1, h: 3 },
   playlist: { w: 2, h: 4 },
@@ -184,11 +184,13 @@ export function readWorkspaceLayout(serialized: string | null): WorkspaceLayout 
   if (!serialized) return createWorkspaceLayout();
   try {
     const value = JSON.parse(serialized) as WorkspaceLayout;
-    const items = Array.isArray(value.items) && !value.items.some((item) => item.id === 'actions')
+    const storedItems = Array.isArray(value.items) && !value.items.some((item) => item.id === 'actions')
       ? [...value.items, createWorkspaceLayout('classic', value.columns).items.find((item) => item.id === 'actions')!]
       : value.items;
     const dock = Array.isArray(value.dock) ? value.dock.filter((id): id is WorkspaceBlockId => workspaceDockableBlockIds.includes(id as WorkspaceBlockId)) : ['actions'] as WorkspaceBlockId[];
     const compactPlaylistEnabled = Boolean(value.compactPlaylistEnabled ?? value.preset === 'compact-control');
+    const expandedItems = Array.isArray(storedItems) ? expandCategorySpace(storedItems) : storedItems;
+    const items = Array.isArray(expandedItems) && layoutItemsAreValid(expandedItems, value.columns, dock, compactPlaylistEnabled) ? expandedItems : storedItems;
     if (!workspaceLayoutColumns.includes(value.columns) || !Array.isArray(items) || !layoutItemsAreValid(items, value.columns, dock, compactPlaylistEnabled)) return createWorkspaceLayout();
     return {
       columns: value.columns,
@@ -218,6 +220,21 @@ function scaleItems(items: WorkspaceLayoutItem[], fromColumns: number, toColumns
     const x = Math.round(item.x / fromColumns * toColumns);
     const right = Math.round((item.x + item.w) / fromColumns * toColumns);
     return { ...item, x, w: Math.max(1, right - x) };
+  });
+}
+
+function expandCategorySpace(items: WorkspaceLayoutItem[]): WorkspaceLayoutItem[] {
+  const category = items.find((item) => item.id === 'categories');
+  const minimumHeight = minimumSizes.categories.h;
+  if (!category || category.h >= minimumHeight || category.y + minimumHeight > workspaceLayoutRows) return items;
+  const previousBottom = category.y + category.h;
+  const offset = minimumHeight - category.h;
+  return items.map((item) => {
+    if (item.id === 'categories') return { ...item, h: minimumHeight };
+    const overlapsHorizontally = item.x < category.x + category.w && item.x + item.w > category.x;
+    if (!overlapsHorizontally || item.y < previousBottom) return item;
+    const y = item.y + offset;
+    return { ...item, y, h: Math.min(item.h, workspaceLayoutRows - y) };
   });
 }
 

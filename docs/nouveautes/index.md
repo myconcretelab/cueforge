@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.11.1 — 31 août 2026
+
+- bloc Catégories plus haut dans toutes les dispositions ;
+- anciennes dispositions corrigées automatiquement ;
+- espace restant réattribué aux blocs placés sous les catégories.
+
+[Détails de la version 1.11.1](./1.11.1.md)
+
 ## Version 1.11.0 — 31 août 2026
 
 - colonne gauche utilisable comme zone de dépôt pour les actions, les lectures et la playlist ;

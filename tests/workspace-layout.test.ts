@@ -18,6 +18,8 @@ describe('workspace layout', () => {
     const layout = createWorkspaceLayout();
     expect(layout.dock).toEqual(['actions']);
     expect(workspaceItemIsDocked(layout, 'actions')).toBe(true);
+    expect(workspaceLayoutItem(layout, 'categories')).toMatchObject({ y: 0, h: 3 });
+    expect(workspaceLayoutItem(layout, 'soundboard')).toMatchObject({ y: 3, h: 9 });
   });
 
   it('provides a full-height playlist preset', () => {
@@ -101,6 +103,14 @@ describe('workspace layout', () => {
     const migrated = readWorkspaceLayout(legacy);
     expect(workspaceLayoutItem(migrated, 'actions').id).toBe('actions');
     expect(migrated.dock).toEqual(['actions']);
+  });
+
+  it('expands categories in layouts saved with the former two-row height', () => {
+    const current = createWorkspaceLayout();
+    const legacyItems = current.items.map((item) => item.id === 'categories' ? { ...item, h: 2 } : item.id === 'soundboard' ? { ...item, y: 2, h: 10 } : item);
+    const migrated = readWorkspaceLayout(JSON.stringify({ ...current, preset: 'custom', items: legacyItems }));
+    expect(workspaceLayoutItem(migrated, 'categories')).toMatchObject({ y: 0, h: 3 });
+    expect(workspaceLayoutItem(migrated, 'soundboard')).toMatchObject({ y: 3, h: 9 });
   });
 
   it('uses a distinct persistence key for each user', () => {
