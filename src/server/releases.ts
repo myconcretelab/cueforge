@@ -11,6 +11,20 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.8.2',
+    date: '2026-08-31',
+    title: 'Insertion ciblée et grand bouton suivant',
+    summary: 'Une seule position d’insertion s’ouvre pendant le glissement et les playlists peuvent afficher une grande commande Suivant.',
+    important: false,
+    changes: [
+      'Seule la bande Insérer ici située sous le pointeur apparaît pendant un glisser-déposer.',
+      'Le survol sans morceau déplacé ne révèle plus les bandes d’insertion.',
+      'Une option de playlist affiche un bouton Morceau suivant sur toute la largeur du panneau.',
+      'Le choix d’afficher cette commande est conservé avec chaque playlist enregistrée.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.8.1',
     date: '2026-08-31',
     title: 'Rangées de playlist plus lisibles',

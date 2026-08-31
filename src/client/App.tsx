@@ -121,7 +121,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarTool, setSidebarTool] = useState<'playlist'>();
   const [playlistItems, setPlaylistItems] = useState<PlaylistQueueItem[]>([]);
-  const [playlistOptions, setPlaylistOptions] = useState<PlaylistOptions>({ name: 'Nouvelle playlist', color: '#8b5cf6', autostart: false, loop: false, random: false, gapMs: 0, crossfadeMs: 0 });
+  const [playlistOptions, setPlaylistOptions] = useState<PlaylistOptions>({ name: 'Nouvelle playlist', color: '#8b5cf6', autostart: false, loop: false, random: false, showNextButton: false, gapMs: 0, crossfadeMs: 0 });
   const [playlistOptionsOpen, setPlaylistOptionsOpen] = useState(false);
   const [loadedPlaylistId, setLoadedPlaylistId] = useState<string>();
   const [playlistCurrentIndex, setPlaylistCurrentIndex] = useState(0);
@@ -854,7 +854,7 @@ export default function App() {
     setPlaylistItems([]);
     setLoadedPlaylistId(undefined);
     setPlaylistCurrentIndex(0);
-    setPlaylistOptions({ name: 'Nouvelle playlist', color: detail?.colors[0]?.color ?? '#8b5cf6', autostart: false, loop: false, random: false, gapMs: 0, crossfadeMs: 0 });
+    setPlaylistOptions({ name: 'Nouvelle playlist', color: detail?.colors[0]?.color ?? '#8b5cf6', autostart: false, loop: false, random: false, showNextButton: false, gapMs: 0, crossfadeMs: 0 });
     setPlaylistOptionsOpen(false);
     playlistPlayedRowIdsRef.current.clear();
   }
@@ -870,7 +870,7 @@ export default function App() {
       .filter((item) => detail?.tracks.some((track) => track.id === item.trackId));
     const items = playlistQueueItems(entries, () => crypto.randomUUID());
     setPlaylistItems(items);
-    setPlaylistOptions({ name: playlist.name, color: playlist.color, autostart: playlist.autostart, loop: playlist.loop, random: playlist.random, gapMs: playlist.gapMs ?? 0, crossfadeMs: playlist.crossfadeMs ?? 0 });
+    setPlaylistOptions({ name: playlist.name, color: playlist.color, autostart: playlist.autostart, loop: playlist.loop, random: playlist.random, showNextButton: playlist.showNextButton ?? false, gapMs: playlist.gapMs ?? 0, crossfadeMs: playlist.crossfadeMs ?? 0 });
     setLoadedPlaylistId(playlist.id);
     setPlaylistCurrentIndex(0);
     setPlaylistOptionsOpen(false);

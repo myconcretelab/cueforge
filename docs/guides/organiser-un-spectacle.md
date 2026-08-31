@@ -79,7 +79,7 @@ Pour les tags, l’édition de lot propose trois opérations : ajouter les tags 
 
 Une playlist contient une suite ordonnée de rangées. Une rangée contient un ou plusieurs morceaux qui démarrent ensemble. La playlist passe à la rangée suivante lorsque le dernier morceau de la rangée courante est terminé.
 
-Les morceaux sont ajoutés depuis la grille. Un dépôt au centre d’une rangée ajoute le morceau à son groupe. Un dépôt dans la zone fine située entre deux rangées place le morceau seul à cet emplacement. Ce second dépôt permet également de retirer un morceau d’un groupe. Pendant le déplacement d’un morceau de la grille ou de la playlist, toutes les zones d’insertion s’agrandissent et affichent leur libellé.
+Les morceaux sont ajoutés depuis la grille. Un dépôt au centre d’une rangée ajoute le morceau à son groupe. Un dépôt dans la zone fine située entre deux rangées place le morceau seul à cet emplacement. Ce second dépôt permet également de retirer un morceau d’un groupe. Pendant le déplacement d’un morceau de la grille ou de la playlist, seule la zone d’insertion survolée s’agrandit et affiche son libellé. Sans glisser-déposer actif, le survol ne l’affiche pas.
 
 Dans une rangée groupée, la largeur disponible est répartie également entre les morceaux et aucun défilement horizontal n’est utilisé. Le survol ou le focus clavier d’un titre tronqué affiche son texte complet.
 
@@ -91,7 +91,8 @@ Les paramètres d’une playlist comprennent :
 - la répétition de la liste ;
 - le démarrage automatique lors du chargement de la playlist ;
 - un silence entre deux rangées ;
-- un fondu enchaîné entre deux rangées.
+- un fondu enchaîné entre deux rangées ;
+- l’affichage d’un grand bouton **Morceau suivant** sur toute la largeur du panneau.
 
 Pause, arrêt et passage au suivant s’appliquent à tous les lecteurs de la rangée courante. Lors d’un fondu enchaîné, les morceaux encore actifs de la rangée sortante sont arrêtés ensemble tandis que la rangée suivante démarre.
 

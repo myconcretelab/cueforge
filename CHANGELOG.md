@@ -2,6 +2,21 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.8.2] - 2026-08-31
+
+### Ajouté
+
+- option persistante par playlist pour afficher un grand bouton **Morceau suivant** sur toute la largeur du panneau.
+
+### Corrigé
+
+- une seule bande **Insérer ici** s’agrandit pendant un glisser-déposer : celle réellement survolée ;
+- les bandes d’insertion ne réagissent plus au simple survol lorsqu’aucun morceau n’est déplacé.
+
+### Modifié
+
+- passage de l’application à la version `1.8.2`.
+
 ## [1.8.1] - 2026-08-31
 
 ### Ajouté

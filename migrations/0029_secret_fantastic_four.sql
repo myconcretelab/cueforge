@@ -1,0 +1,1 @@
+ALTER TABLE "playlists" ADD COLUMN "show_next_button" boolean DEFAULT false NOT NULL;

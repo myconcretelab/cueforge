@@ -23,6 +23,7 @@ const playlistInputSchema = z.object({
   autostart: z.boolean(),
   loop: z.boolean(),
   random: z.boolean(),
+  showNextButton: z.boolean().default(false),
   gapMs: z.number().int().min(0).max(30_000).default(0),
   crossfadeMs: z.number().int().min(0).max(30_000).default(0),
   items: z.array(z.object({ trackId: z.string().uuid(), rowIndex: z.number().int().min(0).max(499) })).min(1).max(500).optional(),
@@ -336,7 +337,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     ]);
     const position = Math.max(-1, ...existingPlaylists.map((playlist) => playlist.position), ...existingTracks.map((track) => track.position)) + 1;
     const playlist = await db.transaction(async (transaction) => {
-      const [created] = await transaction.insert(playlists).values({ projectId: id, categoryId: input.categoryId, name: input.name, color: input.color, autostart: input.autostart, loop: input.loop, random: input.random, gapMs: input.gapMs, crossfadeMs: input.crossfadeMs, position }).returning();
+      const [created] = await transaction.insert(playlists).values({ projectId: id, categoryId: input.categoryId, name: input.name, color: input.color, autostart: input.autostart, loop: input.loop, random: input.random, showNextButton: input.showNextButton, gapMs: input.gapMs, crossfadeMs: input.crossfadeMs, position }).returning();
       await transaction.insert(playlistItems).values(input.items.map((item, itemPosition) => ({ playlistId: created.id, trackId: item.trackId, position: itemPosition, rowIndex: item.rowIndex })));
       return { ...created, trackIds: input.items.map((item) => item.trackId), items: input.items };
     });
@@ -376,7 +377,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     const projectTrackIds = new Set(projectTracks.map((track) => track.id));
     if (!input.items.every((item) => projectTrackIds.has(item.trackId))) return reply.code(400).send({ error: 'La playlist contient un morceau invalide.' });
     const playlist = await db.transaction(async (transaction) => {
-      const [updated] = await transaction.update(playlists).set({ categoryId: input.categoryId, name: input.name, color: input.color, autostart: input.autostart, loop: input.loop, random: input.random, gapMs: input.gapMs, crossfadeMs: input.crossfadeMs, updatedAt: new Date() }).where(eq(playlists.id, playlistId)).returning();
+      const [updated] = await transaction.update(playlists).set({ categoryId: input.categoryId, name: input.name, color: input.color, autostart: input.autostart, loop: input.loop, random: input.random, showNextButton: input.showNextButton, gapMs: input.gapMs, crossfadeMs: input.crossfadeMs, updatedAt: new Date() }).where(eq(playlists.id, playlistId)).returning();
       await transaction.delete(playlistItems).where(eq(playlistItems.playlistId, playlistId));
       await transaction.insert(playlistItems).values(input.items.map((item, itemPosition) => ({ playlistId, trackId: item.trackId, position: itemPosition, rowIndex: item.rowIndex })));
       return { ...updated, trackIds: input.items.map((item) => item.trackId), items: input.items };

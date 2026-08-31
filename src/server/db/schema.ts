@@ -240,6 +240,7 @@ export const playlists = pgTable('playlists', {
   autostart: boolean('autostart').notNull().default(false),
   loop: boolean('loop').notNull().default(false),
   random: boolean('random').notNull().default(false),
+  showNextButton: boolean('show_next_button').notNull().default(false),
   gapMs: integer('gap_ms').notNull().default(0),
   crossfadeMs: integer('crossfade_ms').notNull().default(0),
   position: real('position').notNull().default(0),

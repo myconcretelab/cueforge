@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.8.2 — 31 août 2026
+
+- une seule bande d’insertion visible à la fois pendant un déplacement ;
+- aucune bande affichée par un simple survol ;
+- grand bouton **Morceau suivant** activable dans les options de chaque playlist.
+
+[Détails de la version 1.8.2](./1.8.2.md)
+
 ## Version 1.8.1 — 31 août 2026
 
 - largeur des rangées de playlist partagée également entre leurs morceaux ;

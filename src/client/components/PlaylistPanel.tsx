@@ -1,10 +1,10 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Blend, Clock3, GripHorizontal, GripVertical, Layers3, ListMusic, LoaderCircle, Pause, Play, Repeat2, Save, Shuffle, SkipForward, SlidersHorizontal, Square, Trash2, X, Zap } from 'lucide-react';
 import { playlistRows, type PlaylistItemPlacement, type PlaylistQueueItem } from '../lib/playlist-rows';
 import type { ProjectColor, Track } from '../types';
 
 export type { PlaylistQueueItem } from '../lib/playlist-rows';
-export interface PlaylistOptions { name: string; color: string; autostart: boolean; loop: boolean; random: boolean; gapMs: number; crossfadeMs: number }
+export interface PlaylistOptions { name: string; color: string; autostart: boolean; loop: boolean; random: boolean; showNextButton: boolean; gapMs: number; crossfadeMs: number }
 
 interface Props {
   items: PlaylistQueueItem[];
@@ -61,6 +61,20 @@ export function PlaylistPanel({ items, tracks, colors, options, currentRowIndex,
   const dragDepthRef = useRef(0);
   const renderedHeight = clampPanelHeight(optionsOpen ? Math.max(panelHeight, 560) : panelHeight);
   const rows = playlistRows(items);
+
+  useEffect(() => {
+    if (!playlistDragActive) return;
+    const clearDragState = () => {
+      dragDepthRef.current = 0;
+      setPlaylistDragActive(false);
+    };
+    window.addEventListener('dragend', clearDragState);
+    window.addEventListener('drop', clearDragState);
+    return () => {
+      window.removeEventListener('dragend', clearDragState);
+      window.removeEventListener('drop', clearDragState);
+    };
+  }, [playlistDragActive]);
 
   function acceptsPlaylistDrop(event: React.DragEvent): boolean {
     return event.dataTransfer.types.includes(trackMime) || event.dataTransfer.types.includes(playlistItemMime);
@@ -126,6 +140,7 @@ export function PlaylistPanel({ items, tracks, colors, options, currentRowIndex,
         <label><input type="checkbox" checked={options.autostart} onChange={(event) => onOptionsChange({ autostart: event.target.checked })} /><Zap size={13} />Autostart</label>
         <label><input type="checkbox" checked={options.loop} onChange={(event) => onOptionsChange({ loop: event.target.checked })} /><Repeat2 size={13} />Boucle</label>
         <label><input type="checkbox" checked={options.random} onChange={(event) => onOptionsChange({ random: event.target.checked })} /><Shuffle size={13} />Aléatoire</label>
+        <label><input type="checkbox" checked={options.showNextButton} onChange={(event) => onOptionsChange({ showNextButton: event.target.checked })} /><SkipForward size={13} />Grand bouton Suivant</label>
       </div>
       <div className="playlist-transition-options">
         <label><span><Clock3 size={13} />Blanc entre les titres<strong>{formatTransitionDuration(options.gapMs)}</strong></span><input type="range" min="0" max="10000" step="250" value={options.gapMs} onChange={(event) => { const gapMs = Number(event.target.value); onOptionsChange({ gapMs, ...(gapMs > 0 ? { crossfadeMs: 0 } : {}) }); }} /></label>
@@ -133,6 +148,7 @@ export function PlaylistPanel({ items, tracks, colors, options, currentRowIndex,
       </div>
       {saved && <button type="button" className="playlist-delete-saved" onClick={onDelete}><Trash2 size={13} />Supprimer la playlist enregistrée</button>}
     </div>}
+    {options.showNextButton && !optionsOpen && <button type="button" className="playlist-next-large" onClick={onNext} disabled={items.length === 0}><SkipForward size={24} fill="currentColor" /><span><strong>Morceau suivant</strong><small>Passer à la rangée suivante</small></span></button>}
     <div className={`playlist-dropzone ${items.length === 0 ? 'empty' : ''} ${playlistDragActive ? 'is-dragging' : ''}`}
       onDragEnter={(event) => { if (!acceptsPlaylistDrop(event)) return; dragDepthRef.current += 1; setPlaylistDragActive(true); }}
       onDragLeave={(event) => { if (!acceptsPlaylistDrop(event)) return; dragDepthRef.current = Math.max(0, dragDepthRef.current - 1); if (dragDepthRef.current === 0) setPlaylistDragActive(false); }}

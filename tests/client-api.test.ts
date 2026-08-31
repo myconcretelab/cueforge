@@ -136,7 +136,7 @@ describe('client API', () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ playlist: { id: 'playlist-id' } }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     vi.stubGlobal('fetch', fetcher);
     const projectId = '11111111-1111-4111-8111-111111111111';
-    const input = { name: 'Entrée public', categoryId: '44444444-4444-4444-8444-444444444444', color: '#8b5cf6', autostart: true, loop: false, random: true, gapMs: 0, crossfadeMs: 1_500, items: [{ trackId: '22222222-2222-4222-8222-222222222222', rowIndex: 0 }] };
+    const input = { name: 'Entrée public', categoryId: '44444444-4444-4444-8444-444444444444', color: '#8b5cf6', autostart: true, loop: false, random: true, showNextButton: true, gapMs: 0, crossfadeMs: 1_500, items: [{ trackId: '22222222-2222-4222-8222-222222222222', rowIndex: 0 }] };
 
     await api.savePlaylist(projectId, undefined, input);
     await api.savePlaylist(projectId, '33333333-3333-4333-8333-333333333333', input);

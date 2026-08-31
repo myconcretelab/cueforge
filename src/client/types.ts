@@ -216,6 +216,7 @@ export interface Playlist {
   autostart: boolean;
   loop: boolean;
   random: boolean;
+  showNextButton: boolean;
   gapMs: number;
   crossfadeMs: number;
   position: number;
