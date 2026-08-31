@@ -11,6 +11,20 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.9.0',
+    date: '2026-08-31',
+    title: 'Espace de travail réorganisable',
+    summary: 'Les quatre zones principales peuvent être permutées et redimensionnées sur une grille, avec deux dispositions dédiées à la playlist.',
+    important: false,
+    changes: [
+      'Les catégories, le soundboard, les lectures en cours et la playlist occupent quatre blocs indépendants.',
+      'Les modèles Régie classique, Playlist verticale et Playlist principale changent immédiatement la disposition.',
+      'La grille peut comporter six, huit ou douze colonnes et chaque bloc peut être redimensionné.',
+      'La disposition est conservée localement pour chaque utilisateur et l’affichage mobile reste linéaire.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.8.2',
     date: '2026-08-31',
     title: 'Insertion ciblée et grand bouton suivant',

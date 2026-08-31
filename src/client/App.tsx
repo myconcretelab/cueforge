@@ -1,6 +1,6 @@
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import {
-  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, FolderOpen, FolderPlus, GripVertical, History, ListMusic, ListPlus, LoaderCircle, Menu, Move, Pause, Play, Plus, Radio,
+  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, FolderOpen, FolderPlus, GripVertical, History, LayoutDashboard, ListPlus, LoaderCircle, Menu, Move, Pause, Play, Plus, Radio,
   LogIn, RefreshCcw, Repeat2, RotateCcw, Scan, Search, Settings, Settings2, SlidersHorizontal, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
@@ -22,6 +22,8 @@ import { TrackSubcategoryDialog } from './components/TrackSubcategoryDialog';
 import { TrackSubcategoryPad } from './components/TrackSubcategoryPad';
 import { UploadDialog } from './components/UploadDialog';
 import { WhatsNewDialog } from './components/WhatsNewDialog';
+import { WorkspaceLayoutBlock, workspaceBlockMime } from './components/WorkspaceLayoutBlock';
+import { WorkspaceLayoutToolbar } from './components/WorkspaceLayoutToolbar';
 import { api, ApiError } from './lib/api';
 import { applyAppUpdate, subscribeToAppUpdate } from './lib/app-update';
 import { appNoticesEnabled, shouldApplyAppUpdate, shouldOpenReleaseNotes } from './lib/app-mode';
@@ -37,6 +39,7 @@ import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCat
 import { intersectsSelection, type SelectionRectangle } from './lib/track-selection';
 import { normalizeTrackTags, trackMatchesSearch, type TrackSearchScope } from './lib/track-tags';
 import { canDropTrackInSubcategoryDrawer, trackDropPlacement, trackIdAfterTarget } from './lib/track-subcategories';
+import { createWorkspaceLayout, moveWorkspaceItem, readWorkspaceLayout, resizeWorkspaceItem, swapWorkspaceItems, workspaceBlockLabels, workspaceLayoutItem, workspaceLayoutStorageKey, workspaceLayoutWithColumns, type WorkspaceBlockId } from './lib/workspace-layout';
 import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcutKey, ReleaseInfo, RemoteCommand, Track, TrackSubcategory, User } from './types';
 
 const colors = ['#22d3b6', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
@@ -119,7 +122,8 @@ export default function App() {
   const [automaticUpdates, setAutomaticUpdates] = useState(() => localStorage.getItem('sonoriva-automatic-updates') === 'true');
   const [editingTrack, setEditingTrack] = useState<Track>();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarTool, setSidebarTool] = useState<'playlist'>();
+  const [layoutEditing, setLayoutEditing] = useState(false);
+  const [workspaceLayout, setWorkspaceLayout] = useState(() => createWorkspaceLayout());
   const [playlistItems, setPlaylistItems] = useState<PlaylistQueueItem[]>([]);
   const [playlistOptions, setPlaylistOptions] = useState<PlaylistOptions>({ name: 'Nouvelle playlist', color: '#8b5cf6', autostart: false, loop: false, random: false, showNextButton: false, gapMs: 0, crossfadeMs: 0 });
   const [playlistOptionsOpen, setPlaylistOptionsOpen] = useState(false);
@@ -151,9 +155,12 @@ export default function App() {
   const playlistRunGenerationRef = useRef(0);
   const playlistPlayedRowIdsRef = useRef(new Set<string>());
   const releaseAutoShownRef = useRef(false);
+  const workspaceLayoutUserRef = useRef<string | null>(null);
+  const workspaceLayoutHydratedRef = useRef(false);
   const secondaryOutputHeldRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const remote = new URLSearchParams(window.location.search).get('remote') === '1';
+  const workspaceUserId = user?.id;
   const unseenReleases = useMemo(() => releaseInfo?.releases.filter((release) => releaseInfo.unseenVersions.includes(release.version)) ?? [], [releaseInfo]);
   const releasesForDialog = unseenReleases.length > 0 ? unseenReleases : releaseInfo?.releases ?? [];
   const noticesEnabled = appNoticesEnabled(user);
@@ -251,6 +258,20 @@ export default function App() {
   }, []);
 
   useEffect(() => { if (user) loadProjects().catch((cause) => setError(cause.message)); }, [user, loadProjects]);
+  useEffect(() => {
+    if (!workspaceUserId) return;
+    workspaceLayoutHydratedRef.current = false;
+    workspaceLayoutUserRef.current = workspaceUserId;
+    setWorkspaceLayout(readWorkspaceLayout(localStorage.getItem(workspaceLayoutStorageKey(workspaceUserId))));
+  }, [workspaceUserId]);
+  useEffect(() => {
+    if (!workspaceUserId || workspaceLayoutUserRef.current !== workspaceUserId) return;
+    if (!workspaceLayoutHydratedRef.current) {
+      workspaceLayoutHydratedRef.current = true;
+      return;
+    }
+    localStorage.setItem(workspaceLayoutStorageKey(workspaceUserId), JSON.stringify(workspaceLayout));
+  }, [workspaceUserId, workspaceLayout]);
   useEffect(() => {
     if (!user) return;
     if (user.isDemo) {
@@ -821,7 +842,6 @@ export default function App() {
   function addCategoryToPlaylist() {
     if (tracksToPreload.length === 0) return;
     setPlaylistItems((current) => [...current, ...tracksToPreload.map((track) => ({ id: crypto.randomUUID(), trackId: track.id, rowId: crypto.randomUUID() }))]);
-    setSidebarTool('playlist');
   }
 
   function movePlaylistItem(itemId: string, targetRowId: string, placement: PlaylistItemPlacement) {
@@ -874,7 +894,6 @@ export default function App() {
     setLoadedPlaylistId(playlist.id);
     setPlaylistCurrentIndex(0);
     setPlaylistOptionsOpen(false);
-    setSidebarTool('playlist');
     playlistPlayedRowIdsRef.current.clear();
     const firstRow = groupPlaylistItems(items)[0];
     if (playlist.autostart && firstRow) {
@@ -1733,13 +1752,13 @@ export default function App() {
     const category = detail?.categories.find((item) => item.id === track.categoryId);
     const shortcutIndex = visibleTracks.findIndex((candidate) => candidate.id === track.id);
     const reorderPositionTarget = dropTrackId === track.id && dropTrackPlacement !== 'group' ? dropTrackPlacement : undefined;
-    return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={!selectionMode && sidebarTool === 'playlist' && !remote} selectionMode={selectionMode} selected={selectedTrackIds.has(track.id)} dropTarget={dropTrackId === track.id && dropTrackPlacement === 'group'} reorderPositionTarget={reorderPositionTarget} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={trackShortcutLabel(shortcutIndex)} bridgeOutputs={remote || reorderMode || selectionMode ? [] : routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId}
+    return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={!selectionMode && !remote} selectionMode={selectionMode} selected={selectedTrackIds.has(track.id)} dropTarget={dropTrackId === track.id && dropTrackPlacement === 'group'} reorderPositionTarget={reorderPositionTarget} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={trackShortcutLabel(shortcutIndex)} bridgeOutputs={remote || reorderMode || selectionMode ? [] : routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId}
       onPrimary={() => detail && runTrackAction(detail.project.leftClickAction ?? 'start', track)}
       onOutputPlay={(outputId) => playTrackOnOutput(track, outputId)}
       onSecondary={() => detail && runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
       onEdit={() => { if (!reorderMode) setEditingTrack(track); }}
       onSelect={() => toggleTrackSelection(track.id)}
-      onDragStart={(event) => { if (reorderMode) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', track.id); setDraggedTrackId(track.id); } else if (sidebarTool === 'playlist') { event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('application/x-sonoriva-track', track.id); } }}
+      onDragStart={(event) => { if (reorderMode) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', track.id); setDraggedTrackId(track.id); } else if (!remote) { event.dataTransfer.effectAllowed = 'copy'; event.dataTransfer.setData('application/x-sonoriva-track', track.id); } }}
       onDragOver={(event) => {
         if (!reorderMode) return;
         if (draggedPlaylistId || draggedTrackSubcategoryId) {
@@ -1796,28 +1815,6 @@ export default function App() {
         <label><span><i>D</i>Clic droit</span><select value={detail.project.rightClickAction ?? 'crossfade'} onChange={(event) => updateMouseAction('right', event.target.value as MouseAction)}>{mouseActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
         <label><span><i>K</i>Clavier</span><select value={detail.project.keyboardAction ?? 'start'} onChange={(event) => updateMouseAction('keyboard', event.target.value as MouseAction)}>{mouseActions.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
       </section>}
-      <div className={`side-label player-heading ${playingTracks.length >= maxActivePlaybacks ? 'is-at-limit' : ''}`}><span>En lecture</span><em title={`${playingTracks.length} lecture${playingTracks.length !== 1 ? 's' : ''} sur ${maxActivePlaybacks} maximum`}>{playingTracks.length}/{maxActivePlaybacks}</em>{playingTracks.length > 0 && <button onClick={() => sendOrRun({ type: 'stop-all' })} aria-label="Tout arrêter"><Square size={13} fill="currentColor" /></button>}</div>
-      <div className={`now-playing-list ${compactPlayerCards ? 'is-compact' : ''}`}>
-        {playingTracks.length === 0 ? <div className="players-empty"><AudioWaveform size={24} /><strong>Aucun son en lecture</strong><span>Les lecteurs actifs apparaîtront ici.</span></div> : playingTracks.map(({ playback, track }) => {
-          const category = detail?.categories.find((item) => item.id === track.categoryId);
-          const color = track.color ?? category?.color ?? '#71717a';
-          return <article className={`player-card ${playback.paused ? 'is-paused' : ''}`} key={playback.id} style={{ '--track-color': color } as React.CSSProperties}>
-            <div className="player-card-main"><div className="player-card-copy"><strong>{track.title}</strong><PlaybackOutputSelector title={track.title} outputId={playback.outputId} outputs={routedBridgeOutputs} disabled={playback.fadingOut} onChange={(outputId) => audioEngine.setInstanceOutput(playback.id, outputId).catch((cause) => setError(cause instanceof Error ? cause.message : 'Impossible de changer la sortie audio.'))} /></div>
-              <PlaybackPositionControl playback={playback} title={track.title} />
-              <PlaybackVolumeControl playback={playback} title={track.title} />
-            </div>
-            <div className="player-card-controls">
-              <button className={playback.loop ? 'active' : ''} disabled={playback.fadingOut} onClick={() => audioEngine.setInstanceLoop(playback.id, !playback.loop)} aria-label={playback.loop ? `Désactiver la boucle de ${track.title}` : `Jouer ${track.title} en boucle`} title="Boucle"><Repeat2 size={15} /></button>
-              <button disabled={playback.fadingOut} onClick={() => audioEngine.togglePauseInstance(playback.id)} aria-label={playback.paused ? `Reprendre ${track.title}` : `Mettre ${track.title} en pause`} title={playback.paused ? 'Reprendre' : 'Pause'}>{playback.paused ? <Play size={15} fill="currentColor" /> : <Pause size={15} fill="currentColor" />}</button>
-              <button className="fade-out" disabled={playback.fadingOut} onClick={() => audioEngine.stopInstance(playback.id, track.fadeOutMs > 0 ? track.fadeOutMs : 1_200)} aria-label={`Faire disparaître ${track.title} en fondu`} title="Fondu sortant"><VolumeX size={16} /></button>
-              <button className="stop" onClick={() => audioEngine.stopInstance(playback.id, 0)} aria-label={`Arrêter immédiatement cette lecture de ${track.title}`} title="Arrêt immédiat"><Square size={14} fill="currentColor" /></button>
-            </div>
-          </article>;
-        })}
-      </div>
-      {!remote && <>{sidebarTool === 'playlist' && <PlaylistPanel items={playlistItems} tracks={detail?.tracks ?? []} colors={detail?.colors ?? []} options={playlistOptions} currentRowIndex={playlistCurrentIndex} maxGroupSize={detail?.project.maxPlaylistGroupSize ?? 4} playbackActive={playlistPlaybacks.length > 0} playbackPaused={playlistPlaybacks.length > 0 && playlistPlaybacks.every((playback) => playback.paused)} saved={Boolean(loadedPlaylistId)} saving={playlistSaving} optionsOpen={playlistOptionsOpen} onOptionsOpenChange={setPlaylistOptionsOpen} onOptionsChange={(patch) => setPlaylistOptions((current) => ({ ...current, ...patch }))} onDropTrack={addTrackToPlaylist} onMoveItem={movePlaylistItem} onRemoveItem={removePlaylistItem} onPlayRow={playPlaylistRow} onPlayPause={playPausePlaylist} onStop={stopPlaylistPlayback} onNext={skipPlaylistRow} onSave={() => saveCurrentPlaylist().catch(() => undefined)} onDelete={() => deleteCurrentPlaylist().catch(() => undefined)} onClear={clearPlaylist} />}
-        <nav className="sidebar-tool-tabs" aria-label="Outils de la colonne de lecture"><button className={sidebarTool === 'playlist' ? 'active' : ''} onClick={() => setSidebarTool((current) => current === 'playlist' ? undefined : 'playlist')} aria-label="Afficher la playlist" title="Playlist"><ListMusic size={17} /><em>{playlistItems.length}</em></button></nav>
-      </>}
     </aside>
     {sidebarOpen && <button className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Fermer le menu" />}
 
@@ -1841,12 +1838,68 @@ export default function App() {
           <section className="console-module wall-clock"><span><Clock3 size={14} />Horloge</span><strong>{formatClock(now)}</strong></section>
         </div>
         <div className="top-actions">
+          {!remote && <button className={`icon-button layout-button ${layoutEditing ? 'active' : ''}`} onClick={() => { setLayoutEditing((current) => !current); setCategoryManageMode(false); setReorderMode(false); setSelectionMode(false); setSelectedTrackIds(new Set()); }} aria-label={layoutEditing ? 'Terminer la modification de la disposition' : 'Modifier la disposition de l’interface'} title="Disposition de l’interface"><LayoutDashboard size={19} /></button>}
           <button className={`icon-button settings-button ${unseenReleases.length > 0 ? 'has-update' : ''}`} onClick={() => { setSettingsInitialSection(undefined); setSettingsOpen(true); }} aria-label="Ouvrir les paramètres" title="Paramètres"><Settings size={19} />{unseenReleases.length > 0 && <i aria-hidden="true" />}</button>
           {!remote && <button className="icon-button reset-show-button" onClick={resetCurrentProject} disabled={!detail} aria-label="Réinitialiser le spectacle en cours" title="Réinitialiser le spectacle"><RefreshCcw size={18} /></button>}
           {!remote && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Ajouter un son</button>}
         </div>
       </header>
 
+      {!remote && layoutEditing && <WorkspaceLayoutToolbar columns={workspaceLayout.columns} preset={workspaceLayout.preset}
+        onColumnsChange={(columns) => setWorkspaceLayout((current) => workspaceLayoutWithColumns(current, columns))}
+        onPresetChange={(preset) => setWorkspaceLayout(createWorkspaceLayout(preset, workspaceLayout.columns))}
+        onReset={() => setWorkspaceLayout(createWorkspaceLayout('classic', workspaceLayout.columns))}
+        onClose={() => setLayoutEditing(false)} />}
+      <div className={`workspace-layout-grid ${layoutEditing ? 'is-editing' : ''}`} style={{ '--workspace-columns': workspaceLayout.columns } as React.CSSProperties}
+        onDragOver={(event) => { if (!layoutEditing || !event.dataTransfer.types.includes(workspaceBlockMime)) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; }}
+        onDrop={(event) => {
+          if (!layoutEditing || (event.target instanceof Element && event.target.closest('[data-workspace-block]'))) return;
+          const blockId = event.dataTransfer.getData(workspaceBlockMime) as WorkspaceBlockId;
+          if (!workspaceBlockLabels[blockId]) return;
+          event.preventDefault();
+          const bounds = event.currentTarget.getBoundingClientRect();
+          const styles = window.getComputedStyle(event.currentTarget);
+          const columnGap = Number.parseFloat(styles.columnGap) || 0;
+          const rowGap = Number.parseFloat(styles.rowGap) || 0;
+          const columnWidth = (bounds.width - columnGap * (workspaceLayout.columns - 1)) / workspaceLayout.columns;
+          const rowHeight = (bounds.height - rowGap * 11) / 12;
+          const x = Math.floor((event.clientX - bounds.left) / (columnWidth + columnGap));
+          const y = Math.floor((event.clientY - bounds.top) / (rowHeight + rowGap));
+          setWorkspaceLayout((current) => moveWorkspaceItem(current, blockId, x, y));
+        }}>
+        <WorkspaceLayoutBlock item={workspaceLayoutItem(workspaceLayout, 'players')} columns={workspaceLayout.columns} label={workspaceBlockLabels.players} editing={layoutEditing && !remote}
+          onSwap={(sourceId, targetId) => setWorkspaceLayout((current) => swapWorkspaceItems(current, sourceId, targetId))}
+          onResize={(id, width, height) => setWorkspaceLayout((current) => resizeWorkspaceItem(current, id, width, height))}>
+          <div className={`side-label player-heading ${playingTracks.length >= maxActivePlaybacks ? 'is-at-limit' : ''}`}><span>En lecture</span><em title={`${playingTracks.length} lecture${playingTracks.length !== 1 ? 's' : ''} sur ${maxActivePlaybacks} maximum`}>{playingTracks.length}/{maxActivePlaybacks}</em>{playingTracks.length > 0 && <button onClick={() => sendOrRun({ type: 'stop-all' })} aria-label="Tout arrêter"><Square size={13} fill="currentColor" /></button>}</div>
+          <div className={`now-playing-list ${compactPlayerCards ? 'is-compact' : ''}`}>
+            {playingTracks.length === 0 ? <div className="players-empty"><AudioWaveform size={24} /><strong>Aucun son en lecture</strong><span>Les lecteurs actifs apparaîtront ici.</span></div> : playingTracks.map(({ playback, track }) => {
+              const category = detail?.categories.find((item) => item.id === track.categoryId);
+              const color = track.color ?? category?.color ?? '#71717a';
+              return <article className={`player-card ${playback.paused ? 'is-paused' : ''}`} key={playback.id} style={{ '--track-color': color } as React.CSSProperties}>
+                <div className="player-card-main"><div className="player-card-copy"><strong>{track.title}</strong><PlaybackOutputSelector title={track.title} outputId={playback.outputId} outputs={routedBridgeOutputs} disabled={playback.fadingOut} onChange={(outputId) => audioEngine.setInstanceOutput(playback.id, outputId).catch((cause) => setError(cause instanceof Error ? cause.message : 'Impossible de changer la sortie audio.'))} /></div>
+                  <PlaybackPositionControl playback={playback} title={track.title} />
+                  <PlaybackVolumeControl playback={playback} title={track.title} />
+                </div>
+                <div className="player-card-controls">
+                  <button className={playback.loop ? 'active' : ''} disabled={playback.fadingOut} onClick={() => audioEngine.setInstanceLoop(playback.id, !playback.loop)} aria-label={playback.loop ? `Désactiver la boucle de ${track.title}` : `Jouer ${track.title} en boucle`} title="Boucle"><Repeat2 size={15} /></button>
+                  <button disabled={playback.fadingOut} onClick={() => audioEngine.togglePauseInstance(playback.id)} aria-label={playback.paused ? `Reprendre ${track.title}` : `Mettre ${track.title} en pause`} title={playback.paused ? 'Reprendre' : 'Pause'}>{playback.paused ? <Play size={15} fill="currentColor" /> : <Pause size={15} fill="currentColor" />}</button>
+                  <button className="fade-out" disabled={playback.fadingOut} onClick={() => audioEngine.stopInstance(playback.id, track.fadeOutMs > 0 ? track.fadeOutMs : 1_200)} aria-label={`Faire disparaître ${track.title} en fondu`} title="Fondu sortant"><VolumeX size={16} /></button>
+                  <button className="stop" onClick={() => audioEngine.stopInstance(playback.id, 0)} aria-label={`Arrêter immédiatement cette lecture de ${track.title}`} title="Arrêt immédiat"><Square size={14} fill="currentColor" /></button>
+                </div>
+              </article>;
+            })}
+          </div>
+        </WorkspaceLayoutBlock>
+
+        <WorkspaceLayoutBlock item={workspaceLayoutItem(workspaceLayout, 'playlist')} columns={workspaceLayout.columns} label={workspaceBlockLabels.playlist} editing={layoutEditing && !remote}
+          onSwap={(sourceId, targetId) => setWorkspaceLayout((current) => swapWorkspaceItems(current, sourceId, targetId))}
+          onResize={(id, width, height) => setWorkspaceLayout((current) => resizeWorkspaceItem(current, id, width, height))}>
+          {!remote && <PlaylistPanel items={playlistItems} tracks={detail?.tracks ?? []} colors={detail?.colors ?? []} options={playlistOptions} currentRowIndex={playlistCurrentIndex} maxGroupSize={detail?.project.maxPlaylistGroupSize ?? 4} playbackActive={playlistPlaybacks.length > 0} playbackPaused={playlistPlaybacks.length > 0 && playlistPlaybacks.every((playback) => playback.paused)} saved={Boolean(loadedPlaylistId)} saving={playlistSaving} optionsOpen={playlistOptionsOpen} onOptionsOpenChange={setPlaylistOptionsOpen} onOptionsChange={(patch) => setPlaylistOptions((current) => ({ ...current, ...patch }))} onDropTrack={addTrackToPlaylist} onMoveItem={movePlaylistItem} onRemoveItem={removePlaylistItem} onPlayRow={playPlaylistRow} onPlayPause={playPausePlaylist} onStop={stopPlaylistPlayback} onNext={skipPlaylistRow} onSave={() => saveCurrentPlaylist().catch(() => undefined)} onDelete={() => deleteCurrentPlaylist().catch(() => undefined)} onClear={clearPlaylist} />}
+        </WorkspaceLayoutBlock>
+
+        <WorkspaceLayoutBlock item={workspaceLayoutItem(workspaceLayout, 'categories')} columns={workspaceLayout.columns} label={workspaceBlockLabels.categories} editing={layoutEditing && !remote}
+          onSwap={(sourceId, targetId) => setWorkspaceLayout((current) => swapWorkspaceItems(current, sourceId, targetId))}
+          onResize={(id, width, height) => setWorkspaceLayout((current) => resizeWorkspaceItem(current, id, width, height))}>
       {detail && <section className="category-strip">
         <div className="category-strip-heading"><span>{categoryManageMode ? 'Glissez les catégories pour les réordonner' : 'Catégories'}</span><div><button className={`icon-button subtle category-manage-toggle ${categoryManageMode ? 'active' : ''}`} onClick={() => { setCategoryManageMode((current) => !current); setReorderMode(false); setSelectionMode(false); setSelectedTrackIds(new Set()); setDraggedCategoryId(undefined); setDropCategoryOrderId(undefined); setDropCategoryAfter(false); }} aria-label={categoryManageMode ? 'Terminer la gestion des catégories' : 'Gérer les catégories'} title={categoryManageMode ? 'Terminer' : 'Réordonner ou supprimer'}><ArrowUpDown size={16} /></button><button className="icon-button subtle" onClick={createCategory} aria-label="Nouvelle catégorie"><Plus size={17} /></button></div></div>
         <div className="category-tabs-row" style={{ '--category-tab-width': `${categoryWidth}px` } as React.CSSProperties}>
@@ -1876,6 +1929,11 @@ export default function App() {
           </button>
         </div>
       </section>}
+        </WorkspaceLayoutBlock>
+
+        <WorkspaceLayoutBlock item={workspaceLayoutItem(workspaceLayout, 'soundboard')} columns={workspaceLayout.columns} label={workspaceBlockLabels.soundboard} editing={layoutEditing && !remote}
+          onSwap={(sourceId, targetId) => setWorkspaceLayout((current) => swapWorkspaceItems(current, sourceId, targetId))}
+          onResize={(id, width, height) => setWorkspaceLayout((current) => resizeWorkspaceItem(current, id, width, height))}>
 
       <section className="dashboard" aria-label="Tableau de bord des morceaux">
         <div className="search"><select className="search-scope" aria-label="Rechercher par" value={searchScope} onChange={(event) => setSearchScope(event.target.value as TrackSearchScope)}><option value="name">Noms</option><option value="tags">Tags</option></select><Search size={18} /><input ref={searchInputRef} aria-label={searchScope === 'tags' ? 'Rechercher des tags' : 'Rechercher un son par son nom'} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchScope === 'tags' ? 'Rechercher des tags…' : 'Rechercher un son…'} />{!remote && <button type="button" className="search-freesound" onClick={() => { setFreesoundAutoSearch(true); setFreesoundOpen(true); }} aria-label={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Ouvrir la recherche Freesound'} title={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Rechercher sur Freesound'}><Waves size={17} /></button>}<kbd>{formatShortcut(projectShortcut(detail?.project ?? {}, 'searchShortcut'))}</kbd></div>
@@ -1950,6 +2008,8 @@ export default function App() {
           })}
         </div>}
       </section>
+        </WorkspaceLayoutBlock>
+      </div>
 
       <footer className="statusbar"><span><i className={connected ? 'live' : ''} />{remote ? 'Contrôleur' : 'Lecteur principal'} · volume maître {masterVolume} %{shortcutOutputSecondary ? ' · sortie secondaire' : ''}</span><span><Settings2 size={14} /> SonoRiva {releaseInfo?.currentVersion ?? __APP_VERSION__} · {audioEngine.getPlaybackMode() === 'bridge' ? 'Bridge audio' : 'Web Audio'} · {activePlaybacks.length} actif{activePlaybacks.length !== 1 ? 's' : ''}</span></footer>
     </main>

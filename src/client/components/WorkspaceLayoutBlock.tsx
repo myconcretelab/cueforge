@@ -1,0 +1,53 @@
+import { Maximize2, Move } from 'lucide-react';
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import { workspaceLayoutRows, type WorkspaceBlockId, type WorkspaceLayoutItem } from '../lib/workspace-layout';
+
+export const workspaceBlockMime = 'application/x-sonoriva-workspace-block';
+
+interface Props {
+  item: WorkspaceLayoutItem;
+  columns: number;
+  label: string;
+  editing: boolean;
+  className?: string;
+  children: ReactNode;
+  onSwap: (sourceId: WorkspaceBlockId, targetId: WorkspaceBlockId) => void;
+  onResize: (id: WorkspaceBlockId, width: number, height: number) => void;
+}
+
+export function WorkspaceLayoutBlock({ item, columns, label, editing, className = '', children, onSwap, onResize }: Props) {
+  function resize(event: ReactPointerEvent<HTMLButtonElement>) {
+    const block = event.currentTarget.closest<HTMLElement>('.workspace-block');
+    const grid = event.currentTarget.closest<HTMLElement>('.workspace-layout-grid');
+    if (!block || !grid) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const blockBounds = block.getBoundingClientRect();
+    const gridBounds = grid.getBoundingClientRect();
+    const styles = window.getComputedStyle(grid);
+    const columnGap = Number.parseFloat(styles.columnGap) || 0;
+    const rowGap = Number.parseFloat(styles.rowGap) || 0;
+    const columnUnit = (gridBounds.width - columnGap * (columns - 1)) / columns + columnGap;
+    const rowUnit = (gridBounds.height - rowGap * (workspaceLayoutRows - 1)) / workspaceLayoutRows + rowGap;
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      onResize(item.id, Math.round((moveEvent.clientX - blockBounds.left + columnGap) / columnUnit), Math.round((moveEvent.clientY - blockBounds.top + rowGap) / rowUnit));
+    };
+    const finish = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', finish);
+      window.removeEventListener('pointercancel', finish);
+    };
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', finish);
+    window.addEventListener('pointercancel', finish);
+  }
+
+  return <section className={`workspace-block workspace-${item.id} ${editing ? 'is-layout-editing' : ''} ${className}`} data-workspace-block={item.id}
+    style={{ gridColumn: `${item.x + 1} / span ${item.w}`, gridRow: `${item.y + 1} / span ${item.h}` }}
+    onDragOver={(event) => { if (!editing || !event.dataTransfer.types.includes(workspaceBlockMime)) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; }}
+    onDrop={(event) => { if (!editing) return; const sourceId = event.dataTransfer.getData(workspaceBlockMime) as WorkspaceBlockId; if (!sourceId) return; event.preventDefault(); event.stopPropagation(); onSwap(sourceId, item.id); }}>
+    {editing && <><div className="workspace-block-editor"><button type="button" draggable aria-label={`Déplacer le bloc ${label}`} title="Glisser sur un autre bloc pour les permuter"
+      onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData(workspaceBlockMime, item.id); }}><Move size={14} /><span>{label}</span></button><em>{item.w} × {item.h}</em></div><button type="button" className="workspace-resize-handle" onPointerDown={resize} aria-label={`Redimensionner le bloc ${label}`} title="Redimensionner sur la grille"><Maximize2 size={13} /></button></>}
+    <div className="workspace-block-content">{children}</div>
+  </section>;
+}

@@ -2,6 +2,21 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.9.0] - 2026-08-31
+
+### Ajouté
+
+- espace de travail composé de quatre blocs réorganisables : catégories, soundboard, lectures en cours et playlist ;
+- modèles **Régie classique**, **Playlist verticale** et **Playlist principale** ;
+- grilles de six, huit ou douze colonnes, permutation par glisser-déposer et redimensionnement des blocs ;
+- mémorisation locale de la disposition pour chaque utilisateur.
+
+### Modifié
+
+- playlist affichée comme un bloc permanent pouvant occuper toute la hauteur de l’espace de travail ;
+- disposition mobile linéaire indépendante de la grille personnalisée ;
+- passage de l’application à la version `1.9.0`.
+
 ## [1.8.2] - 2026-08-31
 
 ### Ajouté

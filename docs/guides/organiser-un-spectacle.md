@@ -2,6 +2,16 @@
 
 SonoRiva utilise quatre niveaux d’organisation : spectacles, catégories, couleurs et playlists.
 
+## Disposition de l’espace de travail
+
+Le bouton **Disposition de l’interface** de la barre supérieure ouvre l’éditeur des quatre blocs : catégories, soundboard, lectures en cours et playlist.
+
+Trois modèles sont disponibles : **Régie classique**, **Playlist verticale** et **Playlist principale**. Le modèle **Playlist verticale** place la playlist sur toute la hauteur de la grille. La grille utilise six, huit ou douze colonnes.
+
+Dans l’éditeur, la poignée portant le nom d’un bloc permet de le déposer sur un autre bloc pour permuter leurs emplacements. Un dépôt dans une zone libre déplace le bloc vers cette zone. La poignée située dans le coin inférieur droit redimensionne le bloc. Un déplacement ou un redimensionnement qui chevaucherait un autre bloc est ignoré.
+
+La disposition est enregistrée dans le navigateur pour l’utilisateur connecté. Sur un écran de 900 pixels de large ou moins, les blocs reprennent automatiquement un ordre vertical : catégories, soundboard, lectures en cours, playlist.
+
 ## Spectacles
 
 Un spectacle est un espace indépendant associé au compte. Il contient ses propres médias, réglages et collections.

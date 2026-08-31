@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.9.0 — 31 août 2026
+
+- quatre blocs réorganisables et redimensionnables sur une grille ;
+- trois modèles, dont une playlist sur toute la hauteur ;
+- disposition enregistrée localement pour chaque utilisateur.
+
+[Détails de la version 1.9.0](./1.9.0.md)
+
 ## Version 1.8.2 — 31 août 2026
 
 - une seule bande d’insertion visible à la fois pendant un déplacement ;
