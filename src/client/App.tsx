@@ -10,6 +10,7 @@ import { AudioOutputUpgradeConsole, type AudioOutputUpgradeMode } from './compon
 import { AppUpdateBanner } from './components/AppUpdateBanner';
 import { BatchTrackDialog } from './components/BatchTrackDialog';
 import { FreesoundDialog } from './components/FreesoundDialog';
+import { FolderImportDialog } from './components/FolderImportDialog';
 import { PlaylistPad } from './components/PlaylistPad';
 import { PlaylistPanel, type PlaylistOptions } from './components/PlaylistPanel';
 import { PlaybackOutputSelector } from './components/PlaybackOutputSelector';
@@ -28,13 +29,13 @@ import { readAudioFileDurationMs } from './lib/audio-file-metadata';
 import { audioEngine, playbackPositionAt, playbackVolumeAt, type ActivePlayback } from './lib/audio-engine';
 import { bridgeClient } from './lib/bridge-client';
 import type { RoutedBridgeOutput } from './lib/bridge-output-routing';
-import { isSupportedAudioFile, titleFromAudioFilename } from './lib/file-import';
+import { droppedFilesHaveSubfolders, droppedFolderNames, droppedFolderTags, firstFolderName, readDroppedAudioFiles, titleFromAudioFilename, type DroppedAudioFile, type FolderImportMode } from './lib/file-import';
 import { formatShortcut, projectShortcut, projectShortcutDefinitions, resolvePrimaryShortcut, shortcutFromKeyboardEvent, shortcutMainKey, shortcutMatchesKeyboardEvent, shortcutModifierKeys, trackIndexFromKeyboardEvent, trackShortcutLabel } from './lib/keyboard-shortcuts';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { movePlaylistItem as repositionPlaylistItem, playlistEntries, playlistQueueItems, playlistRows as groupPlaylistItems, type PlaylistItemPlacement, type PlaylistQueueItem } from './lib/playlist-rows';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
 import { intersectsSelection, type SelectionRectangle } from './lib/track-selection';
-import { trackMatchesSearch, type TrackSearchScope } from './lib/track-tags';
+import { normalizeTrackTags, trackMatchesSearch, type TrackSearchScope } from './lib/track-tags';
 import { canDropTrackInSubcategoryDrawer, trackDropPlacement, trackIdAfterTarget } from './lib/track-subcategories';
 import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcutKey, ReleaseInfo, RemoteCommand, Track, TrackSubcategory, User } from './types';
 
@@ -72,6 +73,7 @@ export default function App() {
   const [preloadProgress, setPreloadProgress] = useState<{ done: number; total: number }>();
   const [fileDropActive, setFileDropActive] = useState(false);
   const [dropUploadProgress, setDropUploadProgress] = useState<{ done: number; total: number; filename: string }>();
+  const [folderImportFiles, setFolderImportFiles] = useState<DroppedAudioFile[]>();
   const [categoryWidth, setCategoryWidth] = useState(() => readNumber('sonoriva-category-width', 112));
   const [reorderMode, setReorderMode] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -286,36 +288,97 @@ export default function App() {
     setDetail({ ...result, colors: result.colors ?? [], playlists: result.playlists ?? [], subcategories: result.subcategories ?? [] });
   }, [selectedProjectId]);
 
-  const uploadDroppedFiles = useCallback(async (files: File[]) => {
+  const uploadDroppedFiles = useCallback(async (files: DroppedAudioFile[], mode?: FolderImportMode) => {
     if (!detail || fileUploadBusy.current || files.length === 0) return;
     fileUploadBusy.current = true;
-    const categoryId = selectedCategoryId !== 'all' && detail.categories.some((category) => category.id === selectedCategoryId)
+    const destinationCategoryId = selectedCategoryId !== 'all' && detail.categories.some((category) => category.id === selectedCategoryId)
       ? selectedCategoryId : undefined;
     const failures: string[] = [];
+    const uploadedTracks: Array<{ track: Track; file: DroppedAudioFile }> = [];
+    const folderCategoryIds = new Map<string, string>();
+    let changed = false;
     let uploaded = 0;
-    setDropUploadProgress({ done: 0, total: files.length, filename: files[0]!.name });
-    for (const [index, file] of files.entries()) {
-      setDropUploadProgress({ done: index, total: files.length, filename: file.name });
-      const form = new FormData();
-      form.set('projectId', detail.project.id);
-      if (categoryId) form.set('categoryId', categoryId);
-      form.set('title', titleFromAudioFilename(file.name));
-      form.set('position', String(detail.tracks.length + index));
-      form.set('file', file);
-      try {
-        const durationMs = await readAudioFileDurationMs(file);
-        if (durationMs) form.set('durationMs', String(durationMs));
-        await api.uploadTrack(form);
-        uploaded += 1;
-      } catch {
-        failures.push(file.name);
+    setError('');
+    setDropUploadProgress({ done: 0, total: files.length, filename: files[0]!.relativePath });
+    try {
+      if (mode === 'categories') {
+        const folderNames = droppedFolderNames(files);
+        for (const [index, folderName] of folderNames.entries()) {
+          const key = folderName.toLocaleLowerCase('fr');
+          const existing = detail.categories.find((category) => category.name.trim().toLocaleLowerCase('fr') === key);
+          if (existing) {
+            folderCategoryIds.set(key, existing.id);
+            continue;
+          }
+          const color = detail.colors[index % detail.colors.length]?.color ?? colors[index % colors.length]!;
+          const result = await api.createCategory(detail.project.id, folderName, color, detail.categories.length + index);
+          folderCategoryIds.set(key, result.category.id);
+          changed = true;
+        }
       }
-      setDropUploadProgress({ done: index + 1, total: files.length, filename: file.name });
+
+      for (const [index, droppedFile] of files.entries()) {
+        const { file } = droppedFile;
+        setDropUploadProgress({ done: index, total: files.length, filename: droppedFile.relativePath });
+        const form = new FormData();
+        const folderName = firstFolderName(droppedFile);
+        const categoryId = mode === 'categories' && folderName
+          ? folderCategoryIds.get(folderName.toLocaleLowerCase('fr'))
+          : destinationCategoryId;
+        form.set('projectId', detail.project.id);
+        if (categoryId) form.set('categoryId', categoryId);
+        form.set('title', titleFromAudioFilename(file.name));
+        form.set('position', String(detail.tracks.length + index));
+        form.set('file', file);
+        if (mode === 'tags') form.set('tags', normalizeTrackTags(droppedFolderTags(droppedFile)).join(','));
+        try {
+          const durationMs = await readAudioFileDurationMs(file);
+          if (durationMs) form.set('durationMs', String(durationMs));
+          const result = await api.uploadTrack(form);
+          uploadedTracks.push({ track: result.track, file: droppedFile });
+          uploaded += 1;
+          changed = true;
+        } catch {
+          failures.push(droppedFile.relativePath);
+        }
+        setDropUploadProgress({ done: index + 1, total: files.length, filename: droppedFile.relativePath });
+      }
+
+      if (mode === 'subcategories') {
+        const groupedTracks = new Map<string, { name: string; trackIds: string[] }>();
+        for (const item of uploadedTracks) {
+          const name = firstFolderName(item.file);
+          if (!name) continue;
+          const key = name.toLocaleLowerCase('fr');
+          const group = groupedTracks.get(key) ?? { name, trackIds: [] };
+          group.trackIds.push(item.track.id);
+          groupedTracks.set(key, group);
+        }
+        for (const [groupIndex, [key, group]] of [...groupedTracks].entries()) {
+          try {
+            const existing = detail.subcategories.find((subcategory) => subcategory.categoryId === (destinationCategoryId ?? null) && subcategory.name.trim().toLocaleLowerCase('fr') === key);
+            if (existing) {
+              await Promise.all(group.trackIds.map((trackId) => api.moveTrackToSubcategory(detail.project.id, trackId, existing.id)));
+            } else {
+              const color = detail.colors[groupIndex % detail.colors.length]?.color
+                ?? detail.categories.find((category) => category.id === destinationCategoryId)?.color
+                ?? colors[groupIndex % colors.length]!;
+              const initialTrackIds = group.trackIds.slice(0, 100);
+              const result = await api.createTrackSubcategory(detail.project.id, { name: group.name, categoryId: destinationCategoryId ?? null, color, trackIds: initialTrackIds });
+              await Promise.all(group.trackIds.slice(100).map((trackId) => api.moveTrackToSubcategory(detail.project.id, trackId, result.subcategory.id)));
+            }
+          } catch {
+            failures.push(`organisation de ${group.name}`);
+          }
+        }
+      }
+
+      if (changed) await refreshProject();
+      if (failures.length > 0) setError(`${uploaded} fichier${uploaded > 1 ? 's' : ''} importé${uploaded > 1 ? 's' : ''}. Échec : ${failures.join(', ')}`);
+    } finally {
+      setDropUploadProgress(undefined);
+      fileUploadBusy.current = false;
     }
-    if (uploaded > 0) await refreshProject();
-    if (failures.length > 0) setError(`${uploaded} fichier${uploaded > 1 ? 's' : ''} importé${uploaded > 1 ? 's' : ''}. Échec : ${failures.join(', ')}`);
-    setDropUploadProgress(undefined);
-    fileUploadBusy.current = false;
   }, [detail, refreshProject, selectedCategoryId]);
 
   useEffect(() => { refreshProject().catch((cause) => setError(cause.message)); }, [refreshProject]);
@@ -340,14 +403,24 @@ export default function App() {
       fileDragDepth.current = Math.max(0, fileDragDepth.current - 1);
       if (fileDragDepth.current === 0) setFileDropActive(false);
     };
-    const onDrop = (event: DragEvent) => {
+    const onDrop = async (event: DragEvent) => {
       if (!containsFiles(event)) return;
       event.preventDefault();
       fileDragDepth.current = 0;
       setFileDropActive(false);
-      const files = Array.from(event.dataTransfer?.files ?? []).filter(isSupportedAudioFile);
+      let files: DroppedAudioFile[];
+      try {
+        files = event.dataTransfer ? await readDroppedAudioFiles(event.dataTransfer) : [];
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Lecture du dossier impossible.');
+        return;
+      }
       if (files.length === 0) {
         setError('Déposez des fichiers MP3, WAV, OGG, FLAC, M4A ou AAC.');
+        return;
+      }
+      if (droppedFilesHaveSubfolders(files)) {
+        setFolderImportFiles(files);
         return;
       }
       uploadDroppedFiles(files).catch((cause) => {
@@ -1889,12 +1962,17 @@ export default function App() {
     {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} projectColors={detail.colors} onAddProjectColor={createProjectColor} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
     {subcategoryDialog && detail && <TrackSubcategoryDialog subcategory={subcategoryDialog === 'new' ? undefined : subcategoryDialog} categories={detail.categories} colors={detail.colors} defaultCategoryId={selectedCategoryId === 'all' ? null : selectedCategoryId} defaultColor={currentCategory?.color ?? detail.colors[0]?.color ?? '#8b5cf6'} onClose={() => setSubcategoryDialog(undefined)} onSave={saveSubcategory} onDelete={() => subcategoryDialog === 'new' ? Promise.resolve() : deleteSubcategory(subcategoryDialog)} />}
     {batchEditOpen && detail && selectedTracks.length > 0 && <BatchTrackDialog projectId={detail.project.id} tracks={selectedTracks} categories={detail.categories} projectColors={detail.colors} onClose={() => setBatchEditOpen(false)} onChanged={applyBatchTrackChanges} />}
+    {folderImportFiles && <FolderImportDialog files={folderImportFiles} destinationName={currentCategory?.name ?? 'Sans catégorie'} onClose={() => setFolderImportFiles(undefined)} onConfirm={(mode) => {
+      const files = folderImportFiles;
+      setFolderImportFiles(undefined);
+      uploadDroppedFiles(files, mode).catch((cause) => setError(cause instanceof Error ? cause.message : 'Import du dossier impossible.'));
+    }} />}
     {selectionRectangle && <div className="selection-marquee" style={{ left: Math.min(selectionRectangle.startX, selectionRectangle.currentX), top: Math.min(selectionRectangle.startY, selectionRectangle.currentY), width: Math.abs(selectionRectangle.currentX - selectionRectangle.startX), height: Math.abs(selectionRectangle.currentY - selectionRectangle.startY) }} aria-hidden="true" />}
     {(fileDropActive || dropUploadProgress) && <div className={`file-drop-overlay ${dropUploadProgress ? 'is-uploading' : ''}`} role="status" aria-live="polite">
       <div className="file-drop-card">
         {dropUploadProgress ? <LoaderCircle className="spin" size={38} /> : <Upload size={42} />}
         <strong>{dropUploadProgress ? `Import ${dropUploadProgress.done}/${dropUploadProgress.total}` : `Déposer dans ${currentCategory?.name ?? 'Sans catégorie'}`}</strong>
-        <span>{dropUploadProgress?.filename ?? 'MP3, WAV, OGG, FLAC, M4A ou AAC · plusieurs fichiers acceptés'}</span>
+        <span>{dropUploadProgress?.filename ?? 'Fichiers ou dossiers · MP3, WAV, OGG, FLAC, M4A ou AAC'}</span>
         {dropUploadProgress && <i><b style={{ transform: `scaleX(${dropUploadProgress.total ? dropUploadProgress.done / dropUploadProgress.total : 0})` }} /></i>}
       </div>
     </div>}

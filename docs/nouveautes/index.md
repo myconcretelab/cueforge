@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.8.0 — 31 août 2026
+
+- import récursif des dossiers déposés ;
+- choix entre catégories, sous-catégories et tags pour reproduire leur organisation ;
+- fichiers racine conservés dans la destination active.
+
+[Détails de la version 1.8.0](./1.8.0.md)
+
 ## Version 1.7.1 — 31 août 2026
 
 - réglettes plus fines dans les lecteurs compacts ;

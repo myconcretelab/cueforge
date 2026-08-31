@@ -470,6 +470,21 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .subcategory-dialog > label { display: grid; gap: 6px; color: #a1a1aa; font-size: .68rem; }
 .subcategory-dialog > label > input, .subcategory-dialog > label > select { min-height: 40px; }
 .subcategory-dialog footer.with-delete { grid-template-columns: minmax(0, 1fr) auto auto; }
+.folder-import-dialog { width: min(570px, calc(100vw - 28px)); }
+.folder-import-dialog header span { display: block; margin-top: 5px; color: #71717a; font-size: .68rem; }
+.folder-import-choices { display: grid; gap: 8px; }
+.folder-import-choices label { position: relative; min-height: 70px; padding: 12px 13px; display: grid; grid-template-columns: 25px minmax(0, 1fr) 17px; align-items: center; gap: 11px; border: 1px solid var(--border); border-radius: 11px; color: #71717a; background: #101012; cursor: pointer; transition: border-color .15s, color .15s, background .15s; }
+.folder-import-choices label:hover { border-color: #52525b; color: #a1a1aa; }
+.folder-import-choices label.active { border-color: rgba(34,211,182,.5); color: var(--accent); background: rgba(34,211,182,.07); }
+.folder-import-choices input { position: absolute; opacity: 0; pointer-events: none; }
+.folder-import-choices span { display: grid; gap: 4px; }
+.folder-import-choices strong { color: #e4e4e7; font-size: .76rem; }
+.folder-import-choices small { color: #71717a; font-size: .64rem; line-height: 1.4; }
+.folder-import-choices i { width: 15px; height: 15px; border: 1px solid #52525b; border-radius: 50%; }
+.folder-import-choices label.active i { border: 4px solid var(--accent); }
+.folder-import-choices input:focus-visible ~ i { outline: 2px solid #99f6e4; outline-offset: 3px; }
+.folder-import-destination { padding: 10px 12px; border: 1px solid rgba(255,255,255,.07); border-radius: 9px; color: #71717a; background: #101012; font-size: .64rem; line-height: 1.5; }
+.folder-import-destination strong { color: #a1a1aa; }
 .settings-section-title { display: flex; align-items: flex-start; gap: 10px; color: var(--accent); }
 .settings-section-title div { display: grid; gap: 3px; }
 .settings-section-title strong { color: #e4e4e7; font-size: .8rem; }

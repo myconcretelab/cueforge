@@ -18,6 +18,16 @@ Une sélection de fichiers peut être déposée sur la fenêtre de SonoRiva. La 
 
 Un fichier dont l’extension n’est pas reconnue est ignoré. Un fichier qui dépasse la taille maximale ou le quota disponible est refusé sans annuler les imports terminés.
 
+## Dossier avec sous-dossiers
+
+Un dossier peut être déposé sur la fenêtre de SonoRiva. Lorsque des fichiers audio sont détectés dans ses sous-dossiers, une boîte de dialogue propose trois organisations :
+
+- **Une catégorie par dossier** crée ou réutilise une catégorie pour chaque sous-dossier de premier niveau.
+- **Une sous-catégorie par dossier** crée ou réutilise un groupe dans la catégorie active pour chaque sous-dossier de premier niveau.
+- **Les dossiers comme tags** importe les morceaux dans la catégorie active et ajoute comme tags tous les noms de dossiers présents dans leur chemin relatif.
+
+Les fichiers audio placés directement à la racine restent dans la catégorie active, ou sans catégorie lorsque la vue globale est sélectionnée. Pour les deux modes de regroupement, les dossiers situés sous le premier niveau sont rattachés à la catégorie ou sous-catégorie du premier niveau. Les fichiers non audio et les dossiers vides sont ignorés.
+
 ## Freesound
 
 La commande **Paramètres → Bibliothèque → Rechercher sur Freesound** ouvre la recherche. Les résultats peuvent être filtrés par durée, préécoutés puis importés dans le spectacle sélectionné.

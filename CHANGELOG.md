@@ -2,6 +2,20 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.8.0] - 2026-08-31
+
+### Ajouté
+
+- lecture récursive des dossiers et sous-dossiers déposés sur la fenêtre ;
+- choix entre une catégorie par dossier, une sous-catégorie par dossier ou les noms des dossiers comme tags ;
+- réutilisation des catégories et sous-catégories existantes portant le même nom dans la même destination ;
+- conservation des fichiers placés à la racine dans la catégorie active.
+
+### Modifié
+
+- affichage du chemin relatif pendant la progression d’un import de dossier ;
+- passage de l’application à la version `1.8.0`.
+
 ## [1.7.1] - 2026-08-31
 
 ### Corrigé

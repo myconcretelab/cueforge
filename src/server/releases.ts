@@ -11,6 +11,20 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.8.0',
+    date: '2026-08-31',
+    title: 'Importer une arborescence de sons',
+    summary: 'Un dossier et ses sous-dossiers peuvent devenir des catégories, des sous-catégories ou des tags au moment du dépôt.',
+    important: false,
+    changes: [
+      'Le dépôt lit récursivement tous les fichiers audio d’un dossier.',
+      'Une boîte de dialogue propose une catégorie par dossier, une sous-catégorie par dossier ou les noms des dossiers comme tags.',
+      'Les catégories et sous-catégories portant déjà le même nom sont réutilisées dans leur destination.',
+      'Les morceaux placés directement à la racine restent dans la catégorie active.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.7.1',
     date: '2026-08-31',
     title: 'Réglettes fines et durées audio fiables',
