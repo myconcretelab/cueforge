@@ -11,6 +11,20 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.12.0',
+    date: '2026-09-01',
+    title: 'Modules repliables',
+    summary: 'La Playlist et les Actions de déclenchement peuvent être réduites en une barre discrète et restaurées à la demande.',
+    important: false,
+    changes: [
+      'Une petite commande replie la Playlist ou les Actions de déclenchement sans modifier leur emplacement.',
+      'Un module replié devient une barre de 34 pixels avec son icône, son titre et le compteur de la playlist.',
+      'La playlist compacte utilise le même mécanisme et se rouvre automatiquement lors d’un ajout ou d’un dépôt.',
+      'L’état de chaque module est mémorisé avec la disposition locale.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.11.1',
     date: '2026-08-31',
     title: 'Catégories entièrement visibles',

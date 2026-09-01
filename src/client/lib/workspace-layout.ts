@@ -7,6 +7,7 @@ export type WorkspaceGridColumns = typeof workspaceLayoutColumns[number];
 export type WorkspaceBlockId = 'actions' | 'categories' | 'soundboard' | 'players' | 'playlist';
 export type WorkspacePreset = 'classic' | 'compact-control' | 'playlist-vertical' | 'playlist-focus' | 'custom';
 export const workspaceDockableBlockIds: WorkspaceBlockId[] = ['actions', 'players', 'playlist'];
+export const workspaceCollapsibleBlockIds: WorkspaceBlockId[] = ['actions', 'playlist'];
 
 export interface WorkspaceLayoutItem {
   id: WorkspaceBlockId;
@@ -21,6 +22,7 @@ export interface WorkspaceLayout {
   preset: WorkspacePreset;
   items: WorkspaceLayoutItem[];
   dock: WorkspaceBlockId[];
+  collapsed: WorkspaceBlockId[];
   compactPlaylistEnabled: boolean;
   compactPlaylistOpen: boolean;
   compactPlaylistRows: number;
@@ -81,7 +83,7 @@ const minimumSizes: Record<WorkspaceBlockId, { w: number; h: number }> = {
 };
 
 export function createWorkspaceLayout(preset: Exclude<WorkspacePreset, 'custom'> = 'classic', columns: WorkspaceGridColumns = 12): WorkspaceLayout {
-  return { columns, preset, items: scaleItems(basePresets[preset], 12, columns), dock: ['actions'], compactPlaylistEnabled: preset === 'compact-control', compactPlaylistOpen: false, compactPlaylistRows: 6 };
+  return { columns, preset, items: scaleItems(basePresets[preset], 12, columns), dock: ['actions'], collapsed: preset === 'compact-control' ? ['playlist'] : [], compactPlaylistEnabled: preset === 'compact-control', compactPlaylistOpen: false, compactPlaylistRows: 6 };
 }
 
 export function workspaceLayoutWithColumns(layout: WorkspaceLayout, columns: WorkspaceGridColumns): WorkspaceLayout {
@@ -153,6 +155,23 @@ export function workspaceItemIsDocked(layout: WorkspaceLayout, id: WorkspaceBloc
   return layout.compactPlaylistEnabled && (id === 'players' || id === 'playlist') && layout.dock.some((item) => item === 'players' || item === 'playlist');
 }
 
+export function workspaceItemIsCollapsed(layout: WorkspaceLayout, id: WorkspaceBlockId): boolean {
+  return layout.collapsed.includes(id);
+}
+
+export function setWorkspaceItemCollapsed(layout: WorkspaceLayout, id: WorkspaceBlockId, collapsed: boolean): WorkspaceLayout {
+  if (!workspaceCollapsibleBlockIds.includes(id)) return layout;
+  const nextCollapsed = collapsed
+    ? [...layout.collapsed.filter((item) => item !== id), id]
+    : layout.collapsed.filter((item) => item !== id);
+  if (nextCollapsed.length === layout.collapsed.length && nextCollapsed.every((item, index) => item === layout.collapsed[index])) return layout;
+  return {
+    ...layout,
+    collapsed: nextCollapsed,
+    ...(id === 'playlist' && layout.compactPlaylistEnabled ? { compactPlaylistOpen: !collapsed } : {}),
+  };
+}
+
 export function workspaceDockItems(layout: WorkspaceLayout): WorkspaceBlockId[] {
   const dock = layout.dock.filter((id, index) => layout.dock.indexOf(id) === index);
   if (!layout.compactPlaylistEnabled || !dock.some((id) => id === 'players' || id === 'playlist')) return dock;
@@ -189,6 +208,9 @@ export function readWorkspaceLayout(serialized: string | null): WorkspaceLayout 
       : value.items;
     const dock = Array.isArray(value.dock) ? value.dock.filter((id): id is WorkspaceBlockId => workspaceDockableBlockIds.includes(id as WorkspaceBlockId)) : ['actions'] as WorkspaceBlockId[];
     const compactPlaylistEnabled = Boolean(value.compactPlaylistEnabled ?? value.preset === 'compact-control');
+    const collapsed = Array.isArray(value.collapsed)
+      ? value.collapsed.filter((id): id is WorkspaceBlockId => workspaceCollapsibleBlockIds.includes(id as WorkspaceBlockId))
+      : compactPlaylistEnabled && !value.compactPlaylistOpen ? ['playlist'] as WorkspaceBlockId[] : [];
     const expandedItems = Array.isArray(storedItems) ? expandCategorySpace(storedItems) : storedItems;
     const items = Array.isArray(expandedItems) && layoutItemsAreValid(expandedItems, value.columns, dock, compactPlaylistEnabled) ? expandedItems : storedItems;
     if (!workspaceLayoutColumns.includes(value.columns) || !Array.isArray(items) || !layoutItemsAreValid(items, value.columns, dock, compactPlaylistEnabled)) return createWorkspaceLayout();
@@ -197,8 +219,9 @@ export function readWorkspaceLayout(serialized: string | null): WorkspaceLayout 
       preset: value.preset in workspacePresetLabels || value.preset === 'custom' ? value.preset : 'custom',
       items,
       dock,
+      collapsed,
       compactPlaylistEnabled,
-      compactPlaylistOpen: Boolean(value.compactPlaylistOpen),
+      compactPlaylistOpen: compactPlaylistEnabled ? !collapsed.includes('playlist') : Boolean(value.compactPlaylistOpen),
       compactPlaylistRows: clamp(value.compactPlaylistRows ?? 6, compactPlaylistMinimumRows, compactPlaylistMaximumRows),
     };
   } catch {

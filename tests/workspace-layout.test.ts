@@ -5,9 +5,11 @@ import {
   moveWorkspaceItem,
   readWorkspaceLayout,
   resizeWorkspaceItem,
+  setWorkspaceItemCollapsed,
   swapWorkspaceItems,
   workspaceDockItems,
   workspaceItemIsDocked,
+  workspaceItemIsCollapsed,
   workspaceLayoutItem,
   workspaceLayoutStorageKey,
   workspaceLayoutWithColumns,
@@ -31,7 +33,16 @@ describe('workspace layout', () => {
     const layout = createWorkspaceLayout('compact-control');
     expect(workspaceLayoutItem(layout, 'players')).toMatchObject({ x: 9, y: 0, w: 3, h: 8 });
     expect(workspaceLayoutItem(layout, 'playlist')).toMatchObject({ x: 9, y: 8, w: 3, h: 4 });
-    expect(layout).toMatchObject({ compactPlaylistEnabled: true, compactPlaylistOpen: false, compactPlaylistRows: 6 });
+    expect(layout).toMatchObject({ collapsed: ['playlist'], compactPlaylistEnabled: true, compactPlaylistOpen: false, compactPlaylistRows: 6 });
+  });
+
+  it('collapses reusable modules and keeps the compact playlist state aligned', () => {
+    const compact = createWorkspaceLayout('compact-control');
+    const opened = setWorkspaceItemCollapsed(compact, 'playlist', false);
+    expect(workspaceItemIsCollapsed(opened, 'playlist')).toBe(false);
+    expect(opened.compactPlaylistOpen).toBe(true);
+    const actionsCollapsed = setWorkspaceItemCollapsed(opened, 'actions', true);
+    expect(workspaceItemIsCollapsed(actionsCollapsed, 'actions')).toBe(true);
   });
 
   it('keeps compact players and their playlist together in the left dock', () => {
@@ -93,7 +104,8 @@ describe('workspace layout', () => {
   });
 
   it('restores and clamps the compact playlist drawer preferences', () => {
-    const serialized = JSON.stringify({ ...createWorkspaceLayout('compact-control'), compactPlaylistOpen: true, compactPlaylistRows: 20 });
+    const opened = setWorkspaceItemCollapsed(createWorkspaceLayout('compact-control'), 'playlist', false);
+    const serialized = JSON.stringify({ ...opened, compactPlaylistRows: 20 });
     expect(readWorkspaceLayout(serialized)).toMatchObject({ preset: 'compact-control', compactPlaylistOpen: true, compactPlaylistRows: 9 });
   });
 
@@ -103,6 +115,14 @@ describe('workspace layout', () => {
     const migrated = readWorkspaceLayout(legacy);
     expect(workspaceLayoutItem(migrated, 'actions').id).toBe('actions');
     expect(migrated.dock).toEqual(['actions']);
+    expect(migrated.collapsed).toEqual([]);
+  });
+
+  it('migrates the compact playlist drawer to the reusable collapsed state', () => {
+    const current = createWorkspaceLayout('compact-control');
+    const legacy = { ...current, collapsed: undefined };
+    expect(readWorkspaceLayout(JSON.stringify(legacy)).collapsed).toEqual(['playlist']);
+    expect(readWorkspaceLayout(JSON.stringify({ ...legacy, compactPlaylistOpen: true })).collapsed).toEqual([]);
   });
 
   it('expands categories in layouts saved with the former two-row height', () => {

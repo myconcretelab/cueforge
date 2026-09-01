@@ -2,6 +2,21 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.12.0] - 2026-09-01
+
+### Ajouté
+
+- système générique de modules repliables, utilisé par la Playlist et les Actions de déclenchement ;
+- barre réduite de 34 pixels avec icône, titre, compteur éventuel et commande de réouverture ;
+- état replié mémorisé dans la disposition locale de l’utilisateur.
+
+### Modifié
+
+- commande de réduction limitée à une icône discrète de 19 pixels dans les modules ouverts ;
+- playlist compacte alignée sur le même état replié que les autres dispositions ;
+- ouverture automatique d’une playlist réduite lors d’un ajout ou du dépôt d’un morceau ;
+- passage de l’application à la version `1.12.0`.
+
 ## [1.11.1] - 2026-08-31
 
 ### Corrigé

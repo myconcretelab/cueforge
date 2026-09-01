@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.12.0 — 1er septembre 2026
+
+- Playlist et Actions de déclenchement repliables en une barre compacte ;
+- commandes de réduction discrètes et état mémorisé ;
+- système commun réutilisable par de futurs modules.
+
+[Détails de la version 1.12.0](./1.12.0.md)
+
 ## Version 1.11.1 — 31 août 2026
 
 - bloc Catégories plus haut dans toutes les dispositions ;

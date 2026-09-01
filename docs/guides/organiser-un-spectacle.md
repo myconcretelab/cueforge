@@ -12,6 +12,8 @@ Dans le modèle **Régie compacte**, les lectures occupent toute la hauteur de l
 
 La colonne gauche est une zone de dépôt permanente. Elle peut contenir les blocs **Actions de déclenchement**, **Lectures en cours** et **Playlist**. Dans le modèle **Régie compacte**, déplacer les lectures dans cette colonne y déplace également la playlist conditionnelle. Les blocs restés sur la grille s’étendent dans l’espace libéré.
 
+Les modules **Actions de déclenchement** et **Playlist** possèdent une petite commande de réduction dans leur angle supérieur droit. Une fois réduit, le module devient une barre de 34 pixels affichant son icône, son titre et, pour la playlist, son nombre de morceaux. Un clic sur la barre restaure le module. Une playlist réduite se rouvre automatiquement lorsqu’un morceau y est ajouté ou déposé. L’état de chaque module est enregistré avec la disposition locale.
+
 Dans l’éditeur, la poignée portant le nom d’un bloc permet de le déposer sur un autre bloc pour permuter leurs emplacements. Un dépôt sur le fond de la colonne gauche y ajoute un bloc compatible ; un dépôt dans une zone libre de la grille l’y replace. La poignée située dans le coin inférieur droit redimensionne les blocs de la grille. Un déplacement ou un redimensionnement qui chevaucherait un autre bloc est ignoré.
 
 La disposition est enregistrée dans le navigateur pour l’utilisateur connecté. Sur un écran de 900 pixels de large ou moins, les actions restent dans le menu latéral et les autres blocs reprennent automatiquement un ordre vertical : catégories, soundboard, lectures en cours, playlist.
