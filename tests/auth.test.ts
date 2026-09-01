@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { stat } from 'node:fs/promises';
 import { hashPassword, verifyPassword } from '../src/server/services/auth.js';
 import { passwordResetMessage } from '../src/server/services/mail.js';
 import { createPasswordResetToken, hashPasswordResetToken, passwordResetLifetimeMs } from '../src/server/services/password-reset.js';
 import { parseByteRange } from '../src/server/services/range.js';
 import { evaluateStorageAllowance } from '../src/server/services/account-access.js';
-import { createDemoTone, demoExpiration, demoLifetimeMs, demoMaxFileBytes, demoMaxUploads } from '../src/server/services/demo.js';
+import { demoCategories, demoExpiration, demoLifetimeMs, demoMaxFileBytes, demoMaxUploads, demoSounds } from '../src/server/services/demo.js';
 import { bearerToken, bridgePairingExpiration, bridgePairingLifetimeMs, createBridgeToken, hashBridgeToken } from '../src/server/services/bridge-auth.js';
 
 describe('password hashing', () => {
@@ -125,10 +126,28 @@ describe('temporary demo', () => {
     expect(demoMaxFileBytes).toBe(5 * 1024 * 1024);
   });
 
-  it('génère un fichier WAV lisible pour les sons de démonstration', () => {
-    const wav = createDemoTone([440, 660]);
-    expect(wav.subarray(0, 4).toString()).toBe('RIFF');
-    expect(wav.subarray(8, 12).toString()).toBe('WAVE');
-    expect(wav.readUInt32LE(40)).toBe(wav.length - 44);
+  it('installe huit catégories avec deux sons Freesound CC0 chacune', async () => {
+    expect(demoCategories.map((category) => category.name)).toEqual([
+      'Animaux',
+      'Bruitages',
+      'Drame',
+      'Joyeux',
+      'Effets',
+      'Ambiances',
+      'Transitions',
+      'Public',
+    ]);
+    expect(demoSounds).toHaveLength(16);
+
+    for (const category of demoCategories) {
+      expect(demoSounds.filter((sound) => sound.category === category.name)).toHaveLength(2);
+    }
+    for (const sound of demoSounds) {
+      expect(sound.sourceId).toMatch(/^freesound:\d+$/);
+      expect(sound.sourceUrl).toMatch(/^https:\/\/freesound\.org\/people\/[^/]+\/sounds\/\d+\/$/);
+      expect(sound.copyrightText).toContain('CC0');
+      const asset = await stat(new URL(`../assets/demo/${sound.assetFilename}`, import.meta.url));
+      expect(asset.size).toBeGreaterThan(1_000);
+    }
   });
 });

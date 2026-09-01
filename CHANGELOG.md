@@ -2,6 +2,20 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.14.0] - 2026-09-01
+
+### Ajouté
+
+- catalogue de démonstration composé de seize fichiers audio Freesound réels sous licence CC0 ;
+- huit catégories contenant chacune deux morceaux : Animaux, Bruitages, Drame, Joyeux, Effets, Ambiances, Transitions et Public ;
+- tags, descriptions, identifiants Freesound, pages sources et mentions de licence enregistrés avec les morceaux fournis.
+
+### Modifié
+
+- retrait des trois sons WAV synthétiques et des catégories Lancements, Transitions et Final de la démonstration ;
+- extraits longs limités à douze secondes afin de conserver une création de session rapide ;
+- passage de l’application à la version `1.14.0`.
+
 ## [1.13.0] - 2026-09-01
 
 ### Ajouté

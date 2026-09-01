@@ -11,6 +11,20 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.14.0',
+    date: '2026-09-01',
+    title: 'Une démo équipée de vrais sons',
+    summary: 'La démonstration démarre avec seize sons Freesound réels, répartis dans huit catégories prêtes à explorer.',
+    important: false,
+    changes: [
+      'Les anciens sons synthétiques et leurs trois catégories sont retirés de la démonstration.',
+      'Huit catégories contiennent chacune deux sons : Animaux, Bruitages, Drame, Joyeux, Effets, Ambiances, Transitions et Public.',
+      'Tous les morceaux fournis sont issus de Freesound sous licence CC0.',
+      'Les tags, la description, la page source, l’identifiant Freesound et la mention de licence sont enregistrés avec chaque morceau.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.13.0',
     date: '2026-09-01',
     title: 'Dispositions nommées et interface affinée',
