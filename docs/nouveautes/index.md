@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.16.0 — 1er septembre 2026
+
+- forfait interne dédié à la démonstration publique ;
+- durée d’inactivité, imports, taille des fichiers et stockage configurables ;
+- fonctionnalités et nombre de spectacles appliqués aux sessions temporaires.
+
+[Détails de la version 1.16.0](./1.16.0.md)
+
 ## Version 1.15.0 — 1er septembre 2026
 
 - accès aux dispositions personnalisées, aux playlists et à la télécommande défini par forfait ;

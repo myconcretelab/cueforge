@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { api } from '../lib/api';
-import type { PublicPlan, User } from '../types';
+import type { PublicDemo, PublicPlan, User } from '../types';
 
 interface Props { onAuthenticated: (user: User) => void }
 
@@ -15,6 +15,10 @@ function formatStorage(bytes: number): string {
   return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(bytes / 1024 ** 3)} Go`;
 }
 
+function formatFileSize(bytes: number): string {
+  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(bytes / 1024 ** 2)} Mo`;
+}
+
 export function AuthScreen({ onAuthenticated }: Props) {
   const parameters = new URLSearchParams(window.location.search);
   const [mode, setMode] = useState<AuthMode>(() => parameters.get('register') === '1' ? 'register' : 'login');
@@ -23,8 +27,13 @@ export function AuthScreen({ onAuthenticated }: Props) {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [plans, setPlans] = useState<PublicPlan[]>([]);
+  const [demo, setDemo] = useState<PublicDemo | null>(null);
   const [selectedPlanCode, setSelectedPlanCode] = useState(parameters.get('plan') ?? '');
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>(() => parameters.get('billing') === 'year' || parameters.get('interval') === 'year' ? 'year' : 'month');
+
+  useEffect(() => {
+    api.publicDemo().then((result) => setDemo(result.demo)).catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (mode !== 'register' || plans.length > 0) return;
@@ -135,7 +144,7 @@ export function AuthScreen({ onAuthenticated }: Props) {
         {error && <p className="form-error">{error}</p>}
         {message && <p className="form-success">{message}</p>}
         <button className="button primary wide" disabled={loading || (mode === 'register' && (!selectedPlan || selectedPrice === null || selectedPrice === undefined))}>{loading && <LoaderCircle className="spin" size={18} />}{mode === 'register' ? freePlan ? 'Créer mon compte gratuitement' : 'Continuer avec Stripe' : mode === 'forgot' ? 'Envoyer le lien' : 'Se connecter'}</button>
-        {mode !== 'forgot' && <><div className="auth-separator"><span>ou</span></div><button className="button demo wide" type="button" disabled={demoLoading} onClick={startDemo}>{demoLoading && <LoaderCircle className="spin" size={18} />}Essayer sans compte</button><small className="demo-auth-note">Espace temporaire · 15 fichiers · 5 Mo maximum par fichier</small></>}
+        {mode !== 'forgot' && <><div className="auth-separator"><span>ou</span></div><button className="button demo wide" type="button" disabled={demoLoading} onClick={startDemo}>{demoLoading && <LoaderCircle className="spin" size={18} />}Essayer sans compte</button><small className="demo-auth-note">Espace temporaire · {demo?.maxUploads ?? 15} fichiers · {formatFileSize(demo?.maxFileBytes ?? 5 * 1024 ** 2)} maximum par fichier · réinitialisé après {demo?.lifetimeHours ?? 24} h d’inactivité</small></>}
         {mode === 'login' && <button className="text-button" type="button" onClick={() => { setMode('forgot'); setError(''); setMessage(''); }}>
           Mot de passe oublié ?
         </button>}

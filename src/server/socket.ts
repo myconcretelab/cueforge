@@ -48,7 +48,7 @@ export function registerSocketServer(app: FastifyInstance): Server {
       }
       if (parsed.data.role === 'controller') {
         const account = await accountForUserProject(socket.data.userId, parsed.data.projectId);
-        if (!account || !planFeatures(account.plan, account.account.isDemo).remoteControl) {
+        if (!account || !planFeatures(account.plan).remoteControl) {
           acknowledge?.({ ok: false });
           return;
         }
@@ -61,7 +61,7 @@ export function registerSocketServer(app: FastifyInstance): Server {
       const parsed = z.object({ projectId: z.string().uuid(), command: commandSchema }).safeParse(payload);
       if (!parsed.success || !(await ownsProject(socket.data.userId, parsed.data.projectId))) return;
       const account = await accountForUserProject(socket.data.userId, parsed.data.projectId);
-      if (!account || !planFeatures(account.plan, account.account.isDemo).remoteControl) return;
+      if (!account || !planFeatures(account.plan).remoteControl) return;
       io.to(`${parsed.data.projectId}:player`).emit('remote-command', parsed.data.command);
     });
   });

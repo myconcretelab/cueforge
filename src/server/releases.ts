@@ -11,6 +11,34 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.16.0',
+    date: '2026-09-01',
+    title: 'Une démonstration pilotée par son forfait',
+    summary: 'Les capacités de la session temporaire utilisent désormais une configuration dédiée et cohérente sur tous les écrans.',
+    important: false,
+    changes: [
+      'La durée d’inactivité, le nombre d’imports, la taille des fichiers et le stockage proviennent du forfait de démonstration.',
+      'Les dispositions personnalisées, les playlists, la télécommande et le nombre de spectacles suivent les droits de ce forfait.',
+      'Les limites affichées avant et après l’ouverture de la démonstration reflètent la configuration active.',
+      'La démonstration reste distincte de l’offre gratuite permanente et des abonnements.',
+    ],
+  },
+  {
+    audience: 'admin',
+    version: '1.16.0',
+    date: '2026-09-01',
+    title: 'Capacités configurables de la démonstration',
+    summary: 'La démonstration publique dispose d’un forfait interne modifiable depuis le catalogue des forfaits.',
+    important: false,
+    changes: [
+      'Le forfait Démonstration publique configure le stockage, la durée d’inactivité, le nombre d’imports et la taille maximale par fichier.',
+      'Les cases de fonctionnalités et la limite de spectacles s’appliquent également aux sessions temporaires.',
+      'Ce forfait protégé ne peut pas être supprimé, attribué à un client, publié comme tarif ou synchronisé avec Stripe.',
+      'Les sessions existantes sont rattachées automatiquement à ce forfait lors de la migration.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.15.0',
     date: '2026-09-01',
     title: 'Des fonctionnalités adaptées à chaque forfait',

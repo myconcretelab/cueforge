@@ -2,7 +2,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { accountMemberships, accounts, plans, projects, tracks, users, type Account, type Plan, type Track } from '../db/schema.js';
 import { evaluateStorageAllowance } from './account-access.js';
-import { demoMaxFileBytes, demoMaxUploads } from './demo.js';
+import { demoLimitsForPlan, demoMaxFileBytes, demoMaxUploads } from './demo.js';
 
 export class AccountStorageError extends Error {
   constructor(public readonly reason: 'read-only' | 'quota-exceeded') {
@@ -13,11 +13,15 @@ export class AccountStorageError extends Error {
 }
 
 export class DemoUploadError extends Error {
-  constructor(public readonly reason: 'file-too-large' | 'file-count-exceeded') {
+  constructor(public readonly reason: 'file-too-large' | 'file-count-exceeded', limit?: number) {
     super(reason === 'file-too-large'
-      ? 'La démonstration accepte des fichiers de 5 Mo maximum.'
-      : 'La démonstration accepte 15 fichiers importés maximum.');
+      ? `La démonstration accepte des fichiers de ${formatMegabytes(limit ?? demoMaxFileBytes)} Mo maximum.`
+      : `La démonstration accepte ${limit ?? demoMaxUploads} fichiers importés maximum.`);
   }
+}
+
+function formatMegabytes(bytes: number): string {
+  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(bytes / 1024 ** 2);
 }
 
 export interface AccountContext {
@@ -101,8 +105,9 @@ export async function insertTrackWithinQuota(userId: string, values: typeof trac
     }).from(projects)
       .leftJoin(tracks, eq(tracks.projectId, projects.id))
       .where(eq(projects.accountId, membership.account.id));
-    if (membership.isDemo && Number(values.sizeBytes) > demoMaxFileBytes) throw new DemoUploadError('file-too-large');
-    if (membership.isDemo && Number(usage?.uploadedFiles ?? 0) >= demoMaxUploads) throw new DemoUploadError('file-count-exceeded');
+    const demoLimits = membership.isDemo ? demoLimitsForPlan(membership.plan) : null;
+    if (demoLimits && Number(values.sizeBytes) > demoLimits.maxFileBytes) throw new DemoUploadError('file-too-large', demoLimits.maxFileBytes);
+    if (demoLimits && Number(usage?.uploadedFiles ?? 0) >= demoLimits.maxUploads) throw new DemoUploadError('file-count-exceeded', demoLimits.maxUploads);
     const allowance = evaluateStorageAllowance({
       accessStatus: membership.account.accessStatus,
       trialEndsAt: membership.account.trialEndsAt,

@@ -5,6 +5,7 @@ import { db } from '../db/index.js';
 import { accountMemberships, accounts, auditLogs, plans, projects, subscriptions, tracks, users } from '../db/schema.js';
 import { requirePlatformAdmin, requireSuperAdmin, writeAuditLog } from '../services/admin.js';
 import { planDeletionError, planPublicationError } from '../services/commercial-plans.js';
+import { demoExpiration } from '../services/demo.js';
 import { ADMIN_RELEASES, CURRENT_VERSION } from '../releases.js';
 import { config } from '../config.js';
 
@@ -29,6 +30,9 @@ const planFieldsSchema = z.object({
   playlistsEnabled: z.boolean().default(true),
   remoteControlEnabled: z.boolean().default(true),
   maxProjects: z.number().int().min(1).max(10_000).nullable().default(null),
+  demoLifetimeHours: z.number().int().min(1).max(168).nullable().default(null),
+  demoMaxUploads: z.number().int().min(0).max(10_000).nullable().default(null),
+  demoMaxFileBytes: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).nullable().default(null),
   displayOrder: z.number().int().min(0).max(10_000).default(0),
 });
 
@@ -179,7 +183,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       storageQuotaOverrideBytes: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).nullable().optional(),
     }).refine((value) => Object.keys(value).length > 0, { message: 'Aucune modification fournie.' }).parse(request.body);
     if (input.planCode) {
-      const [plan] = await db.select({ code: plans.code }).from(plans).where(and(eq(plans.code, input.planCode), eq(plans.active, true))).limit(1);
+      const [plan] = await db.select({ code: plans.code }).from(plans).where(and(eq(plans.code, input.planCode), eq(plans.active, true), eq(plans.isDemoPlan, false))).limit(1);
       if (!plan) return reply.code(400).send({ error: 'Forfait actif introuvable.' });
     }
     const [account] = await db.update(accounts).set({
@@ -266,9 +270,14 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       isDefault: plans.isDefault,
       visibleOnWebsite: plans.visibleOnWebsite,
       featuredOnWebsite: plans.featuredOnWebsite,
+      isDemoPlan: plans.isDemoPlan,
+      demoLifetimeHours: plans.demoLifetimeHours,
       accountCount: sql<number>`(select count(*)::int from ${accounts} a where a.plan_code = ${plans.code} and a.is_demo = false)`,
     }).from(plans).where(eq(plans.code, code)).limit(1);
     if (!existing) return reply.code(404).send({ error: 'Forfait introuvable.' });
+    if (existing.isDemoPlan && (input.active === false || input.isDefault === true || input.visibleOnWebsite === true || input.featuredOnWebsite === true)) {
+      return reply.code(400).send({ error: 'Le forfait de démonstration doit rester actif, interne et distinct du forfait par défaut.' });
+    }
     const nextActive = input.active ?? existing.active;
     const nextDefault = input.isDefault ?? existing.isDefault;
     if (nextDefault && !nextActive) return reply.code(400).send({ error: 'Le forfait par défaut doit être actif.' });
@@ -280,7 +289,11 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const plan = await db.transaction(async (transaction) => {
       if (input.isDefault) await transaction.update(plans).set({ isDefault: false, updatedAt: new Date() });
       if (input.featuredOnWebsite) await transaction.update(plans).set({ featuredOnWebsite: false, updatedAt: new Date() });
-      const [updated] = await transaction.update(plans).set({ ...input, updatedAt: new Date() }).where(eq(plans.code, code)).returning();
+      const updatedAt = new Date();
+      const [updated] = await transaction.update(plans).set({ ...input, updatedAt }).where(eq(plans.code, code)).returning();
+      if (existing.isDemoPlan && input.demoLifetimeHours !== undefined && input.demoLifetimeHours !== existing.demoLifetimeHours) {
+        await transaction.update(users).set({ demoExpiresAt: demoExpiration(updatedAt, input.demoLifetimeHours ?? 24) }).where(eq(users.isDemo, true));
+      }
       return updated;
     });
     await writeAuditLog({ actorUserId: admin.id, action: 'plan.updated', entityType: 'plan', entityId: code, details: input, ipAddress: request.ip });
@@ -295,10 +308,11 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       code: plans.code,
       name: plans.name,
       isDefault: plans.isDefault,
+      isDemoPlan: plans.isDemoPlan,
       accountCount: sql<number>`(select count(*)::int from ${accounts} a where a.plan_code = ${plans.code} and a.is_demo = false)`,
     }).from(plans).where(eq(plans.code, code)).limit(1);
     if (!plan) return reply.code(404).send({ error: 'Forfait introuvable.' });
-    const deletionError = planDeletionError({ isDefault: plan.isDefault, accountCount: numberValue(plan.accountCount) });
+    const deletionError = planDeletionError({ isDefault: plan.isDefault, isDemoPlan: plan.isDemoPlan, accountCount: numberValue(plan.accountCount) });
     if (deletionError) return reply.code(409).send({ error: deletionError });
     await db.delete(plans).where(eq(plans.code, code));
     await writeAuditLog({

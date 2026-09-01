@@ -2,6 +2,22 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.16.0] - 2026-09-01
+
+### Ajouté
+
+- forfait interne protégé pour la démonstration publique, distinct des offres gratuites et payantes ;
+- configuration de la durée d’inactivité, du nombre maximal d’imports et de la taille maximale d’un fichier de démonstration ;
+- application à la démonstration des droits sur les dispositions, les playlists, la télécommande et le nombre de spectacles ;
+- publication des limites de démonstration utilisées sur les écrans d’accès et de compte.
+
+### Modifié
+
+- quota de stockage de la démonstration désormais fourni par son forfait interne ;
+- exclusion du forfait de démonstration des attributions aux clients, du catalogue tarifaire et de Stripe ;
+- conservation des valeurs existantes après migration : 24 heures, 15 imports, 5 Mo par fichier, 80 Mo de stockage et un spectacle ;
+- passage de l’application à la version `1.16.0`.
+
 ## [1.15.0] - 2026-09-01
 
 ### Ajouté

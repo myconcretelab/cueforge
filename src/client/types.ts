@@ -92,6 +92,11 @@ export interface AccountSummary {
   gracePeriodEndsAt: string | null;
   bridgeAvailable: boolean;
   features: PlanFeatures;
+  demoLimits: {
+    lifetimeHours: number;
+    maxUploads: number;
+    maxFileBytes: number;
+  } | null;
   billing: {
     membershipRole: string;
     provider: string;
@@ -126,6 +131,14 @@ export interface PublicPlan {
   displayOrder: number;
 }
 
+export interface PublicDemo {
+  storageQuotaBytes: number;
+  lifetimeHours: number;
+  maxUploads: number;
+  maxFileBytes: number;
+  features: PlanFeatures;
+}
+
 export interface CommercialPlan {
   code: string;
   name: string;
@@ -142,6 +155,10 @@ export interface CommercialPlan {
   playlistsEnabled: boolean;
   remoteControlEnabled: boolean;
   maxProjects: number | null;
+  isDemoPlan: boolean;
+  demoLifetimeHours: number | null;
+  demoMaxUploads: number | null;
+  demoMaxFileBytes: number | null;
   displayOrder: number;
   accountCount: number;
   createdAt: string;

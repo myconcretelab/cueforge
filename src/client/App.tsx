@@ -52,6 +52,13 @@ const mouseActions: Array<{ value: MouseAction; label: string }> = [
   { value: 'none', label: 'Aucune action' },
 ];
 const clockFormatter = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024 ** 2) return `${Math.round(bytes / 1024)} Ko`;
+  const megabytes = bytes / 1024 ** 2;
+  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(megabytes)} Mo`;
+}
+
 let authenticationBootstrap: Promise<{ user: User }> | undefined;
 
 function bootstrapAuthentication() {
@@ -290,13 +297,6 @@ export default function App() {
   }, [workspaceUserId, workspaceLayout]);
   useEffect(() => {
     if (!user) return;
-    if (user.isDemo) {
-      setAccountSummary(undefined);
-      setBridgeAvailable(false);
-      if (bridgeClient.isAssociated()) bridgeClient.stopAll(0);
-      bridgeClient.forgetAssociation();
-      return;
-    }
     api.account().then(({ account }) => {
       setAccountSummary(account);
       setBridgeAvailable(account.bridgeAvailable);
@@ -1776,7 +1776,8 @@ export default function App() {
         ? 'trial'
         : accountSummary?.accessStatus === 'read_only' || accountSummary?.accessStatus === 'suspended'
           ? 'restricted'
-          : 'free';
+      : 'free';
+  const demoLimits = accountSummary?.demoLimits;
 
   function renderBoardTrack(track: Track) {
     const category = detail?.categories.find((item) => item.id === track.categoryId);
@@ -2013,7 +2014,7 @@ export default function App() {
     {sidebarOpen && <button className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Fermer le menu" />}
 
     <main className="workspace">
-      {user.isDemo && <aside className="demo-banner" aria-label="Démonstration temporaire"><div><strong>Démo temporaire</strong><span>Vos données sont supprimées après 24 h d’inactivité · 15 fichiers importés · 5 Mo maximum par fichier</span></div><button className="demo-reset" onClick={() => resetDemo().catch((cause) => setError(cause instanceof Error ? cause.message : 'Réinitialisation impossible.'))}><RefreshCcw size={15} />Réinitialiser</button><button className="button demo-login" onClick={() => leaveDemoForLogin().catch((cause) => setError(cause instanceof Error ? cause.message : 'Retour à la connexion impossible.'))}><LogIn size={15} />Se connecter à mon compte</button><button className="button primary" onClick={() => createAccountFromDemo().catch((cause) => setError(cause instanceof Error ? cause.message : 'Création de compte impossible.'))}>Créer mon espace</button></aside>}
+      {user.isDemo && <aside className="demo-banner" aria-label="Démonstration temporaire"><div><strong>Démo temporaire</strong><span>Vos données sont supprimées après {demoLimits?.lifetimeHours ?? 24} h d’inactivité · {demoLimits?.maxUploads ?? 15} fichiers importés · {formatBytes(demoLimits?.maxFileBytes ?? 5 * 1024 ** 2)} maximum par fichier</span></div><button className="demo-reset" onClick={() => resetDemo().catch((cause) => setError(cause instanceof Error ? cause.message : 'Réinitialisation impossible.'))}><RefreshCcw size={15} />Réinitialiser</button><button className="button demo-login" onClick={() => leaveDemoForLogin().catch((cause) => setError(cause instanceof Error ? cause.message : 'Retour à la connexion impossible.'))}><LogIn size={15} />Se connecter à mon compte</button><button className="button primary" onClick={() => createAccountFromDemo().catch((cause) => setError(cause instanceof Error ? cause.message : 'Création de compte impossible.'))}>Créer mon espace</button></aside>}
       {!remote && (audioOutputUpgradeMode
         ? <AudioOutputUpgradeConsole mode={audioOutputUpgradeMode} onAction={openAudioOutputUpgrade} />
         : <AudioOutputConsole bridgeAvailable={bridgeAvailable} onError={setError} onRoutingChange={updateRoutedBridgeOutputs} />)}

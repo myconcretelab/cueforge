@@ -4,7 +4,7 @@ import { and, eq, gt } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { db } from '../db/index.js';
 import { sessions, users, type User } from '../db/schema.js';
-import { demoExpiration, demoLifetimeMs } from './demo.js';
+import { demoExpiration, demoLimitsForUser } from './demo.js';
 
 const scrypt = promisify(scryptCallback);
 export const sessionCookieName = 'sonoriva_session';
@@ -97,8 +97,11 @@ export async function requireUser(request: FastifyRequest, reply: FastifyReply):
   }
   if (user.isDemo) {
     const now = new Date();
-    if (!user.demoExpiresAt || user.demoExpiresAt.getTime() < now.getTime() + demoLifetimeMs - 60 * 60 * 1000) {
-      const expiresAt = demoExpiration(now);
+    const limits = await demoLimitsForUser(user.id);
+    const lifetimeMs = limits.lifetimeHours * 60 * 60 * 1000;
+    const renewalIntervalMs = Math.min(60 * 60 * 1000, lifetimeMs / 4);
+    if (!user.demoExpiresAt || user.demoExpiresAt.getTime() < now.getTime() + lifetimeMs - renewalIntervalMs) {
+      const expiresAt = demoExpiration(now, limits.lifetimeHours);
       await db.update(users).set({ demoExpiresAt: expiresAt }).where(eq(users.id, user.id));
       user.demoExpiresAt = expiresAt;
     }

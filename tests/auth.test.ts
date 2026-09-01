@@ -5,7 +5,7 @@ import { passwordResetMessage } from '../src/server/services/mail.js';
 import { createPasswordResetToken, hashPasswordResetToken, passwordResetLifetimeMs } from '../src/server/services/password-reset.js';
 import { parseByteRange } from '../src/server/services/range.js';
 import { evaluateStorageAllowance } from '../src/server/services/account-access.js';
-import { demoCategories, demoExpiration, demoLifetimeMs, demoMaxFileBytes, demoMaxUploads, demoSounds } from '../src/server/services/demo.js';
+import { demoCategories, demoExpiration, demoLifetimeMs, demoLimitsForPlan, demoMaxFileBytes, demoMaxUploads, demoSounds } from '../src/server/services/demo.js';
 import { bearerToken, bridgePairingExpiration, bridgePairingLifetimeMs, createBridgeToken, hashBridgeToken } from '../src/server/services/bridge-auth.js';
 
 describe('password hashing', () => {
@@ -124,6 +124,15 @@ describe('temporary demo', () => {
   it('publie les limites d’import retenues', () => {
     expect(demoMaxUploads).toBe(15);
     expect(demoMaxFileBytes).toBe(5 * 1024 * 1024);
+  });
+
+  it('lit les limites configurées sur le forfait de démonstration', () => {
+    expect(demoLimitsForPlan({ demoLifetimeHours: 12, demoMaxUploads: 8, demoMaxFileBytes: 2 * 1024 ** 2 })).toEqual({
+      lifetimeHours: 12,
+      maxUploads: 8,
+      maxFileBytes: 2 * 1024 ** 2,
+    });
+    expect(demoExpiration(new Date('2030-01-01T00:00:00Z'), 12).toISOString()).toBe('2030-01-01T12:00:00.000Z');
   });
 
   it('installe huit catégories avec quinze sons Freesound CC0 chacune', async () => {

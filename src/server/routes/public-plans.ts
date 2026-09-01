@@ -4,6 +4,7 @@ import { db } from '../db/index.js';
 import { plans } from '../db/schema.js';
 import { config } from '../config.js';
 import { planFeatures, planIncludesBridge, planIsFree } from '../services/commercial-plans.js';
+import { demoLimitsForPlan } from '../services/demo.js';
 
 export async function publicPlanRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/public/plans', async (_request, reply) => {
@@ -39,6 +40,31 @@ export async function publicPlanRoutes(app: FastifyInstance): Promise<void> {
           features: planFeatures(featureSource),
         };
       }),
+    };
+  });
+
+  app.get('/api/public/demo', async (_request, reply) => {
+    const [demoPlan] = await db.select({
+      storageQuotaBytes: plans.storageQuotaBytes,
+      customLayoutsEnabled: plans.customLayoutsEnabled,
+      playlistsEnabled: plans.playlistsEnabled,
+      remoteControlEnabled: plans.remoteControlEnabled,
+      maxProjects: plans.maxProjects,
+      demoLifetimeHours: plans.demoLifetimeHours,
+      demoMaxUploads: plans.demoMaxUploads,
+      demoMaxFileBytes: plans.demoMaxFileBytes,
+    }).from(plans)
+      .where(and(eq(plans.isDemoPlan, true), eq(plans.active, true)))
+      .limit(1);
+
+    reply.header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600');
+    if (!demoPlan) return { demo: null };
+    return {
+      demo: {
+        storageQuotaBytes: demoPlan.storageQuotaBytes,
+        ...demoLimitsForPlan(demoPlan),
+        features: planFeatures(demoPlan),
+      },
     };
   });
 }

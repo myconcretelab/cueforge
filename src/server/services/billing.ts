@@ -351,6 +351,7 @@ export async function synchronizeStripePlan(planCode: string) {
   const stripe = getStripe();
   const [plan] = await db.select().from(plans).where(eq(plans.code, planCode)).limit(1);
   if (!plan) throw new BillingError('Forfait introuvable.', 404, 'plan_not_found');
+  if (plan.isDemoPlan) throw new BillingError('Le forfait de démonstration ne peut pas être synchronisé avec Stripe.', 400, 'demo_plan_not_billable');
   const [previousMapping] = await db.select().from(billingPriceMappings).where(and(
     eq(billingPriceMappings.provider, 'stripe'),
     eq(billingPriceMappings.environment, config.STRIPE_MODE),

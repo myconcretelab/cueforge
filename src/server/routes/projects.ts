@@ -36,7 +36,7 @@ const playlistInputSchema = z.object({
 
 async function userCanUsePlaylists(userId: string, projectId: string): Promise<boolean> {
   const account = await accountForUserProject(userId, projectId);
-  return account ? planFeatures(account.plan, account.account.isDemo).playlists : false;
+  return account ? planFeatures(account.plan).playlists : false;
 }
 
 export async function projectRoutes(app: FastifyInstance): Promise<void> {
@@ -56,7 +56,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     const account = await accountForUser(user.id);
     if (!account) return reply.code(404).send({ error: 'Espace de travail introuvable.' });
     const input = z.object({ name: z.string().trim().min(1).max(120) }).parse(request.body);
-    const features = planFeatures(account.plan, account.account.isDemo);
+    const features = planFeatures(account.plan);
     const project = await db.transaction(async (transaction) => {
       await transaction.execute(sql`select ${accounts.id} from ${accounts} where ${accounts.id} = ${account.account.id} for update`);
       const ownerProjects = await transaction.select({ position: projects.position }).from(projects).where(eq(projects.accountId, account.account.id));

@@ -176,12 +176,12 @@ function PlansSection({ plans, canEdit, onEdit, onCreate, onDuplicate }: { plans
       <article><span><Gauge size={18} /></span><strong>{defaultPlan?.name ?? '—'}</strong><small>Forfait par défaut</small></article>
     </section>
     <section className="plan-grid">{plans.map((plan) => <article key={plan.code} className={!plan.active ? 'inactive' : ''}>
-      <header><span>{plan.code}</span><div>{plan.isDefault && <em>Par défaut</em>}{plan.visibleOnWebsite && <em className="public">Site</em>}<em className={plan.active ? 'active' : 'disabled'}>{plan.active ? 'Actif' : 'Inactif'}</em></div></header>
+      <header><span>{plan.code}</span><div>{plan.isDemoPlan && <em className="demo">Démo publique</em>}{plan.isDefault && <em>Par défaut</em>}{plan.visibleOnWebsite && <em className="public">Site</em>}<em className={plan.active ? 'active' : 'disabled'}>{plan.active ? 'Actif' : 'Inactif'}</em></div></header>
       <h2>{plan.name}</h2>
       <p>{plan.description || 'Aucune description.'}</p>
-      <div className="plan-price"><strong>{formatPrice(plan.monthlyPriceCents, '/mois')}</strong><small>{formatPrice(plan.annualPriceCents, '/an')}</small></div>
-      <dl><div><dt><HardDrive size={14} />Stockage</dt><dd>{formatBytes(plan.storageQuotaBytes)}</dd></div><div><dt><Activity size={14} />Essai</dt><dd>{plan.trialDays} jours</dd></div><div><dt><Users size={14} />Comptes</dt><dd>{plan.accountCount}</dd></div></dl>
-      {canEdit && <footer><button className="table-action secondary" onClick={() => onDuplicate(plan)}><Copy size={14} />Dupliquer</button><button className="table-action" onClick={() => onEdit(plan)}>Modifier</button></footer>}
+      <div className="plan-price"><strong>{plan.isDemoPlan ? `${plan.demoLifetimeHours ?? 24} h d’inactivité` : formatPrice(plan.monthlyPriceCents, '/mois')}</strong><small>{plan.isDemoPlan ? `${plan.demoMaxUploads ?? 15} imports · ${formatBytes(plan.demoMaxFileBytes ?? 5 * 1024 ** 2)} par fichier` : formatPrice(plan.annualPriceCents, '/an')}</small></div>
+      <dl><div><dt><HardDrive size={14} />Stockage</dt><dd>{formatBytes(plan.storageQuotaBytes)}</dd></div><div><dt><Activity size={14} />{plan.isDemoPlan ? 'Spectacles' : 'Essai'}</dt><dd>{plan.isDemoPlan ? plan.maxProjects ?? 'Illimité' : `${plan.trialDays} jours`}</dd></div><div><dt><Users size={14} />Comptes</dt><dd>{plan.accountCount}</dd></div></dl>
+      {canEdit && <footer>{plan.isDemoPlan ? <span /> : <button className="table-action secondary" onClick={() => onDuplicate(plan)}><Copy size={14} />Dupliquer</button>}<button className="table-action" onClick={() => onEdit(plan)}>Modifier</button></footer>}
     </article>)}</section>
     {plans.length === 0 && <section className="admin-panel"><p className="admin-empty">Aucun forfait configuré.</p></section>}
   </div>;
@@ -214,12 +214,13 @@ function AccountEditor({ account, plans, onClose, onSaved, onError }: { account:
       onSaved();
     } catch (cause) { onError(cause instanceof Error ? cause.message : 'Enregistrement impossible.'); setSaving(false); }
   }
-  return <div className="admin-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><form className="admin-modal" onSubmit={submit}><header><div><p className="eyebrow">Compte client</p><h2>{account.name}</h2></div><button type="button" onClick={onClose}><X /></button></header><label>Nom du compte<input name="name" defaultValue={account.name} required /></label><label>Forfait<select name="planCode" value={planCode} onChange={(event) => setPlanCode(event.target.value)}>{plans.filter((plan) => plan.active || plan.code === account.planCode).map((plan) => <option key={plan.code} value={plan.code}>{plan.name}</option>)}</select></label>{selectedPlan && <div className="account-plan-summary"><div><span>Mensuel</span><strong>{formatPrice(selectedPlan.monthlyPriceCents, '')}</strong></div><div><span>Annuel</span><strong>{formatPrice(selectedPlan.annualPriceCents, '')}</strong></div><div><span>Quota</span><strong>{formatBytes(selectedPlan.storageQuotaBytes)}</strong></div><div><span>Essai</span><strong>{selectedPlan.trialDays} jours</strong></div></div>}<label>État d’accès<select name="accessStatus" defaultValue={account.accessStatus}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>Fin de l’essai<input name="trialEndsAt" type="datetime-local" defaultValue={toLocalDate(account.trialEndsAt)} /></label><label>Quota exceptionnel en Go <small>Laisser vide pour utiliser le quota du forfait.</small><input name="storageQuotaOverrideGb" type="number" min="0.001" step="0.001" defaultValue={account.storageQuotaOverrideBytes ? account.storageQuotaOverrideBytes / 1024 ** 3 : ''} /></label><footer><button type="button" className="button ghost" onClick={onClose}>Annuler</button><button className="button primary" disabled={saving}>{saving && <LoaderCircle className="spin" size={16} />}Enregistrer</button></footer></form></div>;
+  return <div className="admin-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><form className="admin-modal" onSubmit={submit}><header><div><p className="eyebrow">Compte client</p><h2>{account.name}</h2></div><button type="button" onClick={onClose}><X /></button></header><label>Nom du compte<input name="name" defaultValue={account.name} required /></label><label>Forfait<select name="planCode" value={planCode} onChange={(event) => setPlanCode(event.target.value)}>{plans.filter((plan) => !plan.isDemoPlan && (plan.active || plan.code === account.planCode)).map((plan) => <option key={plan.code} value={plan.code}>{plan.name}</option>)}</select></label>{selectedPlan && <div className="account-plan-summary"><div><span>Mensuel</span><strong>{formatPrice(selectedPlan.monthlyPriceCents, '')}</strong></div><div><span>Annuel</span><strong>{formatPrice(selectedPlan.annualPriceCents, '')}</strong></div><div><span>Quota</span><strong>{formatBytes(selectedPlan.storageQuotaBytes)}</strong></div><div><span>Essai</span><strong>{selectedPlan.trialDays} jours</strong></div></div>}<label>État d’accès<select name="accessStatus" defaultValue={account.accessStatus}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>Fin de l’essai<input name="trialEndsAt" type="datetime-local" defaultValue={toLocalDate(account.trialEndsAt)} /></label><label>Quota exceptionnel en Go <small>Laisser vide pour utiliser le quota du forfait.</small><input name="storageQuotaOverrideGb" type="number" min="0.001" step="0.001" defaultValue={account.storageQuotaOverrideBytes ? account.storageQuotaOverrideBytes / 1024 ** 3 : ''} /></label><footer><button type="button" className="button ghost" onClick={onClose}>Annuler</button><button className="button primary" disabled={saving}>{saving && <LoaderCircle className="spin" size={16} />}Enregistrer</button></footer></form></div>;
 }
 
 function PlanEditor({ target, onClose, onSaved, onError }: { target: PlanEditorTarget; onClose: () => void; onSaved: () => void; onError: (message: string) => void }) {
   const current = target.mode === 'edit' ? target.source : undefined;
   const template = target.source;
+  const demoPlan = current?.isDemoPlan ?? false;
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [synchronizing, setSynchronizing] = useState(false);
@@ -233,18 +234,21 @@ function PlanEditor({ target, onClose, onSaved, onError }: { target: PlanEditorT
       name: String(data.get('name')),
       description: String(data.get('description')),
       storageQuotaBytes: Math.round(Number(data.get('storageGb')) * 1024 ** 3),
-      monthlyPriceCents: price('monthlyPrice'),
-      annualPriceCents: price('annualPrice'),
-      trialDays: Number(data.get('trialDays')),
-      active: data.get('active') === 'on',
-      isDefault: data.get('isDefault') === 'on',
-      visibleOnWebsite: data.get('visibleOnWebsite') === 'on',
-      featuredOnWebsite: data.get('featuredOnWebsite') === 'on',
+      monthlyPriceCents: demoPlan ? null : price('monthlyPrice'),
+      annualPriceCents: demoPlan ? null : price('annualPrice'),
+      trialDays: demoPlan ? 0 : Number(data.get('trialDays')),
+      active: demoPlan || data.get('active') === 'on',
+      isDefault: !demoPlan && data.get('isDefault') === 'on',
+      visibleOnWebsite: !demoPlan && data.get('visibleOnWebsite') === 'on',
+      featuredOnWebsite: !demoPlan && data.get('featuredOnWebsite') === 'on',
       customLayoutsEnabled: data.get('customLayoutsEnabled') === 'on',
       playlistsEnabled: data.get('playlistsEnabled') === 'on',
       remoteControlEnabled: data.get('remoteControlEnabled') === 'on',
       maxProjects: String(data.get('maxProjects')).trim() ? Number(data.get('maxProjects')) : null,
-      displayOrder: Number(data.get('displayOrder')),
+      demoLifetimeHours: demoPlan ? Number(data.get('demoLifetimeHours')) : null,
+      demoMaxUploads: demoPlan ? Number(data.get('demoMaxUploads')) : null,
+      demoMaxFileBytes: demoPlan ? Math.round(Number(data.get('demoMaxFileMb')) * 1024 ** 2) : null,
+      displayOrder: demoPlan ? current?.displayOrder ?? 0 : Number(data.get('displayOrder')),
     };
     try {
       if (current) await api.updateAdminPlan(current.code, input);
@@ -272,20 +276,26 @@ function PlanEditor({ target, onClose, onSaved, onError }: { target: PlanEditorT
       setSynchronizing(false);
     }
   }
-  const deleteDisabled = Boolean(current?.isDefault || current?.accountCount);
+  const deleteDisabled = Boolean(current?.isDemoPlan || current?.isDefault || current?.accountCount);
   return <div className="admin-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <form className="admin-modal" onSubmit={submit}>
-      <header><div><p className="eyebrow">Catalogue commercial</p><h2>{title}</h2></div><button type="button" onClick={onClose}><X /></button></header>
+      <header><div><p className="eyebrow">{demoPlan ? 'Démonstration publique' : 'Catalogue commercial'}</p><h2>{title}</h2></div><button type="button" onClick={onClose}><X /></button></header>
       <label>Code<input name="code" defaultValue={current?.code ?? ''} disabled={Boolean(current)} required pattern="[a-z0-9][a-z0-9_-]{1,39}" placeholder={template ? `${template.code}-copie` : 'exemple-pro'} /></label>
       <label>Nom<input name="name" defaultValue={current?.name ?? (template ? `Copie de ${template.name}` : '')} required /></label>
       <label>Description<textarea name="description" defaultValue={template?.description ?? ''} rows={3} /></label>
       <div className="admin-form-grid">
         <label>Stockage en Go<input name="storageGb" type="number" min="0.001" step="0.001" defaultValue={template ? template.storageQuotaBytes / 1024 ** 3 : 5} required /></label>
-        <label>Durée d’essai<input name="trialDays" type="number" min="0" max="365" defaultValue={template?.trialDays ?? 14} required /></label>
-        <label>Prix mensuel (€)<input name="monthlyPrice" type="number" min="0" step="0.01" defaultValue={template?.monthlyPriceCents === null || template?.monthlyPriceCents === undefined ? '' : template.monthlyPriceCents / 100} /></label>
-        <label>Prix annuel (€)<input name="annualPrice" type="number" min="0" step="0.01" defaultValue={template?.annualPriceCents === null || template?.annualPriceCents === undefined ? '' : template.annualPriceCents / 100} /></label>
         <label>Nombre maximal de spectacles <small>Laisser vide pour un nombre illimité.</small><input name="maxProjects" type="number" min="1" max="10000" step="1" defaultValue={template?.maxProjects ?? ''} /></label>
-        <label>Ordre d’affichage<input name="displayOrder" type="number" min="0" max="10000" step="1" defaultValue={template?.displayOrder ?? 0} required /></label>
+        {demoPlan ? <>
+          <label>Durée d’inactivité en heures<input name="demoLifetimeHours" type="number" min="1" max="168" step="1" defaultValue={template?.demoLifetimeHours ?? 24} required /></label>
+          <label>Nombre maximal de fichiers importés<input name="demoMaxUploads" type="number" min="0" max="10000" step="1" defaultValue={template?.demoMaxUploads ?? 15} required /></label>
+          <label>Taille maximale par fichier en Mo<input name="demoMaxFileMb" type="number" min="0.001" step="0.001" defaultValue={(template?.demoMaxFileBytes ?? 5 * 1024 ** 2) / 1024 ** 2} required /></label>
+        </> : <>
+          <label>Durée d’essai<input name="trialDays" type="number" min="0" max="365" defaultValue={template?.trialDays ?? 14} required /></label>
+          <label>Prix mensuel (€)<input name="monthlyPrice" type="number" min="0" step="0.01" defaultValue={template?.monthlyPriceCents === null || template?.monthlyPriceCents === undefined ? '' : template.monthlyPriceCents / 100} /></label>
+          <label>Prix annuel (€)<input name="annualPrice" type="number" min="0" step="0.01" defaultValue={template?.annualPriceCents === null || template?.annualPriceCents === undefined ? '' : template.annualPriceCents / 100} /></label>
+          <label>Ordre d’affichage<input name="displayOrder" type="number" min="0" max="10000" step="1" defaultValue={template?.displayOrder ?? 0} required /></label>
+        </>}
       </div>
       <div className="admin-feature-access">
         <strong>Fonctionnalités disponibles</strong>
@@ -295,9 +305,9 @@ function PlanEditor({ target, onClose, onSaved, onError }: { target: PlanEditorT
           <label><input name="remoteControlEnabled" type="checkbox" defaultChecked={template?.remoteControlEnabled ?? true} />Télécommande</label>
         </div>
       </div>
-      <div className="admin-checks"><label><input name="active" type="checkbox" defaultChecked={template?.active ?? true} />Forfait actif</label><label><input name="isDefault" type="checkbox" defaultChecked={current?.isDefault ?? false} />Forfait par défaut</label><label><input name="visibleOnWebsite" type="checkbox" defaultChecked={current?.visibleOnWebsite ?? false} />Visible sur le site</label><label><input name="featuredOnWebsite" type="checkbox" defaultChecked={current?.featuredOnWebsite ?? false} />Mis en avant</label></div>
-      {current && <div className="stripe-sync"><button type="button" className="button ghost" disabled={saving || synchronizing} onClick={synchronizeStripe}>{synchronizing ? <LoaderCircle className="spin" size={16} /> : <CreditCard size={16} />}Synchroniser les tarifs Stripe</button><small>{stripeResult || 'Utilise exclusivement l’environnement Stripe configuré sur le serveur.'}</small></div>}
-      {current && <p className="plan-delete-note">{current.isDefault ? 'Le forfait par défaut ne peut pas être supprimé.' : current.accountCount > 0 ? `${current.accountCount} compte${current.accountCount > 1 ? 's utilisent' : ' utilise'} ce forfait.` : 'Ce forfait n’est attribué à aucun compte.'}</p>}
+      {demoPlan ? <p className="plan-delete-note">Ce forfait interne alimente les sessions temporaires ouvertes depuis la démonstration publique.</p> : <div className="admin-checks"><label><input name="active" type="checkbox" defaultChecked={template?.active ?? true} />Forfait actif</label><label><input name="isDefault" type="checkbox" defaultChecked={current?.isDefault ?? false} />Forfait par défaut</label><label><input name="visibleOnWebsite" type="checkbox" defaultChecked={current?.visibleOnWebsite ?? false} />Visible sur le site</label><label><input name="featuredOnWebsite" type="checkbox" defaultChecked={current?.featuredOnWebsite ?? false} />Mis en avant</label></div>}
+      {current && !demoPlan && <div className="stripe-sync"><button type="button" className="button ghost" disabled={saving || synchronizing} onClick={synchronizeStripe}>{synchronizing ? <LoaderCircle className="spin" size={16} /> : <CreditCard size={16} />}Synchroniser les tarifs Stripe</button><small>{stripeResult || 'Utilise exclusivement l’environnement Stripe configuré sur le serveur.'}</small></div>}
+      {current && <p className="plan-delete-note">{current.isDemoPlan ? 'Le forfait de démonstration est protégé et ne peut pas être supprimé.' : current.isDefault ? 'Le forfait par défaut ne peut pas être supprimé.' : current.accountCount > 0 ? `${current.accountCount} compte${current.accountCount > 1 ? 's utilisent' : ' utilise'} ce forfait.` : 'Ce forfait n’est attribué à aucun compte.'}</p>}
       <footer className={current ? 'with-delete' : ''}>{current && <button type="button" className={`button danger ${confirmDelete ? 'confirm' : ''}`} disabled={saving || deleteDisabled} onClick={removePlan}><Trash2 size={15} />{confirmDelete ? 'Confirmer la suppression' : 'Supprimer'}</button>}<span /><button type="button" className="button ghost" onClick={onClose}>Annuler</button><button className="button primary" disabled={saving}>{saving && <LoaderCircle className="spin" size={16} />}Enregistrer</button></footer>
     </form>
   </div>;

@@ -6,6 +6,10 @@ describe('commercial plan deletion', () => {
     expect(planDeletionError({ isDefault: true, accountCount: 0 })).toBe('Le forfait par défaut ne peut pas être supprimé.');
   });
 
+  it('refuse la suppression du forfait de démonstration', () => {
+    expect(planDeletionError({ isDefault: false, isDemoPlan: true, accountCount: 0 })).toBe('Le forfait de démonstration ne peut pas être supprimé.');
+  });
+
   it('refuse la suppression d’un forfait attribué', () => {
     expect(planDeletionError({ isDefault: false, accountCount: 3 })).toBe('Ce forfait est encore attribué à un ou plusieurs comptes.');
   });
@@ -92,12 +96,12 @@ describe('commercial plan features', () => {
     });
   });
 
-  it('laisse toutes les fonctions disponibles dans la démonstration', () => {
-    expect(planFeatures(configuredPlan, true)).toEqual({
-      customLayouts: true,
+  it('applique aussi la configuration au forfait de démonstration', () => {
+    expect(planFeatures(configuredPlan)).toEqual({
+      customLayouts: false,
       playlists: true,
-      remoteControl: true,
-      maxProjects: null,
+      remoteControl: false,
+      maxProjects: 3,
     });
   });
 

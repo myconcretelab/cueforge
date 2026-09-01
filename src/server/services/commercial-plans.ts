@@ -1,4 +1,5 @@
-export function planDeletionError(input: { isDefault: boolean; accountCount: number }): string | null {
+export function planDeletionError(input: { isDefault: boolean; isDemoPlan?: boolean; accountCount: number }): string | null {
+  if (input.isDemoPlan) return 'Le forfait de démonstration ne peut pas être supprimé.';
   if (input.isDefault) return 'Le forfait par défaut ne peut pas être supprimé.';
   if (input.accountCount > 0) return 'Ce forfait est encore attribué à un ou plusieurs comptes.';
   return null;
@@ -44,8 +45,7 @@ export interface PlanFeatures {
   maxProjects: number | null;
 }
 
-export function planFeatures(input: PlanFeatureInput, isDemo = false): PlanFeatures {
-  if (isDemo) return { customLayouts: true, playlists: true, remoteControl: true, maxProjects: null };
+export function planFeatures(input: PlanFeatureInput): PlanFeatures {
   return {
     customLayouts: input.customLayoutsEnabled,
     playlists: input.playlistsEnabled,

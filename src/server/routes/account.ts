@@ -3,6 +3,7 @@ import { accountUsage } from '../services/accounts.js';
 import { requireUser } from '../services/auth.js';
 import { billingSummaryForUser } from '../services/billing.js';
 import { accountCanUseBridge, planFeatures } from '../services/commercial-plans.js';
+import { demoLimitsForPlan } from '../services/demo.js';
 
 export async function accountRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/account', async (request, reply) => {
@@ -27,7 +28,8 @@ export async function accountRoutes(app: FastifyInstance): Promise<void> {
           accessStatus: account.accessStatus,
           isDemo: account.isDemo,
         }),
-        features: planFeatures(plan, account.isDemo),
+        features: planFeatures(plan),
+        demoLimits: account.isDemo ? demoLimitsForPlan(plan) : null,
         billing,
       },
     };

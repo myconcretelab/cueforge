@@ -12,7 +12,7 @@ import { db } from '../db/index.js';
 import { accountMemberships, categories, projects, tracks, trackSubcategories } from '../db/schema.js';
 import { DemoUploadError, insertTrackWithinQuota } from '../services/accounts.js';
 import { requireUser } from '../services/auth.js';
-import { demoMaxFileBytes } from '../services/demo.js';
+import { demoLimitsForUser } from '../services/demo.js';
 import { ownsProject } from '../services/ownership.js';
 import { parseByteRange } from '../services/range.js';
 import { reorderTracks } from '../services/reorder.js';
@@ -87,7 +87,8 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     const fields: Record<string, string> = {};
     let uploaded: { key: string; originalFilename: string; mimeType: string; size: number } | undefined;
     let stagedKey: string | undefined;
-    const userMaxAudioBytes = user.isDemo ? demoMaxFileBytes : maxAudioBytes;
+    const demoLimits = user.isDemo ? await demoLimitsForUser(user.id) : null;
+    const userMaxAudioBytes = demoLimits?.maxFileBytes ?? maxAudioBytes;
     await mkdir(config.STORAGE_PATH, { recursive: true });
 
     try {
@@ -112,7 +113,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
           transform(chunk: Buffer, _encoding, callback) {
             received += chunk.length;
             callback(received > userMaxAudioBytes
-              ? user.isDemo ? new DemoUploadError('file-too-large') : new Error('Fichier audio trop volumineux.')
+              ? demoLimits ? new DemoUploadError('file-too-large', demoLimits.maxFileBytes) : new Error('Fichier audio trop volumineux.')
               : null, chunk);
           },
         });
@@ -182,10 +183,11 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     if (!response.ok || !response.body) return reply.code(502).send({ error: 'Téléchargement Freesound impossible.' });
     const mimeType = response.headers.get('content-type')?.split(';')[0] ?? 'audio/mpeg';
     if (!isAcceptedAudio(mimeType, remoteUrl.pathname)) return reply.code(415).send({ error: 'Format Freesound non pris en charge.' });
-    const userMaxAudioBytes = user.isDemo ? demoMaxFileBytes : maxAudioBytes;
+    const demoLimits = user.isDemo ? await demoLimitsForUser(user.id) : null;
+    const userMaxAudioBytes = demoLimits?.maxFileBytes ?? maxAudioBytes;
     const announcedSize = Number(response.headers.get('content-length') ?? 0);
     if (announcedSize > userMaxAudioBytes) {
-      if (user.isDemo) throw new DemoUploadError('file-too-large');
+      if (demoLimits) throw new DemoUploadError('file-too-large', demoLimits.maxFileBytes);
       return reply.code(413).send({ error: 'Le fichier dépasse 250 Mo.' });
     }
 
@@ -197,7 +199,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
       transform(chunk: Buffer, _encoding, callback) {
         downloaded += chunk.length;
         callback(downloaded > userMaxAudioBytes
-          ? user.isDemo ? new DemoUploadError('file-too-large') : new Error('Fichier distant trop volumineux.')
+          ? demoLimits ? new DemoUploadError('file-too-large', demoLimits.maxFileBytes) : new Error('Fichier distant trop volumineux.')
           : null, chunk);
       },
     });

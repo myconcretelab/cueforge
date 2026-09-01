@@ -13,14 +13,44 @@ export { demoCategories, demoSounds } from './demo-catalog.js';
 export const demoLifetimeMs = 24 * 60 * 60 * 1000;
 export const demoMaxUploads = 15;
 export const demoMaxFileBytes = 5 * 1024 * 1024;
-export const demoStorageQuotaBytes = 80 * 1024 * 1024;
 
-export function demoExpiration(now = new Date()): Date {
-  return new Date(now.getTime() + demoLifetimeMs);
+export interface DemoLimits {
+  lifetimeHours: number;
+  maxUploads: number;
+  maxFileBytes: number;
+}
+
+export function demoLimitsForPlan(plan: { demoLifetimeHours: number | null; demoMaxUploads: number | null; demoMaxFileBytes: number | null }): DemoLimits {
+  return {
+    lifetimeHours: plan.demoLifetimeHours ?? 24,
+    maxUploads: plan.demoMaxUploads ?? demoMaxUploads,
+    maxFileBytes: plan.demoMaxFileBytes ?? demoMaxFileBytes,
+  };
+}
+
+export function demoExpiration(now = new Date(), lifetimeHours = 24): Date {
+  return new Date(now.getTime() + lifetimeHours * 60 * 60 * 1000);
+}
+
+export async function demoLimitsForUser(userId: string): Promise<DemoLimits> {
+  const [plan] = await db.select({
+    demoLifetimeHours: plans.demoLifetimeHours,
+    demoMaxUploads: plans.demoMaxUploads,
+    demoMaxFileBytes: plans.demoMaxFileBytes,
+  }).from(accountMemberships)
+    .innerJoin(accounts, eq(accountMemberships.accountId, accounts.id))
+    .innerJoin(plans, eq(accounts.planCode, plans.code))
+    .where(and(eq(accountMemberships.userId, userId), eq(accounts.isDemo, true)))
+    .limit(1);
+  if (!plan) throw new Error('Forfait de démonstration introuvable.');
+  return demoLimitsForPlan(plan);
 }
 
 export async function createDemoWorkspace(now = new Date()): Promise<User> {
   await mkdir(config.STORAGE_PATH, { recursive: true });
+  const [demoPlan] = await db.select().from(plans).where(and(eq(plans.isDemoPlan, true), eq(plans.active, true))).limit(1);
+  if (!demoPlan) throw new Error('Aucun forfait de démonstration actif n’est configuré.');
+  const demoLimits = demoLimitsForPlan(demoPlan);
   const seededFiles = await Promise.all(demoSounds.map(async (sound) => ({
     ...sound,
     key: `${randomUUID()}.mp3`,
@@ -30,8 +60,6 @@ export async function createDemoWorkspace(now = new Date()): Promise<User> {
   try {
     await Promise.all(seededFiles.map((file) => writeFile(path.join(config.STORAGE_PATH, file.key), file.content, { flag: 'wx' })));
     return await db.transaction(async (transaction) => {
-      const [defaultPlan] = await transaction.select().from(plans).where(eq(plans.isDefault, true)).limit(1);
-      if (!defaultPlan) throw new Error('Aucun forfait par défaut n’est configuré.');
       const id = randomUUID();
       const [user] = await transaction.insert(users).values({
         id,
@@ -39,15 +67,14 @@ export async function createDemoWorkspace(now = new Date()): Promise<User> {
         displayName: 'Visiteur',
         passwordHash: 'demo-session',
         isDemo: true,
-        demoExpiresAt: demoExpiration(now),
+        demoExpiresAt: demoExpiration(now, demoLimits.lifetimeHours),
         lastSeenRelease: CURRENT_VERSION,
       }).returning();
       const [account] = await transaction.insert(accounts).values({
         name: 'Démo SonoRiva',
-        planCode: defaultPlan.code,
+        planCode: demoPlan.code,
         accessStatus: 'active',
         isDemo: true,
-        storageQuotaOverrideBytes: demoStorageQuotaBytes,
       }).returning();
       await transaction.insert(accountMemberships).values({ accountId: account.id, userId: user.id, role: 'owner' });
       await transaction.insert(subscriptions).values({ accountId: account.id });
