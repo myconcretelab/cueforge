@@ -1130,6 +1130,14 @@ html[data-skin='studio'] .settings-shortcut-row,
 html[data-skin='studio'] .automatic-update-setting { border-radius: 1px; background: #1b1814; }
 html[data-skin='studio'] .statusbar { border-top: 3px double #594631; color: #8f816d; background: #13110e; font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; }
 
+@media (min-width: 901px) and (max-width: 1380px) {
+  html[data-skin='studio'] .topbar { min-height: 0; flex-wrap: wrap; }
+  html[data-skin='studio'] .topbar-title { margin-right: auto; }
+  html[data-skin='studio'] .topbar-console { order: 3; width: 100%; margin-left: 0; }
+  html[data-skin='studio'] .console-module.next-volume { flex: 1; }
+  html[data-skin='studio'] .top-actions { margin-left: auto; }
+}
+
 @media (max-width: 560px) {
   .skin-options { grid-template-columns: 1fr; }
   html[data-skin='studio'] .topbar { border-bottom-width: 1px; }
