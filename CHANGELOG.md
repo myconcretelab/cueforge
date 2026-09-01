@@ -2,6 +2,22 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.13.0] - 2026-09-01
+
+### Ajouté
+
+- sauvegarde locale des dispositions personnalisées sous un nom choisi par l’utilisateur ;
+- chargement et suppression des dispositions enregistrées depuis l’éditeur de l’interface.
+
+### Modifié
+
+- grille de disposition fixée à douze colonnes et retrait du sélecteur 6/8/12 ;
+- conversion automatique des anciennes dispositions enregistrées vers la grille à douze colonnes ;
+- cartes de catégories maintenues au format carré quelle que soit la hauteur de leur bloc ;
+- sélecteur Noms/Tags remplacé par un switch segmenté ;
+- commandes de gestion des catégories rapprochées de leur titre et espacement augmenté entre Freesound et le raccourci de recherche ;
+- passage de l’application à la version `1.13.0`.
+
 ## [1.12.0] - 2026-09-01
 
 ### Ajouté

@@ -11,6 +11,20 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.13.0',
+    date: '2026-09-01',
+    title: 'Dispositions nommées et interface affinée',
+    summary: 'Les dispositions personnalisées peuvent être enregistrées sous un nom et plusieurs commandes de l’espace de travail gagnent en clarté.',
+    important: false,
+    changes: [
+      'Une disposition personnalisée peut être nommée, chargée et supprimée depuis l’éditeur.',
+      'La grille interne est fixée à douze colonnes et le choix 6/8/12 est retiré.',
+      'Les cartes de catégories conservent une forme carrée et leurs commandes sont placées près du titre.',
+      'Les modes Noms et Tags utilisent un switch, avec plus d’espace entre Freesound et le raccourci.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.12.0',
     date: '2026-09-01',
     title: 'Modules repliables',

@@ -6,7 +6,9 @@ SonoRiva utilise quatre niveaux d’organisation : spectacles, catégories, coul
 
 Le bouton **Disposition de l’interface** de la barre supérieure ouvre l’éditeur des cinq blocs : actions de déclenchement, catégories, soundboard, lectures en cours et playlist.
 
-Quatre modèles sont disponibles : **Régie classique**, **Régie compacte**, **Playlist verticale** et **Playlist principale**. Le modèle **Playlist verticale** place la playlist sur toute la hauteur de la grille. La grille utilise six, huit ou douze colonnes. Le bloc Catégories occupe au minimum trois rangées afin d’afficher ses cartes entièrement.
+Quatre modèles sont disponibles : **Régie classique**, **Régie compacte**, **Playlist verticale** et **Playlist principale**. Le modèle **Playlist verticale** place la playlist sur toute la hauteur de la grille. La grille interne utilise toujours douze colonnes. Le bloc Catégories occupe au minimum trois rangées afin d’afficher ses cartes entièrement.
+
+Le bouton **Enregistrer** associe un nom à la disposition actuelle. Les dispositions ainsi créées apparaissent dans le groupe **Mes dispositions** du sélecteur et peuvent être chargées ou supprimées depuis le même éditeur. Enregistrer de nouveau une disposition identique la renomme ; enregistrer sous un nom existant remplace son contenu. Ces configurations sont conservées localement dans le navigateur pour chaque utilisateur.
 
 Dans le modèle **Régie compacte**, les lectures occupent toute la hauteur de la colonne droite. Le bouton **Playlist** fixé en bas de cette colonne ouvre le panneau sous les lecteurs et indique le nombre de morceaux présents. Un morceau glissé sur ce bouton ouvre le tiroir et peut être déposé directement dans la playlist. La séparation supérieure du panneau règle sa hauteur à la souris ; les flèches haut et bas la modifient lorsqu’elle possède le focus clavier. L’état ouvert et la hauteur sont enregistrés avec la disposition locale. Sur mobile, la playlist reste un bloc vertical permanent.
 
@@ -33,7 +35,7 @@ La suppression retire le spectacle, ses catégories, ses pistes, ses playlists e
 
 ## Catégories
 
-Une catégorie regroupe des pistes. La catégorie sélectionnée filtre la grille ; **Tous les sons** affiche l’ensemble des pistes du spectacle.
+Une catégorie regroupe des pistes. La catégorie sélectionnée filtre la grille ; **Tous les sons** affiche l’ensemble des pistes du spectacle. Les cartes de catégories restent carrées et leur largeur est réglable avec la poignée située à droite de la rangée.
 
 Les catégories possèdent un nom, une couleur et un ordre. Leur ordre est modifiable par glisser-déposer.
 
@@ -74,7 +76,7 @@ La suppression d’une couleur de la palette ne modifie pas les pistes qui utili
 
 Chaque morceau peut contenir jusqu’à 30 tags de 40 caractères. Les tags sont ajoutés ou supprimés depuis les réglages du morceau. La touche Entrée ou une virgule valide le texte saisi.
 
-Le sélecteur de la barre de recherche propose deux modes : **Noms**, sélectionné par défaut, recherche dans le titre du morceau et le nom du fichier ; **Tags** recherche uniquement dans les tags. Plusieurs mots saisis en mode **Tags** doivent tous correspondre à au moins un tag du morceau.
+Le switch de la barre de recherche propose deux modes : **Noms**, sélectionné par défaut, recherche dans le titre du morceau et le nom du fichier ; **Tags** recherche uniquement dans les tags. Plusieurs mots saisis en mode **Tags** doivent tous correspondre à au moins un tag du morceau.
 
 Les tags fournis par Freesound sont enregistrés automatiquement avec les morceaux importés depuis ce service.
 

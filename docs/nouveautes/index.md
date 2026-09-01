@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.13.0 — 1er septembre 2026
+
+- dispositions personnalisées enregistrables sous un nom ;
+- grille simplifiée et fixée à douze colonnes ;
+- catégories carrées et barre de recherche réorganisée.
+
+[Détails de la version 1.13.0](./1.13.0.md)
+
 ## Version 1.12.0 — 1er septembre 2026
 
 - Playlist et Actions de déclenchement repliables en une barre compacte ;

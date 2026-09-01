@@ -28,6 +28,12 @@ export interface WorkspaceLayout {
   compactPlaylistRows: number;
 }
 
+export interface SavedWorkspaceLayout {
+  id: string;
+  name: string;
+  layout: WorkspaceLayout;
+}
+
 export const workspaceBlockLabels: Record<WorkspaceBlockId, string> = {
   actions: 'Actions de déclenchement',
   categories: 'Catégories',
@@ -214,7 +220,7 @@ export function readWorkspaceLayout(serialized: string | null): WorkspaceLayout 
     const expandedItems = Array.isArray(storedItems) ? expandCategorySpace(storedItems) : storedItems;
     const items = Array.isArray(expandedItems) && layoutItemsAreValid(expandedItems, value.columns, dock, compactPlaylistEnabled) ? expandedItems : storedItems;
     if (!workspaceLayoutColumns.includes(value.columns) || !Array.isArray(items) || !layoutItemsAreValid(items, value.columns, dock, compactPlaylistEnabled)) return createWorkspaceLayout();
-    return {
+    const restored: WorkspaceLayout = {
       columns: value.columns,
       preset: value.preset in workspacePresetLabels || value.preset === 'custom' ? value.preset : 'custom',
       items,
@@ -224,6 +230,7 @@ export function readWorkspaceLayout(serialized: string | null): WorkspaceLayout 
       compactPlaylistOpen: compactPlaylistEnabled ? !collapsed.includes('playlist') : Boolean(value.compactPlaylistOpen),
       compactPlaylistRows: clamp(value.compactPlaylistRows ?? 6, compactPlaylistMinimumRows, compactPlaylistMaximumRows),
     };
+    return workspaceLayoutWithColumns(restored, 12);
   } catch {
     return createWorkspaceLayout();
   }
@@ -231,6 +238,53 @@ export function readWorkspaceLayout(serialized: string | null): WorkspaceLayout 
 
 export function workspaceLayoutStorageKey(userId: string): string {
   return `sonoriva-workspace-layout:${userId}`;
+}
+
+export function workspaceSavedLayoutsStorageKey(userId: string): string {
+  return `sonoriva-workspace-layouts:${userId}`;
+}
+
+export function workspaceLayoutSnapshot(layout: WorkspaceLayout): WorkspaceLayout {
+  const normalized = workspaceLayoutWithColumns(layout, 12);
+  return {
+    ...normalized,
+    preset: 'custom',
+    items: normalized.items.map((item) => ({ ...item })),
+    dock: [...normalized.dock],
+    collapsed: [...normalized.collapsed],
+  };
+}
+
+export function readSavedWorkspaceLayouts(serialized: string | null): SavedWorkspaceLayout[] {
+  if (!serialized) return [];
+  try {
+    const values = JSON.parse(serialized) as unknown;
+    if (!Array.isArray(values)) return [];
+    return values.flatMap((value): SavedWorkspaceLayout[] => {
+      if (!value || typeof value !== 'object') return [];
+      const candidate = value as Partial<SavedWorkspaceLayout>;
+      const name = typeof candidate.name === 'string' ? candidate.name.trim().slice(0, 60) : '';
+      if (typeof candidate.id !== 'string' || !candidate.id || !name || !candidate.layout) return [];
+      return [{ id: candidate.id, name, layout: workspaceLayoutSnapshot(readWorkspaceLayout(JSON.stringify(candidate.layout))) }];
+    });
+  } catch {
+    return [];
+  }
+}
+
+export function workspaceLayoutsMatch(first: WorkspaceLayout, second: WorkspaceLayout): boolean {
+  const comparable = (layout: WorkspaceLayout) => {
+    const normalized = workspaceLayoutWithColumns(layout, 12);
+    return {
+      items: normalized.items,
+      dock: normalized.dock,
+      collapsed: normalized.collapsed,
+      compactPlaylistEnabled: normalized.compactPlaylistEnabled,
+      compactPlaylistOpen: normalized.compactPlaylistOpen,
+      compactPlaylistRows: normalized.compactPlaylistRows,
+    };
+  };
+  return JSON.stringify(comparable(first)) === JSON.stringify(comparable(second));
 }
 
 function replaceWorkspaceItem(layout: WorkspaceLayout, nextItem: WorkspaceLayoutItem): WorkspaceLayout {

@@ -3,6 +3,7 @@ import {
   createWorkspaceLayout,
   dockWorkspaceItem,
   moveWorkspaceItem,
+  readSavedWorkspaceLayouts,
   readWorkspaceLayout,
   resizeWorkspaceItem,
   setWorkspaceItemCollapsed,
@@ -11,8 +12,11 @@ import {
   workspaceItemIsDocked,
   workspaceItemIsCollapsed,
   workspaceLayoutItem,
+  workspaceLayoutsMatch,
+  workspaceLayoutSnapshot,
   workspaceLayoutStorageKey,
   workspaceLayoutWithColumns,
+  workspaceSavedLayoutsStorageKey,
 } from '../src/client/lib/workspace-layout';
 
 describe('workspace layout', () => {
@@ -57,6 +61,12 @@ describe('workspace layout', () => {
     const layout = workspaceLayoutWithColumns(createWorkspaceLayout('classic'), 6);
     expect(workspaceLayoutItem(layout, 'categories')).toMatchObject({ x: 0, w: 5 });
     expect(workspaceLayoutItem(layout, 'players')).toMatchObject({ x: 5, w: 1 });
+  });
+
+  it('normalizes persisted layouts to the fixed twelve-column grid', () => {
+    const restored = readWorkspaceLayout(JSON.stringify(createWorkspaceLayout('classic', 6)));
+    expect(restored.columns).toBe(12);
+    expect(workspaceLayoutItem(restored, 'players')).toMatchObject({ x: 10, w: 2 });
   });
 
   it('rejects moves and resizes that overlap another block', () => {
@@ -135,5 +145,16 @@ describe('workspace layout', () => {
 
   it('uses a distinct persistence key for each user', () => {
     expect(workspaceLayoutStorageKey('user-a')).not.toBe(workspaceLayoutStorageKey('user-b'));
+    expect(workspaceSavedLayoutsStorageKey('user-a')).not.toBe(workspaceSavedLayoutsStorageKey('user-b'));
+  });
+
+  it('reads named layouts and compares them independently from their preset label', () => {
+    const layout = createWorkspaceLayout('playlist-focus');
+    const serialized = JSON.stringify([{ id: 'layout-1', name: '  Ma régie  ', layout }]);
+    const saved = readSavedWorkspaceLayouts(serialized);
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({ id: 'layout-1', name: 'Ma régie', layout: { columns: 12, preset: 'custom' } });
+    expect(workspaceLayoutsMatch(saved[0]!.layout, layout)).toBe(true);
+    expect(workspaceLayoutSnapshot(layout)).not.toBe(layout);
   });
 });

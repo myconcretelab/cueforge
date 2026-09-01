@@ -39,7 +39,7 @@ import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCat
 import { intersectsSelection, type SelectionRectangle } from './lib/track-selection';
 import { normalizeTrackTags, trackMatchesSearch, type TrackSearchScope } from './lib/track-tags';
 import { canDropTrackInSubcategoryDrawer, trackDropPlacement, trackIdAfterTarget } from './lib/track-subcategories';
-import { compactPlaylistMaximumRows, compactPlaylistMinimumRows, createWorkspaceLayout, dockWorkspaceItem, moveWorkspaceItem, placeWorkspaceItemOnGrid, readWorkspaceLayout, resizeWorkspaceItem, setWorkspaceItemCollapsed, swapWorkspaceItems, workspaceBlockLabels, workspaceDockableBlockIds, workspaceDockItems, workspaceItemIsCollapsed, workspaceItemIsDocked, workspaceLayoutItem, workspaceLayoutStorageKey, workspaceLayoutWithColumns, workspaceLayoutRows, type WorkspaceBlockId } from './lib/workspace-layout';
+import { compactPlaylistMaximumRows, compactPlaylistMinimumRows, createWorkspaceLayout, dockWorkspaceItem, moveWorkspaceItem, placeWorkspaceItemOnGrid, readSavedWorkspaceLayouts, readWorkspaceLayout, resizeWorkspaceItem, setWorkspaceItemCollapsed, swapWorkspaceItems, workspaceBlockLabels, workspaceDockableBlockIds, workspaceDockItems, workspaceItemIsCollapsed, workspaceItemIsDocked, workspaceLayoutItem, workspaceLayoutsMatch, workspaceLayoutSnapshot, workspaceLayoutStorageKey, workspaceLayoutRows, workspaceSavedLayoutsStorageKey, type SavedWorkspaceLayout, type WorkspaceBlockId } from './lib/workspace-layout';
 import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcutKey, ReleaseInfo, RemoteCommand, Track, TrackSubcategory, User } from './types';
 
 const colors = ['#22d3b6', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
@@ -125,6 +125,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [layoutEditing, setLayoutEditing] = useState(false);
   const [workspaceLayout, setWorkspaceLayout] = useState(() => createWorkspaceLayout());
+  const [savedWorkspaceLayouts, setSavedWorkspaceLayouts] = useState<SavedWorkspaceLayout[]>([]);
   const [playlistItems, setPlaylistItems] = useState<PlaylistQueueItem[]>([]);
   const [playlistOptions, setPlaylistOptions] = useState<PlaylistOptions>({ name: 'Nouvelle playlist', color: '#8b5cf6', autostart: false, loop: false, random: false, showNextButton: false, gapMs: 0, crossfadeMs: 0 });
   const [playlistOptionsOpen, setPlaylistOptionsOpen] = useState(false);
@@ -266,10 +267,11 @@ export default function App() {
 
   useEffect(() => { if (user) loadProjects().catch((cause) => setError(cause.message)); }, [user, loadProjects]);
   useEffect(() => {
-    if (!workspaceUserId) return;
+    if (!workspaceUserId) { setSavedWorkspaceLayouts([]); return; }
     workspaceLayoutHydratedRef.current = false;
     workspaceLayoutUserRef.current = workspaceUserId;
     setWorkspaceLayout(readWorkspaceLayout(localStorage.getItem(workspaceLayoutStorageKey(workspaceUserId))));
+    setSavedWorkspaceLayouts(readSavedWorkspaceLayouts(localStorage.getItem(workspaceSavedLayoutsStorageKey(workspaceUserId))));
   }, [workspaceUserId]);
   useEffect(() => {
     if (!workspaceUserId || workspaceLayoutUserRef.current !== workspaceUserId) return;
@@ -1909,6 +1911,31 @@ export default function App() {
     });
   }
 
+  function saveNamedWorkspaceLayout(name: string) {
+    if (!workspaceUserId) return;
+    const normalizedName = name.trim().slice(0, 60);
+    if (!normalizedName) return;
+    const snapshot = workspaceLayoutSnapshot(workspaceLayout);
+    const existing = savedWorkspaceLayouts.find((item) => item.name.toLocaleLowerCase('fr') === normalizedName.toLocaleLowerCase('fr'))
+      ?? savedWorkspaceLayouts.find((item) => workspaceLayoutsMatch(item.layout, snapshot));
+    const saved: SavedWorkspaceLayout = { id: existing?.id ?? crypto.randomUUID(), name: normalizedName, layout: snapshot };
+    const next = [...savedWorkspaceLayouts.filter((item) => item.id !== existing?.id && item.name.toLocaleLowerCase('fr') !== normalizedName.toLocaleLowerCase('fr') && !workspaceLayoutsMatch(item.layout, snapshot)), saved];
+    localStorage.setItem(workspaceSavedLayoutsStorageKey(workspaceUserId), JSON.stringify(next));
+    setSavedWorkspaceLayouts(next);
+  }
+
+  function loadNamedWorkspaceLayout(id: string) {
+    const saved = savedWorkspaceLayouts.find((item) => item.id === id);
+    if (saved) setWorkspaceLayout(workspaceLayoutSnapshot(saved.layout));
+  }
+
+  function deleteNamedWorkspaceLayout(id: string) {
+    if (!workspaceUserId) return;
+    const next = savedWorkspaceLayouts.filter((item) => item.id !== id);
+    localStorage.setItem(workspaceSavedLayoutsStorageKey(workspaceUserId), JSON.stringify(next));
+    setSavedWorkspaceLayouts(next);
+  }
+
   function toggleWorkspaceModule(id: 'actions' | 'playlist') {
     setWorkspaceLayout((current) => setWorkspaceItemCollapsed(current, id, !workspaceItemIsCollapsed(current, id)));
   }
@@ -1954,6 +1981,8 @@ export default function App() {
     </WorkspaceLayoutBlock>;
   }
 
+  const activeSavedWorkspaceLayoutId = savedWorkspaceLayouts.find((item) => workspaceLayoutsMatch(item.layout, workspaceLayout))?.id;
+
   return <div className={`app-shell ${remote ? 'remote-mode' : ''}`}>
     <aside className={sidebarOpen ? 'sidebar open' : 'sidebar'}>
       <header className="brand"><span className="brand-mark small" aria-hidden="true">SR</span><strong>SonoRiva</strong><button className="icon-button sidebar-close" onClick={() => setSidebarOpen(false)}><X /></button></header>
@@ -1993,10 +2022,12 @@ export default function App() {
         </div>
       </header>
 
-      {!remote && layoutEditing && <WorkspaceLayoutToolbar columns={workspaceLayout.columns} preset={workspaceLayout.preset}
-        onColumnsChange={(columns) => setWorkspaceLayout((current) => workspaceLayoutWithColumns(current, columns))}
-        onPresetChange={(preset) => setWorkspaceLayout(createWorkspaceLayout(preset, workspaceLayout.columns))}
-        onReset={() => setWorkspaceLayout(createWorkspaceLayout('classic', workspaceLayout.columns))}
+      {!remote && layoutEditing && <WorkspaceLayoutToolbar preset={workspaceLayout.preset} savedLayouts={savedWorkspaceLayouts} activeSavedLayoutId={activeSavedWorkspaceLayoutId}
+        onPresetChange={(preset) => setWorkspaceLayout(createWorkspaceLayout(preset))}
+        onSavedLayoutChange={loadNamedWorkspaceLayout}
+        onSave={saveNamedWorkspaceLayout}
+        onDeleteSaved={deleteNamedWorkspaceLayout}
+        onReset={() => setWorkspaceLayout(createWorkspaceLayout('classic'))}
         onClose={() => setLayoutEditing(false)} />}
       <div className={`workspace-layout-grid ${layoutEditing ? 'is-editing' : ''} ${compactPlaylistLayout ? 'has-compact-playlist' : ''} ${workspaceLayout.compactPlaylistOpen ? 'is-compact-playlist-open' : ''}`} style={{ '--workspace-columns': workspaceLayout.columns } as React.CSSProperties}
         onDragOver={(event) => { if (!layoutEditing || !event.dataTransfer.types.includes(workspaceBlockMime)) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; }}
@@ -2071,7 +2102,7 @@ export default function App() {
           onResize={(id, width, height) => setWorkspaceLayout((current) => resizeWorkspaceItem(current, id, width, height))}>
 
       <section className="dashboard" aria-label="Tableau de bord des morceaux">
-        <div className="search"><select className="search-scope" aria-label="Rechercher par" value={searchScope} onChange={(event) => setSearchScope(event.target.value as TrackSearchScope)}><option value="name">Noms</option><option value="tags">Tags</option></select><Search size={18} /><input ref={searchInputRef} aria-label={searchScope === 'tags' ? 'Rechercher des tags' : 'Rechercher un son par son nom'} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchScope === 'tags' ? 'Rechercher des tags…' : 'Rechercher un son…'} />{!remote && <button type="button" className="search-freesound" onClick={() => { setFreesoundAutoSearch(true); setFreesoundOpen(true); }} aria-label={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Ouvrir la recherche Freesound'} title={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Rechercher sur Freesound'}><Waves size={17} /></button>}<kbd>{formatShortcut(projectShortcut(detail?.project ?? {}, 'searchShortcut'))}</kbd></div>
+        <div className="search"><div className="search-scope" role="group" aria-label="Champ de recherche"><button type="button" className={searchScope === 'name' ? 'active' : ''} aria-pressed={searchScope === 'name'} onClick={() => setSearchScope('name')}>Noms</button><button type="button" className={searchScope === 'tags' ? 'active' : ''} aria-pressed={searchScope === 'tags'} onClick={() => setSearchScope('tags')}>Tags</button></div><Search size={18} /><input ref={searchInputRef} aria-label={searchScope === 'tags' ? 'Rechercher des tags' : 'Rechercher un son par son nom'} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchScope === 'tags' ? 'Rechercher des tags…' : 'Rechercher un son…'} /><span className="search-end-actions">{!remote && <button type="button" className="search-freesound" onClick={() => { setFreesoundAutoSearch(true); setFreesoundOpen(true); }} aria-label={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Ouvrir la recherche Freesound'} title={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Rechercher sur Freesound'}><Waves size={17} /></button>}<kbd>{formatShortcut(projectShortcut(detail?.project ?? {}, 'searchShortcut'))}</kbd></span></div>
         <div className="dashboard-actions">
           {!remote && <button className={`dashboard-button ${preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'is-loaded' : ''}`} onClick={() => preloadCategory()} disabled={!tracksToPreload.length || Boolean(preloadProgress) || preloadedInCategory === tracksToPreload.length}
             aria-label={preloadProgress ? `Mise hors ligne ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'}>
