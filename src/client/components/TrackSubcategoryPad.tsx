@@ -1,4 +1,5 @@
 import { ChevronDown, Folder, MoreHorizontal, Music2 } from 'lucide-react';
+import { contrastColor } from '../lib/color-contrast';
 import type { Track, TrackSubcategory } from '../types';
 
 interface Props {
@@ -18,7 +19,7 @@ interface Props {
 
 export function TrackSubcategoryPad({ subcategory, tracks, open, reorderEnabled, dropTarget, positionTarget, onToggle, onEdit, onDragOver, onDrop, onDragStart, onDragEnd }: Props) {
   const previews = tracks.slice(0, 4);
-  return <article className={`track-pad subcategory-pad ${open ? 'is-open' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${dropTarget ? 'is-drop-target' : ''} ${positionTarget ? `reorder-position-target drop-${positionTarget}` : ''}`} style={{ '--track-color': subcategory.color } as React.CSSProperties} draggable={reorderEnabled}
+  return <article className={`track-pad subcategory-pad ${open ? 'is-open' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${dropTarget ? 'is-drop-target' : ''} ${positionTarget ? `reorder-position-target drop-${positionTarget}` : ''}`} style={{ '--track-color': subcategory.color, '--track-contrast': contrastColor(subcategory.color) } as React.CSSProperties} draggable={reorderEnabled}
     onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}>
     <span className="subcategory-count-badge" aria-label={`${tracks.length} morceau${tracks.length !== 1 ? 'x' : ''}`}>{tracks.length > 99 ? '99+' : tracks.length}</span>
     <span className="subcategory-edge-title">{subcategory.name}</span>
