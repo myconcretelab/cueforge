@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.15.0 — 1er septembre 2026
+
+- accès aux dispositions personnalisées, aux playlists et à la télécommande défini par forfait ;
+- nombre maximal de spectacles configurable ou illimité ;
+- données existantes conservées lorsqu’une fonctionnalité devient indisponible.
+
+[Détails de la version 1.15.0](./1.15.0.md)
+
 ## Version 1.14.1 — 1er septembre 2026
 
 - quinze vrais sons Freesound dans chacune des huit catégories ;

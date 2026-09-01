@@ -1,16 +1,17 @@
 import { unlink } from 'node:fs/promises';
 import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { db } from '../db/index.js';
-import { categories, playlistItems, playlists, projectColors, projects, tracks, trackSubcategories } from '../db/schema.js';
+import { accounts, categories, playlistItems, playlists, projectColors, projects, tracks, trackSubcategories } from '../db/schema.js';
 import { requireUser } from '../services/auth.js';
 import { sameIds } from '../services/order.js';
 import { ownsProject } from '../services/ownership.js';
-import { accountForUser } from '../services/accounts.js';
+import { accountForUser, accountForUserProject } from '../services/accounts.js';
 import { playlistRowsAreValid } from '../services/playlist-rows.js';
+import { planFeatures, projectLimitReached } from '../services/commercial-plans.js';
 
 const idParams = z.object({ id: z.string().uuid() });
 const mouseActionSchema = z.enum(['start', 'crossfade', 'fade-in', 'replace', 'stop', 'none']);
@@ -33,6 +34,11 @@ const playlistInputSchema = z.object({
   items: items ?? trackIds!.map((trackId, rowIndex) => ({ trackId, rowIndex })),
 }));
 
+async function userCanUsePlaylists(userId: string, projectId: string): Promise<boolean> {
+  const account = await accountForUserProject(userId, projectId);
+  return account ? planFeatures(account.plan, account.account.isDemo).playlists : false;
+}
+
 export async function projectRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/projects', async (request, reply) => {
     const user = await requireUser(request, reply);
@@ -50,9 +56,18 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     const account = await accountForUser(user.id);
     if (!account) return reply.code(404).send({ error: 'Espace de travail introuvable.' });
     const input = z.object({ name: z.string().trim().min(1).max(120) }).parse(request.body);
-    const ownerProjects = await db.select({ position: projects.position }).from(projects).where(eq(projects.accountId, account.account.id));
-    const position = Math.max(-1, ...ownerProjects.map((project) => project.position)) + 1;
-    const [project] = await db.insert(projects).values({ accountId: account.account.id, name: input.name, position }).returning();
+    const features = planFeatures(account.plan, account.account.isDemo);
+    const project = await db.transaction(async (transaction) => {
+      await transaction.execute(sql`select ${accounts.id} from ${accounts} where ${accounts.id} = ${account.account.id} for update`);
+      const ownerProjects = await transaction.select({ position: projects.position }).from(projects).where(eq(projects.accountId, account.account.id));
+      if (projectLimitReached(features.maxProjects, ownerProjects.length)) return null;
+      const position = Math.max(-1, ...ownerProjects.map((ownerProject) => ownerProject.position)) + 1;
+      const [created] = await transaction.insert(projects).values({ accountId: account.account.id, name: input.name, position }).returning();
+      return created;
+    });
+    if (!project) {
+      return reply.code(403).send({ error: `Votre forfait est limité à ${features.maxProjects} spectacle${features.maxProjects === 1 ? '' : 's'}.` });
+    }
     return reply.code(201).send({ project });
   });
 
@@ -133,6 +148,9 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       maxActivePlaybacks: z.number().int().min(1).max(16).optional(),
       compactPlaybackThreshold: z.number().int().min(1).max(16).optional(),
     }).refine((value) => Object.keys(value).length > 0, { message: 'Sélectionnez une action.' }).parse(request.body);
+    if (input.maxPlaylistGroupSize !== undefined && !(await userCanUsePlaylists(user.id, id))) {
+      return reply.code(403).send({ error: 'Les playlists ne sont pas incluses dans votre forfait.' });
+    }
     if (input.maxPlaylistGroupSize !== undefined) {
       const savedItems = await db.select({ playlistId: playlistItems.playlistId, rowIndex: playlistItems.rowIndex }).from(playlistItems)
         .innerJoin(playlists, eq(playlistItems.playlistId, playlists.id)).where(eq(playlists.projectId, id));
@@ -321,6 +339,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     if (!user) return;
     const { id } = idParams.parse(request.params);
     if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    if (!(await userCanUsePlaylists(user.id, id))) return reply.code(403).send({ error: 'Les playlists ne sont pas incluses dans votre forfait.' });
     const input = playlistInputSchema.parse(request.body);
     if (input.categoryId) {
       const [category] = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.id, input.categoryId), eq(categories.projectId, id))).limit(1);
@@ -349,6 +368,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     if (!user) return;
     const { id, playlistId } = z.object({ id: z.string().uuid(), playlistId: z.string().uuid() }).parse(request.params);
     if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    if (!(await userCanUsePlaylists(user.id, id))) return reply.code(403).send({ error: 'Les playlists ne sont pas incluses dans votre forfait.' });
     const input = z.object({ position: z.number().finite().min(-1_000_000).max(1_000_000), categoryId: z.string().uuid().nullable().optional() }).parse(request.body);
     if (input.categoryId) {
       const [category] = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.id, input.categoryId), eq(categories.projectId, id))).limit(1);
@@ -364,6 +384,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     if (!user) return;
     const { id, playlistId } = z.object({ id: z.string().uuid(), playlistId: z.string().uuid() }).parse(request.params);
     if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    if (!(await userCanUsePlaylists(user.id, id))) return reply.code(403).send({ error: 'Les playlists ne sont pas incluses dans votre forfait.' });
     const input = playlistInputSchema.parse(request.body);
     const [existing] = await db.select().from(playlists).where(and(eq(playlists.id, playlistId), eq(playlists.projectId, id))).limit(1);
     if (!existing) return reply.code(404).send({ error: 'Playlist introuvable.' });
@@ -390,6 +411,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     if (!user) return;
     const { id, playlistId } = z.object({ id: z.string().uuid(), playlistId: z.string().uuid() }).parse(request.params);
     if (!(await ownsProject(user.id, id))) return reply.code(404).send({ error: 'Projet introuvable.' });
+    if (!(await userCanUsePlaylists(user.id, id))) return reply.code(403).send({ error: 'Les playlists ne sont pas incluses dans votre forfait.' });
     const deleted = await db.delete(playlists).where(and(eq(playlists.id, playlistId), eq(playlists.projectId, id))).returning({ id: playlists.id });
     if (deleted.length === 0) return reply.code(404).send({ error: 'Playlist introuvable.' });
     return reply.code(204).send();

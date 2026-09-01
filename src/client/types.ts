@@ -91,6 +91,7 @@ export interface AccountSummary {
   trialEndsAt: string | null;
   gracePeriodEndsAt: string | null;
   bridgeAvailable: boolean;
+  features: PlanFeatures;
   billing: {
     membershipRole: string;
     provider: string;
@@ -103,6 +104,13 @@ export interface AccountSummary {
   } | null;
 }
 
+export interface PlanFeatures {
+  customLayouts: boolean;
+  playlists: boolean;
+  remoteControl: boolean;
+  maxProjects: number | null;
+}
+
 export interface PublicPlan {
   code: string;
   name: string;
@@ -113,6 +121,7 @@ export interface PublicPlan {
   trialDays: number;
   free: boolean;
   bridgeIncluded: boolean;
+  features: PlanFeatures;
   featured: boolean;
   displayOrder: number;
 }
@@ -129,6 +138,10 @@ export interface CommercialPlan {
   active: boolean;
   visibleOnWebsite: boolean;
   featuredOnWebsite: boolean;
+  customLayoutsEnabled: boolean;
+  playlistsEnabled: boolean;
+  remoteControlEnabled: boolean;
+  maxProjects: number | null;
   displayOrder: number;
   accountCount: number;
   createdAt: string;

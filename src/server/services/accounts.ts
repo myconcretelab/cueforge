@@ -41,6 +41,21 @@ export async function accountForUser(userId: string): Promise<AccountContext | n
   };
 }
 
+export async function accountForUserProject(userId: string, projectId: string): Promise<AccountContext | null> {
+  const [row] = await db.select({ account: accounts, plan: plans })
+    .from(accountMemberships)
+    .innerJoin(accounts, eq(accountMemberships.accountId, accounts.id))
+    .innerJoin(plans, eq(accounts.planCode, plans.code))
+    .innerJoin(projects, and(eq(projects.accountId, accounts.id), eq(projects.id, projectId)))
+    .where(eq(accountMemberships.userId, userId))
+    .limit(1);
+  if (!row) return null;
+  return {
+    ...row,
+    storageQuotaBytes: row.account.storageQuotaOverrideBytes ?? row.plan.storageQuotaBytes,
+  };
+}
+
 export async function accountUsage(userId: string) {
   const context = await accountForUser(userId);
   if (!context) return null;

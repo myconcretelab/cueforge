@@ -11,6 +11,34 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.15.0',
+    date: '2026-09-01',
+    title: 'Des fonctionnalités adaptées à chaque forfait',
+    summary: 'Chaque forfait peut désormais définir l’accès aux dispositions personnalisées, aux playlists, à la télécommande et le nombre de spectacles.',
+    important: false,
+    changes: [
+      'La modification et l’enregistrement des dispositions peuvent être activés séparément par forfait.',
+      'Les playlists et la télécommande disposent chacune de leur propre droit d’accès.',
+      'Le nombre de spectacles peut être limité ou rester illimité selon le forfait.',
+      'Les contenus déjà enregistrés sont conservés lorsqu’un droit est retiré.',
+    ],
+  },
+  {
+    audience: 'admin',
+    version: '1.15.0',
+    date: '2026-09-01',
+    title: 'Droits fonctionnels des forfaits',
+    summary: 'L’éditeur de forfait contrôle maintenant trois fonctionnalités et la limite de spectacles.',
+    important: false,
+    changes: [
+      'Trois cases activent les dispositions personnalisées, les playlists et la télécommande.',
+      'Un champ numérique fixe le nombre maximal de spectacles ; une valeur vide signifie illimité.',
+      'Les nouveaux droits sont exposés dans les API de compte et de catalogue public.',
+      'Les forfaits existants conservent toutes les fonctions et restent illimités après la migration.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.14.1',
     date: '2026-09-01',
     title: 'Une bibliothèque de démonstration complète',

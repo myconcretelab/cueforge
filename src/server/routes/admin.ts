@@ -25,6 +25,10 @@ const planFieldsSchema = z.object({
   isDefault: z.boolean().default(false),
   visibleOnWebsite: z.boolean().default(false),
   featuredOnWebsite: z.boolean().default(false),
+  customLayoutsEnabled: z.boolean().default(true),
+  playlistsEnabled: z.boolean().default(true),
+  remoteControlEnabled: z.boolean().default(true),
+  maxProjects: z.number().int().min(1).max(10_000).nullable().default(null),
   displayOrder: z.number().int().min(0).max(10_000).default(0),
 });
 

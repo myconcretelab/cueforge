@@ -193,6 +193,10 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
   const selectedFreePlan = selectedBillingPlan?.free ?? false;
   const freePlanAvailable = publicPlans.some((plan) => plan.free);
   const bridgeAvailable = account?.bridgeAvailable ?? false;
+  const playlistsEnabled = account?.features.playlists ?? true;
+  const remoteControlEnabled = account?.features.remoteControl ?? true;
+  const maxProjects = account?.features.maxProjects ?? null;
+  const projectLimitReached = maxProjects !== null && projects.length >= maxProjects;
 
   useEffect(() => {
     if (!selectedBillingPlan) return;
@@ -410,7 +414,8 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
           </div>)}
           {projects.length === 0 && <span className="settings-project-empty">Aucun spectacle.</span>}
         </div>
-        <button className="button ghost wide" onClick={onCreateProject}><FolderPlus size={17} />Nouveau spectacle</button>
+        <button className="button ghost wide" onClick={onCreateProject} disabled={projectLimitReached}><FolderPlus size={17} />Nouveau spectacle</button>
+        {maxProjects !== null && <p className="audio-output-note">{projects.length} spectacle{projects.length > 1 ? 's' : ''} sur {maxProjects} autorisé{maxProjects > 1 ? 's' : ''} par le forfait.</p>}
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><Palette size={16} /><div><strong>Couleurs du spectacle</strong><span>Ajoutez, supprimez ou glissez les couleurs pour les réordonner.</span></div></div>
@@ -433,8 +438,8 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         <div className="settings-actions"><button className="button ghost" onClick={onImportSoundShow}><FileArchive size={17} />Importer SoundShow</button><button className="button ghost" onClick={onOpenFreesound}><Waves size={17} />Rechercher sur Freesound</button><button className="button ghost" onClick={onCacheOffline}><CloudDownload size={17} />{offlineStatus || 'Rendre disponible hors ligne'}</button></div>
       </section>
       <section className="settings-section">
-        <div className="settings-section-title"><ListMusic size={16} /><div><strong>Playlists</strong><span>Réglez le nombre maximal de morceaux pouvant partager une rangée.</span></div></div>
-        <div className="settings-key-actions"><label><span>Morceaux simultanés</span><select value={selectedProject?.maxPlaylistGroupSize ?? 4} disabled={!selectedProject} onChange={(event) => onUpdatePlaylistGroupLimit(Number(event.target.value))}>{[2, 3, 4, 5, 6, 7, 8].map((limit) => <option value={limit} key={limit}>{limit} morceaux</option>)}</select></label></div>
+        <div className="settings-section-title"><ListMusic size={16} /><div><strong>Playlists</strong><span>{playlistsEnabled ? 'Réglez le nombre maximal de morceaux pouvant partager une rangée.' : 'Cette fonctionnalité n’est pas incluse dans votre forfait.'}</span></div></div>
+        <div className="settings-key-actions"><label><span>Morceaux simultanés</span><select value={selectedProject?.maxPlaylistGroupSize ?? 4} disabled={!selectedProject || !playlistsEnabled} onChange={(event) => onUpdatePlaylistGroupLimit(Number(event.target.value))}>{[2, 3, 4, 5, 6, 7, 8].map((limit) => <option value={limit} key={limit}>{limit} morceaux</option>)}</select></label></div>
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><AudioWaveform size={16} /><div><strong>Colonne de lecture</strong><span>Réglez la limite de lecteurs et le seuil de présentation compacte pour ce spectacle.</span></div></div>
@@ -480,8 +485,8 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
         </> : <p className="audio-output-unavailable">{account?.accessStatus === 'trialing' ? 'La gestion des sorties audio sera disponible après la période d’essai.' : 'La gestion des sorties audio est réservée aux forfaits payants actifs.'}</p>}
       </section>
       <section className="settings-section">
-        <div className="settings-section-title"><Smartphone size={16} /><div><strong>Télécommande</strong><span>Utilisez cette vue depuis un téléphone connecté au même spectacle.</span></div></div>
-        <button className="button ghost wide" onClick={onToggleRemote}><Smartphone size={17} />{remote ? 'Revenir à la régie principale' : 'Ouvrir la télécommande'}</button>
+        <div className="settings-section-title"><Smartphone size={16} /><div><strong>Télécommande</strong><span>{remoteControlEnabled ? 'Utilisez cette vue depuis un téléphone connecté au même spectacle.' : 'Cette fonctionnalité n’est pas incluse dans votre forfait.'}</span></div></div>
+        <button className="button ghost wide" disabled={!remoteControlEnabled} onClick={onToggleRemote}><Smartphone size={17} />{remote ? 'Revenir à la régie principale' : 'Ouvrir la télécommande'}</button>
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><Keyboard size={16} /><div><strong>Raccourcis clavier</strong><span>Les raccourcis sont enregistrés pour le spectacle sélectionné.</span></div></div>

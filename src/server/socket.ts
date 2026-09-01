@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { config } from './config.js';
 import { cookieValue, sessionCookieName, userFromToken } from './services/auth.js';
 import { ownsProject } from './services/ownership.js';
+import { accountForUserProject } from './services/accounts.js';
+import { planFeatures } from './services/commercial-plans.js';
 
 const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('play'), trackId: z.string().uuid(), volumeMultiplier: z.number().min(0).max(1).optional(), outputId: z.string().min(1).max(500).optional() }),
@@ -44,6 +46,13 @@ export function registerSocketServer(app: FastifyInstance): Server {
         acknowledge?.({ ok: false });
         return;
       }
+      if (parsed.data.role === 'controller') {
+        const account = await accountForUserProject(socket.data.userId, parsed.data.projectId);
+        if (!account || !planFeatures(account.plan, account.account.isDemo).remoteControl) {
+          acknowledge?.({ ok: false });
+          return;
+        }
+      }
       await socket.join(`${parsed.data.projectId}:${parsed.data.role}`);
       acknowledge?.({ ok: true });
     });
@@ -51,6 +60,8 @@ export function registerSocketServer(app: FastifyInstance): Server {
     socket.on('remote-command', async (payload) => {
       const parsed = z.object({ projectId: z.string().uuid(), command: commandSchema }).safeParse(payload);
       if (!parsed.success || !(await ownsProject(socket.data.userId, parsed.data.projectId))) return;
+      const account = await accountForUserProject(socket.data.userId, parsed.data.projectId);
+      if (!account || !planFeatures(account.plan, account.account.isDemo).remoteControl) return;
       io.to(`${parsed.data.projectId}:player`).emit('remote-command', parsed.data.command);
     });
   });

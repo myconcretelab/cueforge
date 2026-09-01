@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { accountCanUseBridge, planDeletionError, planIncludesBridge, planIsFree, planPublicationError } from '../src/server/services/commercial-plans.js';
+import { accountCanUseBridge, planDeletionError, planFeatures, planIncludesBridge, planIsFree, planPublicationError, projectLimitReached } from '../src/server/services/commercial-plans.js';
 
 describe('commercial plan deletion', () => {
   it('refuse la suppression du forfait par défaut', () => {
@@ -72,5 +72,38 @@ describe('SonoRiva Bridge entitlement', () => {
     { monthlyPriceCents: 300, annualPriceCents: null, accessStatus: 'active', isDemo: true },
   ])('refuse un compte sans droit Bridge', (input) => {
     expect(accountCanUseBridge(input)).toBe(false);
+  });
+});
+
+describe('commercial plan features', () => {
+  const configuredPlan = {
+    customLayoutsEnabled: false,
+    playlistsEnabled: true,
+    remoteControlEnabled: false,
+    maxProjects: 3,
+  };
+
+  it('expose les droits configurés sur le forfait', () => {
+    expect(planFeatures(configuredPlan)).toEqual({
+      customLayouts: false,
+      playlists: true,
+      remoteControl: false,
+      maxProjects: 3,
+    });
+  });
+
+  it('laisse toutes les fonctions disponibles dans la démonstration', () => {
+    expect(planFeatures(configuredPlan, true)).toEqual({
+      customLayouts: true,
+      playlists: true,
+      remoteControl: true,
+      maxProjects: null,
+    });
+  });
+
+  it('atteint une limite de spectacles sans dépasser la valeur configurée', () => {
+    expect(projectLimitReached(3, 2)).toBe(false);
+    expect(projectLimitReached(3, 3)).toBe(true);
+    expect(projectLimitReached(null, 10_000)).toBe(false);
   });
 });

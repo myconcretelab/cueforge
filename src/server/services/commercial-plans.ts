@@ -29,3 +29,31 @@ export function accountCanUseBridge(input: {
     && planIncludesBridge(input)
     && ['active', 'grace_period'].includes(input.accessStatus);
 }
+
+export interface PlanFeatureInput {
+  customLayoutsEnabled: boolean;
+  playlistsEnabled: boolean;
+  remoteControlEnabled: boolean;
+  maxProjects: number | null;
+}
+
+export interface PlanFeatures {
+  customLayouts: boolean;
+  playlists: boolean;
+  remoteControl: boolean;
+  maxProjects: number | null;
+}
+
+export function planFeatures(input: PlanFeatureInput, isDemo = false): PlanFeatures {
+  if (isDemo) return { customLayouts: true, playlists: true, remoteControl: true, maxProjects: null };
+  return {
+    customLayouts: input.customLayoutsEnabled,
+    playlists: input.playlistsEnabled,
+    remoteControl: input.remoteControlEnabled,
+    maxProjects: input.maxProjects,
+  };
+}
+
+export function projectLimitReached(maxProjects: number | null, projectCount: number): boolean {
+  return maxProjects !== null && projectCount >= maxProjects;
+}

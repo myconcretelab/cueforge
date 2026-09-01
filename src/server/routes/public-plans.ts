@@ -3,7 +3,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { plans } from '../db/schema.js';
 import { config } from '../config.js';
-import { planIncludesBridge, planIsFree } from '../services/commercial-plans.js';
+import { planFeatures, planIncludesBridge, planIsFree } from '../services/commercial-plans.js';
 
 export async function publicPlanRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/public/plans', async (_request, reply) => {
@@ -17,6 +17,10 @@ export async function publicPlanRoutes(app: FastifyInstance): Promise<void> {
       trialDays: plans.trialDays,
       featured: plans.featuredOnWebsite,
       displayOrder: plans.displayOrder,
+      customLayoutsEnabled: plans.customLayoutsEnabled,
+      playlistsEnabled: plans.playlistsEnabled,
+      remoteControlEnabled: plans.remoteControlEnabled,
+      maxProjects: plans.maxProjects,
     }).from(plans)
       .where(and(eq(plans.visibleOnWebsite, true), eq(plans.active, true)))
       .orderBy(asc(plans.displayOrder), asc(plans.name));
@@ -25,11 +29,16 @@ export async function publicPlanRoutes(app: FastifyInstance): Promise<void> {
     return {
       currency: 'EUR',
       signupUrl: new URL('/?register=1', config.PUBLIC_URL).toString(),
-      plans: rows.map((plan) => ({
-        ...plan,
-        free: planIsFree(plan),
-        bridgeIncluded: planIncludesBridge(plan),
-      })),
+      plans: rows.map((plan) => {
+        const { customLayoutsEnabled, playlistsEnabled, remoteControlEnabled, maxProjects, ...publicPlan } = plan;
+        const featureSource = { customLayoutsEnabled, playlistsEnabled, remoteControlEnabled, maxProjects };
+        return {
+          ...publicPlan,
+          free: planIsFree(plan),
+          bridgeIncluded: planIncludesBridge(plan),
+          features: planFeatures(featureSource),
+        };
+      }),
     };
   });
 }

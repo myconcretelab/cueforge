@@ -2,6 +2,21 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.15.0] - 2026-09-01
+
+### Ajouté
+
+- droits configurables par forfait pour les dispositions personnalisées, les playlists et la télécommande ;
+- nombre maximal de spectacles configurable, avec une valeur vide pour un nombre illimité ;
+- publication des droits fonctionnels dans l’API publique des forfaits et dans le résumé du compte.
+
+### Modifié
+
+- blocage côté serveur de la création de spectacles au-delà de la limite du forfait ;
+- contrôle côté serveur des écritures de playlists et des commandes de télécommande ;
+- conservation des spectacles, playlists et dispositions existants lors du retrait d’un droit ;
+- passage de l’application à la version `1.15.0`.
+
 ## [1.14.1] - 2026-09-01
 
 ### Ajouté

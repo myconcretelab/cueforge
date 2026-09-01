@@ -10,6 +10,7 @@ L’identité visuelle repose sur le monogramme **SR** et un accent aqua ; les i
 
 - comptes multiples avec espace de travail isolé, sessions sécurisées et mots de passe dérivés avec `scrypt` ;
 - administration commerciale intégrée sous `/admin` avec gestion des utilisateurs, comptes, forfaits, quotas, essais et rôles de plateforme ;
+- droits fonctionnels configurables par forfait pour les dispositions personnalisées, les playlists, la télécommande et le nombre de spectacles ;
 - plusieurs spectacles et catégories colorées, réordonnables et supprimables, avec recherche globale ;
 - sous-catégories de morceaux en tuiles compactes avec ouverture dans un tiroir ;
 - import MP3, WAV, OGG, FLAC et AAC jusqu’à 250 Mo ;

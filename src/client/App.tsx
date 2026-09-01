@@ -1,7 +1,7 @@
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import {
   ArrowUpDown, AudioLines, AudioWaveform, ChevronDown, CircleCheck, Clock3, Columns3, Download, FolderOpen, FolderPlus, GripHorizontal, GripVertical, History, LayoutDashboard, ListMusic, ListPlus, LoaderCircle, Menu, Move, Pause, Play, Plus, Radio,
-  LogIn, RefreshCcw, Repeat2, RotateCcw, Scan, Search, Settings, Settings2, SlidersHorizontal, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
+  LockKeyhole, LogIn, RefreshCcw, Repeat2, RotateCcw, Scan, Search, Settings, Settings2, SlidersHorizontal, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
 import { AuthScreen } from './components/AuthScreen';
@@ -161,7 +161,11 @@ export default function App() {
   const workspaceLayoutHydratedRef = useRef(false);
   const secondaryOutputHeldRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const remote = new URLSearchParams(window.location.search).get('remote') === '1';
+  const remoteRequested = new URLSearchParams(window.location.search).get('remote') === '1';
+  const customLayoutsEnabled = accountSummary?.features.customLayouts ?? true;
+  const playlistsEnabled = accountSummary?.features.playlists ?? true;
+  const remoteControlEnabled = accountSummary?.features.remoteControl ?? true;
+  const remote = remoteRequested && remoteControlEnabled;
   const workspaceUserId = user?.id;
   const unseenReleases = useMemo(() => releaseInfo?.releases.filter((release) => releaseInfo.unseenVersions.includes(release.version)) ?? [], [releaseInfo]);
   const releasesForDialog = unseenReleases.length > 0 ? unseenReleases : releaseInfo?.releases ?? [];
@@ -176,6 +180,9 @@ export default function App() {
   useEffect(() => audioEngine.setMaxActivePlaybacks(detail?.project.maxActivePlaybacks ?? 8), [detail?.project.maxActivePlaybacks]);
   useEffect(() => audioEngine.subscribeHistory(setPlaybackHistory), []);
   useEffect(() => subscribeToAppUpdate(setUpdateAvailable), []);
+  useEffect(() => {
+    if (!customLayoutsEnabled) setLayoutEditing(false);
+  }, [customLayoutsEnabled]);
   useEffect(() => {
     if (!shouldApplyAppUpdate({
       automaticUpdates: automaticUpdates || Boolean(user?.isDemo),
@@ -544,9 +551,9 @@ export default function App() {
   }), [detail?.tracks, isSearching, normalizedSearch, searchScope, selectedCategoryId]);
   const visibleSubcategories = useMemo(() => isSearching ? [] : (detail?.subcategories ?? []).filter((subcategory) => selectedCategoryId === 'all' || subcategory.categoryId === selectedCategoryId), [detail?.subcategories, isSearching, selectedCategoryId]);
   const topLevelTracks = useMemo(() => isSearching ? categoryTracks : categoryTracks.filter((track) => !track.subcategoryId), [categoryTracks, isSearching]);
-  const visiblePlaylists = useMemo(() => remote ? [] : (detail?.playlists ?? []).filter((playlist) =>
+  const visiblePlaylists = useMemo(() => remote || !playlistsEnabled ? [] : (detail?.playlists ?? []).filter((playlist) =>
     playlistIsVisible(playlist.categoryId, selectedCategoryId, isSearching)
-    && (!isSearching || (searchScope === 'name' && playlist.name.toLocaleLowerCase('fr').includes(normalizedSearch)))), [detail?.playlists, isSearching, normalizedSearch, remote, searchScope, selectedCategoryId]);
+    && (!isSearching || (searchScope === 'name' && playlist.name.toLocaleLowerCase('fr').includes(normalizedSearch)))), [detail?.playlists, isSearching, normalizedSearch, playlistsEnabled, remote, searchScope, selectedCategoryId]);
   const visibleBoardItems = useMemo(() => [
     ...topLevelTracks.map((track) => ({ kind: 'track' as const, id: track.id, position: track.position, track })),
     ...visibleSubcategories.map((subcategory) => ({ kind: 'subcategory' as const, id: subcategory.id, position: subcategory.position, subcategory })),
@@ -825,6 +832,7 @@ export default function App() {
   }
 
   function addTrackToPlaylist(trackId: string, targetRowId?: string, placement: PlaylistItemPlacement = 'after') {
+    if (!playlistsEnabled) return;
     if (!detail?.tracks.some((track) => track.id === trackId)) return;
     revealPlaylistModule();
     setPlaylistItems((current) => {
@@ -850,6 +858,7 @@ export default function App() {
   }
 
   function addCategoryToPlaylist() {
+    if (!playlistsEnabled) return;
     if (tracksToPreload.length === 0) return;
     setPlaylistItems((current) => [...current, ...tracksToPreload.map((track) => ({ id: crypto.randomUUID(), trackId: track.id, rowId: crypto.randomUUID() }))]);
     revealPlaylistModule();
@@ -900,6 +909,7 @@ export default function App() {
   }
 
   function loadPlaylist(playlist: Playlist) {
+    if (!playlistsEnabled) return;
     stopPlaylistPlayback();
     const entries = (playlist.items?.length ? playlist.items : playlist.trackIds.map((trackId, rowIndex) => ({ trackId, rowIndex })))
       .filter((item) => detail?.tracks.some((track) => track.id === item.trackId));
@@ -918,7 +928,7 @@ export default function App() {
   }
 
   async function saveCurrentPlaylist() {
-    if (!detail || playlistItems.length === 0) return;
+    if (!playlistsEnabled || !detail || playlistItems.length === 0) return;
     setPlaylistSaving(true);
     try {
       const { playlist } = await api.savePlaylist(detail.project.id, loadedPlaylistId, {
@@ -1693,6 +1703,10 @@ export default function App() {
   }
 
   function toggleRemoteMode() {
+    if (!remoteControlEnabled) {
+      setError('La télécommande n’est pas incluse dans votre forfait.');
+      return;
+    }
     const url = new URL(window.location.href);
     if (remote) url.searchParams.delete('remote'); else url.searchParams.set('remote', '1');
     window.location.href = url.toString();
@@ -1768,7 +1782,7 @@ export default function App() {
     const category = detail?.categories.find((item) => item.id === track.categoryId);
     const shortcutIndex = visibleTracks.findIndex((candidate) => candidate.id === track.id);
     const reorderPositionTarget = dropTrackId === track.id && dropTrackPlacement !== 'group' ? dropTrackPlacement : undefined;
-    return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={!selectionMode && !remote} selectionMode={selectionMode} selected={selectedTrackIds.has(track.id)} dropTarget={dropTrackId === track.id && dropTrackPlacement === 'group'} reorderPositionTarget={reorderPositionTarget} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={trackShortcutLabel(shortcutIndex)} bridgeOutputs={remote || reorderMode || selectionMode ? [] : routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId}
+    return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={playlistsEnabled && !selectionMode && !remote} selectionMode={selectionMode} selected={selectedTrackIds.has(track.id)} dropTarget={dropTrackId === track.id && dropTrackPlacement === 'group'} reorderPositionTarget={reorderPositionTarget} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={trackShortcutLabel(shortcutIndex)} bridgeOutputs={remote || reorderMode || selectionMode ? [] : routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId}
       onPrimary={() => detail && runTrackAction(detail.project.leftClickAction ?? 'start', track)}
       onOutputPlay={(outputId) => playTrackOnOutput(track, outputId)}
       onSecondary={() => detail && runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
@@ -1856,6 +1870,7 @@ export default function App() {
 
   function renderPlaylistContent() {
     if (remote) return null;
+    if (!playlistsEnabled) return <div className="players-empty plan-feature-unavailable"><LockKeyhole size={24} /><strong>Playlists indisponibles</strong><span>Cette fonctionnalité n’est pas incluse dans votre forfait.</span></div>;
     return <PlaylistPanel items={playlistItems} tracks={detail?.tracks ?? []} colors={detail?.colors ?? []} options={playlistOptions} currentRowIndex={playlistCurrentIndex} maxGroupSize={detail?.project.maxPlaylistGroupSize ?? 4} playbackActive={playlistPlaybacks.length > 0} playbackPaused={playlistPlaybacks.length > 0 && playlistPlaybacks.every((playback) => playback.paused)} saved={Boolean(loadedPlaylistId)} saving={playlistSaving} optionsOpen={playlistOptionsOpen} onOptionsOpenChange={setPlaylistOptionsOpen} onOptionsChange={(patch) => setPlaylistOptions((current) => ({ ...current, ...patch }))} onDropTrack={addTrackToPlaylist} onMoveItem={movePlaylistItem} onRemoveItem={removePlaylistItem} onPlayRow={playPlaylistRow} onPlayPause={playPausePlaylist} onStop={stopPlaylistPlayback} onNext={skipPlaylistRow} onSave={() => saveCurrentPlaylist().catch(() => undefined)} onDelete={() => deleteCurrentPlaylist().catch(() => undefined)} onClear={clearPlaylist} />;
   }
 
@@ -1941,6 +1956,7 @@ export default function App() {
   }
 
   function expandCollapsedPlaylistOnDrag(event: React.DragEvent<HTMLButtonElement>) {
+    if (!playlistsEnabled) return;
     if (!event.dataTransfer.types.includes('application/x-sonoriva-track')) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
@@ -1948,6 +1964,7 @@ export default function App() {
   }
 
   function dropTrackOnCollapsedPlaylist(event: React.DragEvent<HTMLButtonElement>) {
+    if (!playlistsEnabled) return;
     const trackId = event.dataTransfer.getData('application/x-sonoriva-track');
     if (!trackId) return;
     event.preventDefault();
@@ -2015,7 +2032,7 @@ export default function App() {
           <section className="console-module wall-clock"><span><Clock3 size={14} />Horloge</span><strong>{formatClock(now)}</strong></section>
         </div>
         <div className="top-actions">
-          {!remote && <button className={`icon-button layout-button ${layoutEditing ? 'active' : ''}`} onClick={() => { setLayoutEditing((current) => !current); setCategoryManageMode(false); setReorderMode(false); setSelectionMode(false); setSelectedTrackIds(new Set()); }} aria-label={layoutEditing ? 'Terminer la modification de la disposition' : 'Modifier la disposition de l’interface'} title="Disposition de l’interface"><LayoutDashboard size={19} /></button>}
+          {!remote && <button className={`icon-button layout-button ${layoutEditing ? 'active' : ''}`} disabled={!customLayoutsEnabled} onClick={() => { setLayoutEditing((current) => !current); setCategoryManageMode(false); setReorderMode(false); setSelectionMode(false); setSelectedTrackIds(new Set()); }} aria-label={layoutEditing ? 'Terminer la modification de la disposition' : 'Modifier la disposition de l’interface'} title={customLayoutsEnabled ? 'Disposition de l’interface' : 'Disposition personnalisée non incluse dans votre forfait'}><LayoutDashboard size={19} /></button>}
           <button className={`icon-button settings-button ${unseenReleases.length > 0 ? 'has-update' : ''}`} onClick={() => { setSettingsInitialSection(undefined); setSettingsOpen(true); }} aria-label="Ouvrir les paramètres" title="Paramètres"><Settings size={19} />{unseenReleases.length > 0 && <i aria-hidden="true" />}</button>
           {!remote && <button className="icon-button reset-show-button" onClick={resetCurrentProject} disabled={!detail} aria-label="Réinitialiser le spectacle en cours" title="Réinitialiser le spectacle"><RefreshCcw size={18} /></button>}
           {!remote && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Ajouter un son</button>}
@@ -2122,9 +2139,9 @@ export default function App() {
               <button onClick={() => resetPlaybackProgress('project')}><RotateCcw size={15} /><span><strong>Tout le spectacle</strong><small>{detail?.tracks.length ?? 0} morceaux</small></span></button>
             </div>}
           </div>}
-          {!remote && <button className="dashboard-button playlist-add-category" onClick={addCategoryToPlaylist} disabled={!tracksToPreload.length}
+          {!remote && <button className="dashboard-button playlist-add-category" onClick={addCategoryToPlaylist} disabled={!playlistsEnabled || !tracksToPreload.length}
             aria-label={currentCategory ? `Ajouter les ${tracksToPreload.length} morceaux de ${currentCategory.name} à la playlist` : `Ajouter les ${tracksToPreload.length} morceaux à la playlist`}
-            title={currentCategory ? `Ajouter toute la catégorie « ${currentCategory.name} » à la playlist` : 'Ajouter tous les morceaux à la playlist'}><ListPlus size={19} /></button>}
+            title={!playlistsEnabled ? 'Playlists non incluses dans votre forfait' : currentCategory ? `Ajouter toute la catégorie « ${currentCategory.name} » à la playlist` : 'Ajouter tous les morceaux à la playlist'}><ListPlus size={19} /></button>}
           {!remote && !isSearching && <button className="dashboard-button" onClick={() => setSubcategoryDialog('new')} aria-label="Créer une sous-catégorie" title="Nouvelle sous-catégorie"><FolderPlus size={19} /></button>}
           <div className="track-count"><span>{categoryTracks.length}</span><small>son{categoryTracks.length !== 1 ? 's' : ''}</small></div>
         </div>
