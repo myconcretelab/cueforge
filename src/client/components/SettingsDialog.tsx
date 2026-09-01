@@ -5,6 +5,7 @@ import { audioEngine, type AudioOutputDevice } from '../lib/audio-engine';
 import { bridgeClient, type BridgeOutput } from '../lib/bridge-client';
 import { associateLocalBridge } from '../lib/bridge-connection';
 import { defaultProjectKeyboardShortcuts, formatShortcut, projectShortcutDefinitions, shortcutFromKeyboardEvent, shortcutMainKey } from '../lib/keyboard-shortcuts';
+import type { AppSkin } from '../lib/app-skin';
 import type { AccountSummary, BridgeDevice, KeyAction, Project, ProjectColor, ProjectKeyboardShortcutKey, PublicPlan, User } from '../types';
 
 interface Props {
@@ -18,7 +19,9 @@ interface Props {
   appVersion?: string;
   hasUnseenReleases: boolean;
   automaticUpdates: boolean;
+  appSkin: AppSkin;
   onAutomaticUpdatesChange: (enabled: boolean) => void;
+  onAppSkinChange: (skin: AppSkin) => void;
   onAccountChange: (account: AccountSummary) => void;
   onChooseProject: (id: string) => void;
   onCreateProject: () => void;
@@ -103,7 +106,7 @@ function formatPrice(cents: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 }
 
-export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, onAutomaticUpdatesChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onUpdateKeyboardShortcut, onUpdatePlaylistGroupLimit, onUpdatePlaybackSettings, onLogout, onClose }: Props) {
+export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, appSkin, onAutomaticUpdatesChange, onAppSkinChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onUpdateKeyboardShortcut, onUpdatePlaylistGroupLimit, onUpdatePlaybackSettings, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
   const [newColor, setNewColor] = useState('#22d3b6');
   const [draggedProjectId, setDraggedProjectId] = useState<string>();
@@ -399,6 +402,21 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="dialog settings-dialog">
       <header><div><p className="eyebrow">SonoRiva</p><h2>Paramètres</h2></div><button className="icon-button" onClick={onClose} aria-label="Fermer les paramètres"><X /></button></header>
+      <section className="settings-section">
+        <div className="settings-section-title"><Palette size={16} /><div><strong>Apparence</strong><span>Le skin est enregistré sur cet appareil et s’applique immédiatement.</span></div></div>
+        <div className="skin-options" role="radiogroup" aria-label="Skin de l’application">
+          <label className={appSkin === 'original' ? 'active' : ''}>
+            <input type="radio" name="app-skin" value="original" checked={appSkin === 'original'} onChange={() => onAppSkinChange('original')} />
+            <span className="skin-preview original" aria-hidden="true"><i /><i /><i /><i /></span>
+            <span><strong>Original</strong><small>Interface actuelle · sombre et turquoise</small></span>
+          </label>
+          <label className={appSkin === 'studio' ? 'active' : ''}>
+            <input type="radio" name="app-skin" value="studio" checked={appSkin === 'studio'} onChange={() => onAppSkinChange('studio')} />
+            <span className="skin-preview studio" aria-hidden="true"><i /><i /><i /><i /></span>
+            <span><strong>Studio</strong><small>Régie éditoriale · chaude et structurée</small></span>
+          </label>
+        </div>
+      </section>
       <section className="settings-section">
         <div className="settings-section-title"><Settings2 size={16} /><div><strong>Spectacles</strong><span>Sélectionnez, glissez ou supprimez une régie.</span></div></div>
         <div className="settings-project-list">

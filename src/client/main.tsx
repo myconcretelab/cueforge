@@ -6,6 +6,9 @@ import { PasswordResetScreen } from './components/PasswordResetScreen';
 import './styles.css';
 import './admin/admin.css';
 import { registerAppServiceWorker } from './lib/app-update';
+import { applyAppSkin, readAppSkin } from './lib/app-skin';
+
+applyAppSkin(readAppSkin());
 
 const RootApp = window.location.pathname === '/reset-password'
   ? PasswordResetScreen
