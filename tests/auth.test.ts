@@ -126,7 +126,7 @@ describe('temporary demo', () => {
     expect(demoMaxFileBytes).toBe(5 * 1024 * 1024);
   });
 
-  it('installe huit catégories avec deux sons Freesound CC0 chacune', async () => {
+  it('installe huit catégories avec quinze sons Freesound CC0 chacune', async () => {
     expect(demoCategories.map((category) => category.name)).toEqual([
       'Animaux',
       'Bruitages',
@@ -137,10 +137,10 @@ describe('temporary demo', () => {
       'Transitions',
       'Public',
     ]);
-    expect(demoSounds).toHaveLength(16);
+    expect(demoSounds).toHaveLength(120);
 
     for (const category of demoCategories) {
-      expect(demoSounds.filter((sound) => sound.category === category.name)).toHaveLength(2);
+      expect(demoSounds.filter((sound) => sound.category === category.name)).toHaveLength(15);
     }
     for (const sound of demoSounds) {
       expect(sound.sourceId).toMatch(/^freesound:\d+$/);

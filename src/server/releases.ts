@@ -11,6 +11,20 @@ export interface AppRelease {
 const RELEASES: AppRelease[] = [
   {
     audience: 'app',
+    version: '1.14.1',
+    date: '2026-09-01',
+    title: 'Une bibliothèque de démonstration complète',
+    summary: 'Chacune des huit catégories de la démonstration contient désormais quinze vrais sons Freesound.',
+    important: false,
+    changes: [
+      'La bibliothèque passe de seize à cent vingt sons Freesound CC0.',
+      'Animaux, Bruitages, Drame, Joyeux, Effets, Ambiances, Transitions et Public contiennent exactement quinze morceaux chacune.',
+      'Les préécoutes sont limitées à huit secondes et l’ensemble des médias occupe environ huit mégaoctets par session.',
+      'Le catalogue peut être reconstruit avec un script qui conserve les sources, auteurs, licences, groupes et tags.',
+    ],
+  },
+  {
+    audience: 'app',
     version: '1.14.0',
     date: '2026-09-01',
     title: 'Une démo équipée de vrais sons',

@@ -2,6 +2,20 @@
 
 Toutes les évolutions notables de SonoRiva sont documentées ici. Le projet suit le versionnage sémantique : correctifs en `patch`, fonctionnalités compatibles en `minor` et changements incompatibles en `major`.
 
+## [1.14.1] - 2026-09-01
+
+### Ajouté
+
+- quinze sons Freesound CC0 dans chacune des huit catégories de démonstration, soit cent vingt morceaux au total ;
+- groupes thématiques au sein des catégories : animaux, bruitages usuels, ponctuations dramatiques, jingles, effets, ambiances, transitions et réactions du public ;
+- catalogue JSON versionné et script reproductible de collecte, sélection et encodage des préécoutes.
+
+### Modifié
+
+- préécoutes encodées en MP3 stéréo 96 kbit/s et limitées à huit secondes ;
+- catalogue de démonstration chargé depuis un manifeste séparé du service de création des sessions ;
+- passage de l’application à la version `1.14.1`.
+
 ## [1.14.0] - 2026-09-01
 
 ### Ajouté

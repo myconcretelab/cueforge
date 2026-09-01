@@ -2,6 +2,14 @@
 
 Chaque entrée décrit les modifications fonctionnelles et techniques d’une version.
 
+## Version 1.14.1 — 1er septembre 2026
+
+- quinze vrais sons Freesound dans chacune des huit catégories ;
+- cent vingt morceaux de démonstration au total ;
+- fichiers courts avec sources, auteurs, licences et tags conservés.
+
+[Détails de la version 1.14.1](./1.14.1.md)
+
 ## Version 1.14.0 — 1er septembre 2026
 
 - seize sons Freesound réels sous licence CC0 dans la démonstration ;

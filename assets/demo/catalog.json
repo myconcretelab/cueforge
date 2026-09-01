@@ -1,0 +1,2078 @@
+{
+  "categories": [
+    {
+      "name": "Animaux",
+      "color": "#22c55e"
+    },
+    {
+      "name": "Bruitages",
+      "color": "#eab308"
+    },
+    {
+      "name": "Drame",
+      "color": "#ef4444"
+    },
+    {
+      "name": "Joyeux",
+      "color": "#f59e0b"
+    },
+    {
+      "name": "Effets",
+      "color": "#8b5cf6"
+    },
+    {
+      "name": "Ambiances",
+      "color": "#06b6d4"
+    },
+    {
+      "name": "Transitions",
+      "color": "#f97316"
+    },
+    {
+      "name": "Public",
+      "color": "#ec4899"
+    }
+  ],
+  "sounds": [
+    {
+      "title": "Animal Dog Bark And Growl 01",
+      "assetFilename": "freesound-625501.mp3",
+      "originalFilename": "Animal Dog Bark And Growl 01.wav",
+      "category": "Animaux",
+      "durationMs": 2768,
+      "tags": [
+        "animal",
+        "chien",
+        "aboiement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Aboiements.",
+      "sourceId": "freesound:625501",
+      "sourceUrl": "https://freesound.org/people/abhisheky948/sounds/625501/",
+      "copyrightText": "« Animal Dog Bark And Growl 01.wav » par abhisheky948 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/abhisheky948/sounds/625501/"
+    },
+    {
+      "title": "Angry big dog barking - Far [d15]",
+      "assetFilename": "freesound-440865.mp3",
+      "originalFilename": "Angry big dog barking - Far [d15].wav",
+      "category": "Animaux",
+      "durationMs": 8000,
+      "tags": [
+        "animal",
+        "chien",
+        "aboiement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Aboiements.",
+      "sourceId": "freesound:440865",
+      "sourceUrl": "https://freesound.org/people/v23/sounds/440865/",
+      "copyrightText": "« Angry big dog barking - Far [d15].wav » par v23 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/v23/sounds/440865/"
+    },
+    {
+      "title": "Dog Bark",
+      "assetFilename": "freesound-495658.mp3",
+      "originalFilename": "Dog Bark",
+      "category": "Animaux",
+      "durationMs": 3966,
+      "tags": [
+        "animal",
+        "chien",
+        "aboiement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Aboiements.",
+      "sourceId": "freesound:495658",
+      "sourceUrl": "https://freesound.org/people/aunrea/sounds/495658/",
+      "copyrightText": "« Dog Bark » par aunrea — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/aunrea/sounds/495658/"
+    },
+    {
+      "title": "Dog Barking Distance - 1",
+      "assetFilename": "freesound-485962.mp3",
+      "originalFilename": "Dog Barking Distance - 1.wav",
+      "category": "Animaux",
+      "durationMs": 2438,
+      "tags": [
+        "animal",
+        "chien",
+        "aboiement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Aboiements.",
+      "sourceId": "freesound:485962",
+      "sourceUrl": "https://freesound.org/people/SpaceJoe/sounds/485962/",
+      "copyrightText": "« Dog Barking Distance - 1.wav » par SpaceJoe — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/SpaceJoe/sounds/485962/"
+    },
+    {
+      "title": "Dog",
+      "assetFilename": "freesound-612858.mp3",
+      "originalFilename": "Dog.wav",
+      "category": "Animaux",
+      "durationMs": 3200,
+      "tags": [
+        "animal",
+        "chien",
+        "aboiement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Aboiements.",
+      "sourceId": "freesound:612858",
+      "sourceUrl": "https://freesound.org/people/Weak_Hero/sounds/612858/",
+      "copyrightText": "« Dog.wav » par Weak_Hero — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Weak_Hero/sounds/612858/"
+    },
+    {
+      "title": "cat meow",
+      "assetFilename": "freesound-110011.mp3",
+      "originalFilename": "cat meow",
+      "category": "Animaux",
+      "durationMs": 1545,
+      "tags": [
+        "animal",
+        "chat",
+        "miaulement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Miaulements.",
+      "sourceId": "freesound:110011",
+      "sourceUrl": "https://freesound.org/people/tuberatanka/sounds/110011/",
+      "copyrightText": "« cat meow » par tuberatanka — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/tuberatanka/sounds/110011/"
+    },
+    {
+      "title": "SND CatHighMeows",
+      "assetFilename": "freesound-508686.mp3",
+      "originalFilename": "SND_CatHighMeows.wav",
+      "category": "Animaux",
+      "durationMs": 1731,
+      "tags": [
+        "animal",
+        "chat",
+        "miaulement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Miaulements.",
+      "sourceId": "freesound:508686",
+      "sourceUrl": "https://freesound.org/people/megrez7274/sounds/508686/",
+      "copyrightText": "« SND_CatHighMeows.wav » par megrez7274 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/megrez7274/sounds/508686/"
+    },
+    {
+      "title": "New Cat Meow 1",
+      "assetFilename": "freesound-479272.mp3",
+      "originalFilename": "New Cat Meow 1",
+      "category": "Animaux",
+      "durationMs": 917,
+      "tags": [
+        "animal",
+        "chat",
+        "miaulement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Miaulements.",
+      "sourceId": "freesound:479272",
+      "sourceUrl": "https://freesound.org/people/steffcaffrey/sounds/479272/",
+      "copyrightText": "« New Cat Meow 1 » par steffcaffrey — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/steffcaffrey/sounds/479272/"
+    },
+    {
+      "title": "cat meow short",
+      "assetFilename": "freesound-412017.mp3",
+      "originalFilename": "cat meow short",
+      "category": "Animaux",
+      "durationMs": 1750,
+      "tags": [
+        "animal",
+        "chat",
+        "miaulement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Miaulements.",
+      "sourceId": "freesound:412017",
+      "sourceUrl": "https://freesound.org/people/skymary/sounds/412017/",
+      "copyrightText": "« cat meow short » par skymary — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/skymary/sounds/412017/"
+    },
+    {
+      "title": "Begging Meow",
+      "assetFilename": "freesound-732521.mp3",
+      "originalFilename": "Begging Meow",
+      "category": "Animaux",
+      "durationMs": 1390,
+      "tags": [
+        "animal",
+        "chat",
+        "miaulement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Miaulements.",
+      "sourceId": "freesound:732521",
+      "sourceUrl": "https://freesound.org/people/Lukey1028/sounds/732521/",
+      "copyrightText": "« Begging Meow » par Lukey1028 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Lukey1028/sounds/732521/"
+    },
+    {
+      "title": "forest-bird (2)",
+      "assetFilename": "freesound-462136.mp3",
+      "originalFilename": "forest-bird (2).WAV",
+      "category": "Animaux",
+      "durationMs": 8000,
+      "tags": [
+        "animal",
+        "oiseau",
+        "chant",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Oiseaux.",
+      "sourceId": "freesound:462136",
+      "sourceUrl": "https://freesound.org/people/sama66/sounds/462136/",
+      "copyrightText": "« forest-bird (2).WAV » par sama66 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/sama66/sounds/462136/"
+    },
+    {
+      "title": "Forest Birds & Plane",
+      "assetFilename": "freesound-344968.mp3",
+      "originalFilename": "Forest Birds & Plane",
+      "category": "Animaux",
+      "durationMs": 8000,
+      "tags": [
+        "animal",
+        "oiseau",
+        "chant",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Oiseaux.",
+      "sourceId": "freesound:344968",
+      "sourceUrl": "https://freesound.org/people/VKProduktion/sounds/344968/",
+      "copyrightText": "« Forest Birds & Plane » par VKProduktion — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/VKProduktion/sounds/344968/"
+    },
+    {
+      "title": "forest birds 1",
+      "assetFilename": "freesound-322355.mp3",
+      "originalFilename": "forest_birds_1.wav",
+      "category": "Animaux",
+      "durationMs": 8000,
+      "tags": [
+        "animal",
+        "oiseau",
+        "chant",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Oiseaux.",
+      "sourceId": "freesound:322355",
+      "sourceUrl": "https://freesound.org/people/NobodyYouKnowOf/sounds/322355/",
+      "copyrightText": "« forest_birds_1.wav » par NobodyYouKnowOf — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/NobodyYouKnowOf/sounds/322355/"
+    },
+    {
+      "title": "Birds in the Forest",
+      "assetFilename": "freesound-569456.mp3",
+      "originalFilename": "Birds in the Forest.m4a",
+      "category": "Animaux",
+      "durationMs": 8000,
+      "tags": [
+        "animal",
+        "oiseau",
+        "chant",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Oiseaux.",
+      "sourceId": "freesound:569456",
+      "sourceUrl": "https://freesound.org/people/ciccarelli/sounds/569456/",
+      "copyrightText": "« Birds in the Forest.m4a » par ciccarelli — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/ciccarelli/sounds/569456/"
+    },
+    {
+      "title": "birds singing II",
+      "assetFilename": "freesound-379251.mp3",
+      "originalFilename": "birds singing II",
+      "category": "Animaux",
+      "durationMs": 7966,
+      "tags": [
+        "animal",
+        "oiseau",
+        "chant",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Oiseaux.",
+      "sourceId": "freesound:379251",
+      "sourceUrl": "https://freesound.org/people/13F_Panska_Petruzelova_Anna/sounds/379251/",
+      "copyrightText": "« birds singing II » par 13F_Panska_Petruzelova_Anna — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/13F_Panska_Petruzelova_Anna/sounds/379251/"
+    },
+    {
+      "title": "Bedroom Door Slam Open soft hit",
+      "assetFilename": "freesound-406640.mp3",
+      "originalFilename": "Bedroom Door Slam Open_soft hit.wav",
+      "category": "Bruitages",
+      "durationMs": 3133,
+      "tags": [
+        "bruitage",
+        "porte",
+        "claquement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Portes.",
+      "sourceId": "freesound:406640",
+      "sourceUrl": "https://freesound.org/people/tlcolbe/sounds/406640/",
+      "copyrightText": "« Bedroom Door Slam Open_soft hit.wav » par tlcolbe — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/tlcolbe/sounds/406640/"
+    },
+    {
+      "title": "Door slam",
+      "assetFilename": "freesound-724123.mp3",
+      "originalFilename": "Door slam",
+      "category": "Bruitages",
+      "durationMs": 2750,
+      "tags": [
+        "bruitage",
+        "porte",
+        "claquement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Portes.",
+      "sourceId": "freesound:724123",
+      "sourceUrl": "https://freesound.org/people/saha213131/sounds/724123/",
+      "copyrightText": "« Door slam » par saha213131 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/saha213131/sounds/724123/"
+    },
+    {
+      "title": "Bathroom door slam shut more air",
+      "assetFilename": "freesound-406635.mp3",
+      "originalFilename": "Bathroom door slam shut_more air.wav",
+      "category": "Bruitages",
+      "durationMs": 1533,
+      "tags": [
+        "bruitage",
+        "porte",
+        "claquement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Portes.",
+      "sourceId": "freesound:406635",
+      "sourceUrl": "https://freesound.org/people/tlcolbe/sounds/406635/",
+      "copyrightText": "« Bathroom door slam shut_more air.wav » par tlcolbe — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/tlcolbe/sounds/406635/"
+    },
+    {
+      "title": "stairwell door-panic bar and slam",
+      "assetFilename": "freesound-341176.mp3",
+      "originalFilename": "stairwell door-panic bar and slam.wav",
+      "category": "Bruitages",
+      "durationMs": 8000,
+      "tags": [
+        "bruitage",
+        "porte",
+        "claquement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Portes.",
+      "sourceId": "freesound:341176",
+      "sourceUrl": "https://freesound.org/people/klangfabrik/sounds/341176/",
+      "copyrightText": "« stairwell door-panic bar and slam.wav » par klangfabrik — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/klangfabrik/sounds/341176/"
+    },
+    {
+      "title": "Door slamming hard",
+      "assetFilename": "freesound-571797.mp3",
+      "originalFilename": "Door slamming hard",
+      "category": "Bruitages",
+      "durationMs": 2536,
+      "tags": [
+        "bruitage",
+        "porte",
+        "claquement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Portes.",
+      "sourceId": "freesound:571797",
+      "sourceUrl": "https://freesound.org/people/NachtmahrTV/sounds/571797/",
+      "copyrightText": "« Door slamming hard » par NachtmahrTV — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/NachtmahrTV/sounds/571797/"
+    },
+    {
+      "title": "Footstep in the snow 04 [RAW]",
+      "assetFilename": "freesound-384424.mp3",
+      "originalFilename": "Footstep in the snow_04 [RAW]",
+      "category": "Bruitages",
+      "durationMs": 969,
+      "tags": [
+        "bruitage",
+        "pas",
+        "marche",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Pas.",
+      "sourceId": "freesound:384424",
+      "sourceUrl": "https://freesound.org/people/cabled_mess/sounds/384424/",
+      "copyrightText": "« Footstep in the snow_04 [RAW] » par cabled_mess — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/cabled_mess/sounds/384424/"
+    },
+    {
+      "title": "Footsteps sneakers on wood",
+      "assetFilename": "freesound-235718.mp3",
+      "originalFilename": "Footsteps_sneakers on wood.wav",
+      "category": "Bruitages",
+      "durationMs": 8000,
+      "tags": [
+        "bruitage",
+        "pas",
+        "marche",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Pas.",
+      "sourceId": "freesound:235718",
+      "sourceUrl": "https://freesound.org/people/speedygonzo/sounds/235718/",
+      "copyrightText": "« Footsteps_sneakers on wood.wav » par speedygonzo — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/speedygonzo/sounds/235718/"
+    },
+    {
+      "title": "Binaural Suburban Footsteps 2",
+      "assetFilename": "freesound-628810.mp3",
+      "originalFilename": "Binaural Suburban Footsteps 2",
+      "category": "Bruitages",
+      "durationMs": 6548,
+      "tags": [
+        "bruitage",
+        "pas",
+        "marche",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Pas.",
+      "sourceId": "freesound:628810",
+      "sourceUrl": "https://freesound.org/people/The_Underdog/sounds/628810/",
+      "copyrightText": "« Binaural Suburban Footsteps 2 » par The_Underdog — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/The_Underdog/sounds/628810/"
+    },
+    {
+      "title": "R10-26-Slow Footsteps on Tile and Wooden Floor",
+      "assetFilename": "freesound-480610.mp3",
+      "originalFilename": "R10-26-Slow Footsteps on Tile and Wooden Floor.wav",
+      "category": "Bruitages",
+      "durationMs": 8000,
+      "tags": [
+        "bruitage",
+        "pas",
+        "marche",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Pas.",
+      "sourceId": "freesound:480610",
+      "sourceUrl": "https://freesound.org/people/craigsmith/sounds/480610/",
+      "copyrightText": "« R10-26-Slow Footsteps on Tile and Wooden Floor.wav » par craigsmith — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/craigsmith/sounds/480610/"
+    },
+    {
+      "title": "Footsteps, Solid Wood, Female Socks, Scuffs",
+      "assetFilename": "freesound-148802.mp3",
+      "originalFilename": "Footsteps, Solid Wood, Female Socks, Scuffs.wav",
+      "category": "Bruitages",
+      "durationMs": 8000,
+      "tags": [
+        "bruitage",
+        "pas",
+        "marche",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Pas.",
+      "sourceId": "freesound:148802",
+      "sourceUrl": "https://freesound.org/people/SpliceSound/sounds/148802/",
+      "copyrightText": "« Footsteps, Solid Wood, Female Socks, Scuffs.wav » par SpliceSound — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/SpliceSound/sounds/148802/"
+    },
+    {
+      "title": "Phone Ringing Sound",
+      "assetFilename": "freesound-528111.mp3",
+      "originalFilename": "Phone Ringing Sound.wav",
+      "category": "Bruitages",
+      "durationMs": 3750,
+      "tags": [
+        "bruitage",
+        "téléphone",
+        "sonnerie",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Sonneries.",
+      "sourceId": "freesound:528111",
+      "sourceUrl": "https://freesound.org/people/fspera/sounds/528111/",
+      "copyrightText": "« Phone Ringing Sound.wav » par fspera — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/fspera/sounds/528111/"
+    },
+    {
+      "title": "Home Phone 5",
+      "assetFilename": "freesound-132745.mp3",
+      "originalFilename": "Home Phone 5.wav",
+      "category": "Bruitages",
+      "durationMs": 8000,
+      "tags": [
+        "bruitage",
+        "téléphone",
+        "sonnerie",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Sonneries.",
+      "sourceId": "freesound:132745",
+      "sourceUrl": "https://freesound.org/people/DiArchangeli/sounds/132745/",
+      "copyrightText": "« Home Phone 5.wav » par DiArchangeli — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/DiArchangeli/sounds/132745/"
+    },
+    {
+      "title": "Phone Ring Out Call End Tone",
+      "assetFilename": "freesound-677458.mp3",
+      "originalFilename": "Phone Ring Out Call End Tone",
+      "category": "Bruitages",
+      "durationMs": 8000,
+      "tags": [
+        "bruitage",
+        "téléphone",
+        "sonnerie",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Sonneries.",
+      "sourceId": "freesound:677458",
+      "sourceUrl": "https://freesound.org/people/kalhan/sounds/677458/",
+      "copyrightText": "« Phone Ring Out Call End Tone » par kalhan — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/kalhan/sounds/677458/"
+    },
+    {
+      "title": "room tone warehouse heavy hum aisle +phone ring nearby echo1",
+      "assetFilename": "freesound-451925.mp3",
+      "originalFilename": "room tone warehouse heavy hum aisle +phone ring nearby echo1.flac",
+      "category": "Bruitages",
+      "durationMs": 8000,
+      "tags": [
+        "bruitage",
+        "téléphone",
+        "sonnerie",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Sonneries.",
+      "sourceId": "freesound:451925",
+      "sourceUrl": "https://freesound.org/people/kyles/sounds/451925/",
+      "copyrightText": "« room tone warehouse heavy hum aisle +phone ring nearby echo1.flac » par kyles — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/kyles/sounds/451925/"
+    },
+    {
+      "title": "Sci-fi Phone Ringing",
+      "assetFilename": "freesound-635641.mp3",
+      "originalFilename": "Sci-fi Phone Ringing",
+      "category": "Bruitages",
+      "durationMs": 4881,
+      "tags": [
+        "bruitage",
+        "téléphone",
+        "sonnerie",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Sonneries.",
+      "sourceId": "freesound:635641",
+      "sourceUrl": "https://freesound.org/people/LaurenPonder/sounds/635641/",
+      "copyrightText": "« Sci-fi Phone Ringing » par LaurenPonder — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/LaurenPonder/sounds/635641/"
+    },
+    {
+      "title": "Dramatic Bass Hit",
+      "assetFilename": "freesound-138107.mp3",
+      "originalFilename": "Dramatic Bass Hit",
+      "category": "Drame",
+      "durationMs": 8000,
+      "tags": [
+        "drame",
+        "impact",
+        "cinéma",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Impacts dramatiques.",
+      "sourceId": "freesound:138107",
+      "sourceUrl": "https://freesound.org/people/snakebarney/sounds/138107/",
+      "copyrightText": "« Dramatic Bass Hit » par snakebarney — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/snakebarney/sounds/138107/"
+    },
+    {
+      "title": "Reverse Dramatic Bass Hit",
+      "assetFilename": "freesound-138124.mp3",
+      "originalFilename": "Reverse Dramatic Bass Hit",
+      "category": "Drame",
+      "durationMs": 4833,
+      "tags": [
+        "drame",
+        "impact",
+        "cinéma",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Impacts dramatiques.",
+      "sourceId": "freesound:138124",
+      "sourceUrl": "https://freesound.org/people/snakebarney/sounds/138124/",
+      "copyrightText": "« Reverse Dramatic Bass Hit » par snakebarney — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/snakebarney/sounds/138124/"
+    },
+    {
+      "title": "Dramatic Hit",
+      "assetFilename": "freesound-222517.mp3",
+      "originalFilename": "Dramatic Hit",
+      "category": "Drame",
+      "durationMs": 7038,
+      "tags": [
+        "drame",
+        "impact",
+        "cinéma",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Impacts dramatiques.",
+      "sourceId": "freesound:222517",
+      "sourceUrl": "https://freesound.org/people/qubodup/sounds/222517/",
+      "copyrightText": "« Dramatic Hit » par qubodup — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/qubodup/sounds/222517/"
+    },
+    {
+      "title": "Dramatic Drone Hit",
+      "assetFilename": "freesound-138106.mp3",
+      "originalFilename": "Dramatic Drone Hit",
+      "category": "Drame",
+      "durationMs": 8000,
+      "tags": [
+        "drame",
+        "impact",
+        "cinéma",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Impacts dramatiques.",
+      "sourceId": "freesound:138106",
+      "sourceUrl": "https://freesound.org/people/snakebarney/sounds/138106/",
+      "copyrightText": "« Dramatic Drone Hit » par snakebarney — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/snakebarney/sounds/138106/"
+    },
+    {
+      "title": "Dark Dramatic Atmo",
+      "assetFilename": "freesound-583791.mp3",
+      "originalFilename": "Dark Dramatic Atmo.wav",
+      "category": "Drame",
+      "durationMs": 8000,
+      "tags": [
+        "drame",
+        "impact",
+        "cinéma",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Impacts dramatiques.",
+      "sourceId": "freesound:583791",
+      "sourceUrl": "https://freesound.org/people/szegvari/sounds/583791/",
+      "copyrightText": "« Dark Dramatic Atmo.wav » par szegvari — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/szegvari/sounds/583791/"
+    },
+    {
+      "title": "HorrorSting1",
+      "assetFilename": "freesound-513332.mp3",
+      "originalFilename": "HorrorSting1.mp3",
+      "category": "Drame",
+      "durationMs": 8000,
+      "tags": [
+        "drame",
+        "horreur",
+        "tension",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Horreur.",
+      "sourceId": "freesound:513332",
+      "sourceUrl": "https://freesound.org/people/shelbyshark/sounds/513332/",
+      "copyrightText": "« HorrorSting1.mp3 » par shelbyshark — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/shelbyshark/sounds/513332/"
+    },
+    {
+      "title": "Metallic Sting",
+      "assetFilename": "freesound-594989.mp3",
+      "originalFilename": "Metallic Sting",
+      "category": "Drame",
+      "durationMs": 8000,
+      "tags": [
+        "drame",
+        "horreur",
+        "tension",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Horreur.",
+      "sourceId": "freesound:594989",
+      "sourceUrl": "https://freesound.org/people/BennettFilmTeacher/sounds/594989/",
+      "copyrightText": "« Metallic Sting » par BennettFilmTeacher — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/BennettFilmTeacher/sounds/594989/"
+    },
+    {
+      "title": "Sting/jumpscare",
+      "assetFilename": "freesound-846789.mp3",
+      "originalFilename": "Sting/jumpscare",
+      "category": "Drame",
+      "durationMs": 8000,
+      "tags": [
+        "drame",
+        "horreur",
+        "tension",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Horreur.",
+      "sourceId": "freesound:846789",
+      "sourceUrl": "https://freesound.org/people/hotpin7/sounds/846789/",
+      "copyrightText": "« Sting/jumpscare » par hotpin7 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/hotpin7/sounds/846789/"
+    },
+    {
+      "title": "Spooky Sting",
+      "assetFilename": "freesound-578370.mp3",
+      "originalFilename": "Spooky Sting",
+      "category": "Drame",
+      "durationMs": 8000,
+      "tags": [
+        "drame",
+        "horreur",
+        "tension",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Horreur.",
+      "sourceId": "freesound:578370",
+      "sourceUrl": "https://freesound.org/people/nomiqbomi/sounds/578370/",
+      "copyrightText": "« Spooky Sting » par nomiqbomi — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/nomiqbomi/sounds/578370/"
+    },
+    {
+      "title": "Stingers and Stabs 004",
+      "assetFilename": "freesound-840810.mp3",
+      "originalFilename": "Stingers and Stabs 004",
+      "category": "Drame",
+      "durationMs": 7742,
+      "tags": [
+        "drame",
+        "horreur",
+        "tension",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Horreur.",
+      "sourceId": "freesound:840810",
+      "sourceUrl": "https://freesound.org/people/OverlookHotelRecords/sounds/840810/",
+      "copyrightText": "« Stingers and Stabs 004 » par OverlookHotelRecords — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/OverlookHotelRecords/sounds/840810/"
+    },
+    {
+      "title": "tension sting",
+      "assetFilename": "freesound-506295.mp3",
+      "originalFilename": "tension sting.mp3",
+      "category": "Drame",
+      "durationMs": 4525,
+      "tags": [
+        "drame",
+        "suspense",
+        "mystère",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Suspense.",
+      "sourceId": "freesound:506295",
+      "sourceUrl": "https://freesound.org/people/FartMuffin/sounds/506295/",
+      "copyrightText": "« tension sting.mp3 » par FartMuffin — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/FartMuffin/sounds/506295/"
+    },
+    {
+      "title": "VT Lair, Flesh, D Low Oct Sting",
+      "assetFilename": "freesound-819594.mp3",
+      "originalFilename": "VT Lair, Flesh, D Low Oct Sting",
+      "category": "Drame",
+      "durationMs": 8000,
+      "tags": [
+        "drame",
+        "suspense",
+        "mystère",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Suspense.",
+      "sourceId": "freesound:819594",
+      "sourceUrl": "https://freesound.org/people/DeqstersLab/sounds/819594/",
+      "copyrightText": "« VT Lair, Flesh, D Low Oct Sting » par DeqstersLab — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/DeqstersLab/sounds/819594/"
+    },
+    {
+      "title": "Ambient Sting Crescendo",
+      "assetFilename": "freesound-514631.mp3",
+      "originalFilename": "Ambient Sting Crescendo",
+      "category": "Drame",
+      "durationMs": 8000,
+      "tags": [
+        "drame",
+        "suspense",
+        "mystère",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Suspense.",
+      "sourceId": "freesound:514631",
+      "sourceUrl": "https://freesound.org/people/AbrahamMast/sounds/514631/",
+      "copyrightText": "« Ambient Sting Crescendo » par AbrahamMast — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/AbrahamMast/sounds/514631/"
+    },
+    {
+      "title": "5 Super Dramatic Stings",
+      "assetFilename": "freesound-213101.mp3",
+      "originalFilename": "5 Super Dramatic Stings",
+      "category": "Drame",
+      "durationMs": 8000,
+      "tags": [
+        "drame",
+        "suspense",
+        "mystère",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Suspense.",
+      "sourceId": "freesound:213101",
+      "sourceUrl": "https://freesound.org/people/SoundsExciting/sounds/213101/",
+      "copyrightText": "« 5 Super Dramatic Stings » par SoundsExciting — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/SoundsExciting/sounds/213101/"
+    },
+    {
+      "title": "Nightmare (short sting)",
+      "assetFilename": "freesound-706752.mp3",
+      "originalFilename": "Nightmare (short sting)",
+      "category": "Drame",
+      "durationMs": 7500,
+      "tags": [
+        "drame",
+        "suspense",
+        "mystère",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Suspense.",
+      "sourceId": "freesound:706752",
+      "sourceUrl": "https://freesound.org/people/xkeril/sounds/706752/",
+      "copyrightText": "« Nightmare (short sting) » par xkeril — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/xkeril/sounds/706752/"
+    },
+    {
+      "title": "Happy jingle soft",
+      "assetFilename": "freesound-688273.mp3",
+      "originalFilename": "Happy jingle soft",
+      "category": "Joyeux",
+      "durationMs": 8000,
+      "tags": [
+        "joyeux",
+        "carillon",
+        "jingle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Carillons joyeux.",
+      "sourceId": "freesound:688273",
+      "sourceUrl": "https://freesound.org/people/xkeril/sounds/688273/",
+      "copyrightText": "« Happy jingle soft » par xkeril — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/xkeril/sounds/688273/"
+    },
+    {
+      "title": "Happy Jingle",
+      "assetFilename": "freesound-815696.mp3",
+      "originalFilename": "Happy Jingle",
+      "category": "Joyeux",
+      "durationMs": 2456,
+      "tags": [
+        "joyeux",
+        "carillon",
+        "jingle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Carillons joyeux.",
+      "sourceId": "freesound:815696",
+      "sourceUrl": "https://freesound.org/people/Redeam/sounds/815696/",
+      "copyrightText": "« Happy Jingle » par Redeam — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Redeam/sounds/815696/"
+    },
+    {
+      "title": "Gewonnen2",
+      "assetFilename": "freesound-162458.mp3",
+      "originalFilename": "Gewonnen2.mp3",
+      "category": "Joyeux",
+      "durationMs": 5143,
+      "tags": [
+        "joyeux",
+        "carillon",
+        "jingle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Carillons joyeux.",
+      "sourceId": "freesound:162458",
+      "sourceUrl": "https://freesound.org/people/Kastenfrosch/sounds/162458/",
+      "copyrightText": "« Gewonnen2.mp3 » par Kastenfrosch — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Kastenfrosch/sounds/162458/"
+    },
+    {
+      "title": "Jingle 2",
+      "assetFilename": "freesound-625703.mp3",
+      "originalFilename": "Jingle 2",
+      "category": "Joyeux",
+      "durationMs": 3475,
+      "tags": [
+        "joyeux",
+        "carillon",
+        "jingle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Carillons joyeux.",
+      "sourceId": "freesound:625703",
+      "sourceUrl": "https://freesound.org/people/ImATaco/sounds/625703/",
+      "copyrightText": "« Jingle 2 » par ImATaco — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/ImATaco/sounds/625703/"
+    },
+    {
+      "title": "Crystals",
+      "assetFilename": "freesound-394293.mp3",
+      "originalFilename": "Crystals",
+      "category": "Joyeux",
+      "durationMs": 8000,
+      "tags": [
+        "joyeux",
+        "carillon",
+        "jingle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Carillons joyeux.",
+      "sourceId": "freesound:394293",
+      "sourceUrl": "https://freesound.org/people/envirOmaniac2/sounds/394293/",
+      "copyrightText": "« Crystals » par envirOmaniac2 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/envirOmaniac2/sounds/394293/"
+    },
+    {
+      "title": "Success Jingle",
+      "assetFilename": "freesound-521949.mp3",
+      "originalFilename": "Success Jingle",
+      "category": "Joyeux",
+      "durationMs": 8000,
+      "tags": [
+        "joyeux",
+        "réussite",
+        "victoire",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Réussites.",
+      "sourceId": "freesound:521949",
+      "sourceUrl": "https://freesound.org/people/Kastenfrosch/sounds/521949/",
+      "copyrightText": "« Success Jingle » par Kastenfrosch — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Kastenfrosch/sounds/521949/"
+    },
+    {
+      "title": "Friendly UI App Jingle",
+      "assetFilename": "freesound-858479.mp3",
+      "originalFilename": "Friendly UI App Jingle",
+      "category": "Joyeux",
+      "durationMs": 8000,
+      "tags": [
+        "joyeux",
+        "réussite",
+        "victoire",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Réussites.",
+      "sourceId": "freesound:858479",
+      "sourceUrl": "https://freesound.org/people/TommasoMotteran/sounds/858479/",
+      "copyrightText": "« Friendly UI App Jingle » par TommasoMotteran — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/TommasoMotteran/sounds/858479/"
+    },
+    {
+      "title": "You've succeeded (game jingle)",
+      "assetFilename": "freesound-626259.mp3",
+      "originalFilename": "You've succeeded (game jingle)",
+      "category": "Joyeux",
+      "durationMs": 4203,
+      "tags": [
+        "joyeux",
+        "réussite",
+        "victoire",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Réussites.",
+      "sourceId": "freesound:626259",
+      "sourceUrl": "https://freesound.org/people/Rolly-SFX/sounds/626259/",
+      "copyrightText": "« You've succeeded (game jingle) » par Rolly-SFX — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Rolly-SFX/sounds/626259/"
+    },
+    {
+      "title": "fweeng + Reverb",
+      "assetFilename": "freesound-607208.mp3",
+      "originalFilename": "fweeng + Reverb",
+      "category": "Joyeux",
+      "durationMs": 1589,
+      "tags": [
+        "joyeux",
+        "réussite",
+        "victoire",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Réussites.",
+      "sourceId": "freesound:607208",
+      "sourceUrl": "https://freesound.org/people/Fupicat/sounds/607208/",
+      "copyrightText": "« fweeng + Reverb » par Fupicat — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Fupicat/sounds/607208/"
+    },
+    {
+      "title": "fweeng",
+      "assetFilename": "freesound-607209.mp3",
+      "originalFilename": "fweeng",
+      "category": "Joyeux",
+      "durationMs": 1589,
+      "tags": [
+        "joyeux",
+        "réussite",
+        "victoire",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Réussites.",
+      "sourceId": "freesound:607209",
+      "sourceUrl": "https://freesound.org/people/Fupicat/sounds/607209/",
+      "copyrightText": "« fweeng » par Fupicat — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Fupicat/sounds/607209/"
+    },
+    {
+      "title": "cartoon-sound-single-boing",
+      "assetFilename": "freesound-731262.mp3",
+      "originalFilename": "cartoon-sound-single-boing",
+      "category": "Joyeux",
+      "durationMs": 2095,
+      "tags": [
+        "joyeux",
+        "comédie",
+        "cartoon",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Comédie.",
+      "sourceId": "freesound:731262",
+      "sourceUrl": "https://freesound.org/people/sdroliasnick/sounds/731262/",
+      "copyrightText": "« cartoon-sound-single-boing » par sdroliasnick — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/sdroliasnick/sounds/731262/"
+    },
+    {
+      "title": "cartoon-sound-double-boing",
+      "assetFilename": "freesound-731261.mp3",
+      "originalFilename": "cartoon-sound-double-boing",
+      "category": "Joyeux",
+      "durationMs": 2344,
+      "tags": [
+        "joyeux",
+        "comédie",
+        "cartoon",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Comédie.",
+      "sourceId": "freesound:731261",
+      "sourceUrl": "https://freesound.org/people/sdroliasnick/sounds/731261/",
+      "copyrightText": "« cartoon-sound-double-boing » par sdroliasnick — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/sdroliasnick/sounds/731261/"
+    },
+    {
+      "title": "Sproing!!",
+      "assetFilename": "freesound-514429.mp3",
+      "originalFilename": "Sproing!!",
+      "category": "Joyeux",
+      "durationMs": 2197,
+      "tags": [
+        "joyeux",
+        "comédie",
+        "cartoon",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Comédie.",
+      "sourceId": "freesound:514429",
+      "sourceUrl": "https://freesound.org/people/se2001/sounds/514429/",
+      "copyrightText": "« Sproing!! » par se2001 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/se2001/sounds/514429/"
+    },
+    {
+      "title": "cartoon-sound-triple",
+      "assetFilename": "freesound-731263.mp3",
+      "originalFilename": "cartoon-sound-triple",
+      "category": "Joyeux",
+      "durationMs": 2593,
+      "tags": [
+        "joyeux",
+        "comédie",
+        "cartoon",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Comédie.",
+      "sourceId": "freesound:731263",
+      "sourceUrl": "https://freesound.org/people/sdroliasnick/sounds/731263/",
+      "copyrightText": "« cartoon-sound-triple » par sdroliasnick — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/sdroliasnick/sounds/731263/"
+    },
+    {
+      "title": "Boing 2",
+      "assetFilename": "freesound-540790.mp3",
+      "originalFilename": "Boing 2",
+      "category": "Joyeux",
+      "durationMs": 1133,
+      "tags": [
+        "joyeux",
+        "comédie",
+        "cartoon",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Comédie.",
+      "sourceId": "freesound:540790",
+      "sourceUrl": "https://freesound.org/people/magnuswaker/sounds/540790/",
+      "copyrightText": "« Boing 2 » par magnuswaker — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/magnuswaker/sounds/540790/"
+    },
+    {
+      "title": "Magical Impact with Trippy Trail FX",
+      "assetFilename": "freesound-849412.mp3",
+      "originalFilename": "Magical Impact with Trippy Trail FX",
+      "category": "Effets",
+      "durationMs": 8000,
+      "tags": [
+        "effet",
+        "magie",
+        "sort",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Magie.",
+      "sourceId": "freesound:849412",
+      "sourceUrl": "https://freesound.org/people/CVLTIV8R/sounds/849412/",
+      "copyrightText": "« Magical Impact with Trippy Trail FX » par CVLTIV8R — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/CVLTIV8R/sounds/849412/"
+    },
+    {
+      "title": "Magic Spell 08",
+      "assetFilename": "freesound-515731.mp3",
+      "originalFilename": "Magic Spell 08.wav",
+      "category": "Effets",
+      "durationMs": 2796,
+      "tags": [
+        "effet",
+        "magie",
+        "sort",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Magie.",
+      "sourceId": "freesound:515731",
+      "sourceUrl": "https://freesound.org/people/LilMati/sounds/515731/",
+      "copyrightText": "« Magic Spell 08.wav » par LilMati — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/LilMati/sounds/515731/"
+    },
+    {
+      "title": "Magic Spell 07",
+      "assetFilename": "freesound-506516.mp3",
+      "originalFilename": "Magic Spell 07.wav",
+      "category": "Effets",
+      "durationMs": 1560,
+      "tags": [
+        "effet",
+        "magie",
+        "sort",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Magie.",
+      "sourceId": "freesound:506516",
+      "sourceUrl": "https://freesound.org/people/LilMati/sounds/506516/",
+      "copyrightText": "« Magic Spell 07.wav » par LilMati — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/LilMati/sounds/506516/"
+    },
+    {
+      "title": "Magic Spell 04",
+      "assetFilename": "freesound-455207.mp3",
+      "originalFilename": "Magic Spell 04.wav",
+      "category": "Effets",
+      "durationMs": 1881,
+      "tags": [
+        "effet",
+        "magie",
+        "sort",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Magie.",
+      "sourceId": "freesound:455207",
+      "sourceUrl": "https://freesound.org/people/LilMati/sounds/455207/",
+      "copyrightText": "« Magic Spell 04.wav » par LilMati — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/LilMati/sounds/455207/"
+    },
+    {
+      "title": "Magic Spell 01",
+      "assetFilename": "freesound-455206.mp3",
+      "originalFilename": "Magic Spell 01.wav",
+      "category": "Effets",
+      "durationMs": 1894,
+      "tags": [
+        "effet",
+        "magie",
+        "sort",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Magie.",
+      "sourceId": "freesound:455206",
+      "sourceUrl": "https://freesound.org/people/LilMati/sounds/455206/",
+      "copyrightText": "« Magic Spell 01.wav » par LilMati — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/LilMati/sounds/455206/"
+    },
+    {
+      "title": "laser sustained",
+      "assetFilename": "freesound-397280.mp3",
+      "originalFilename": "laser_sustained.wav",
+      "category": "Effets",
+      "durationMs": 8000,
+      "tags": [
+        "effet",
+        "laser",
+        "science-fiction",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Lasers.",
+      "sourceId": "freesound:397280",
+      "sourceUrl": "https://freesound.org/people/ledhed2222/sounds/397280/",
+      "copyrightText": "« laser_sustained.wav » par ledhed2222 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/ledhed2222/sounds/397280/"
+    },
+    {
+      "title": "Devastating Laser Blasts",
+      "assetFilename": "freesound-731984.mp3",
+      "originalFilename": "Devastating Laser Blasts",
+      "category": "Effets",
+      "durationMs": 8000,
+      "tags": [
+        "effet",
+        "laser",
+        "science-fiction",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Lasers.",
+      "sourceId": "freesound:731984",
+      "sourceUrl": "https://freesound.org/people/SamsterBirdies/sounds/731984/",
+      "copyrightText": "« Devastating Laser Blasts » par SamsterBirdies — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/SamsterBirdies/sounds/731984/"
+    },
+    {
+      "title": "Fantasy Laser Cannon",
+      "assetFilename": "freesound-811935.mp3",
+      "originalFilename": "Fantasy Laser Cannon",
+      "category": "Effets",
+      "durationMs": 1001,
+      "tags": [
+        "effet",
+        "laser",
+        "science-fiction",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Lasers.",
+      "sourceId": "freesound:811935",
+      "sourceUrl": "https://freesound.org/people/JustWatson64/sounds/811935/",
+      "copyrightText": "« Fantasy Laser Cannon » par JustWatson64 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/JustWatson64/sounds/811935/"
+    },
+    {
+      "title": "Laser FX #3",
+      "assetFilename": "freesound-517763.mp3",
+      "originalFilename": "Laser FX #3",
+      "category": "Effets",
+      "durationMs": 1868,
+      "tags": [
+        "effet",
+        "laser",
+        "science-fiction",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Lasers.",
+      "sourceId": "freesound:517763",
+      "sourceUrl": "https://freesound.org/people/danlucaz/sounds/517763/",
+      "copyrightText": "« Laser FX #3 » par danlucaz — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/danlucaz/sounds/517763/"
+    },
+    {
+      "title": "Lasers Moving Slow",
+      "assetFilename": "freesound-482238.mp3",
+      "originalFilename": "Lasers Moving Slow",
+      "category": "Effets",
+      "durationMs": 8000,
+      "tags": [
+        "effet",
+        "laser",
+        "science-fiction",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Lasers.",
+      "sourceId": "freesound:482238",
+      "sourceUrl": "https://freesound.org/people/vero.marengere/sounds/482238/",
+      "copyrightText": "« Lasers Moving Slow » par vero.marengere — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/vero.marengere/sounds/482238/"
+    },
+    {
+      "title": "Explosion 2",
+      "assetFilename": "freesound-165910.mp3",
+      "originalFilename": "Explosion 2.wav",
+      "category": "Effets",
+      "durationMs": 7827,
+      "tags": [
+        "effet",
+        "explosion",
+        "impact",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Explosions.",
+      "sourceId": "freesound:165910",
+      "sourceUrl": "https://freesound.org/people/Deganoth/sounds/165910/",
+      "copyrightText": "« Explosion 2.wav » par Deganoth — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Deganoth/sounds/165910/"
+    },
+    {
+      "title": "8-Bit Explosion 1 6",
+      "assetFilename": "freesound-478277.mp3",
+      "originalFilename": "8-Bit Explosion 1_6",
+      "category": "Effets",
+      "durationMs": 1227,
+      "tags": [
+        "effet",
+        "explosion",
+        "impact",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Explosions.",
+      "sourceId": "freesound:478277",
+      "sourceUrl": "https://freesound.org/people/Joao_Janz/sounds/478277/",
+      "copyrightText": "« 8-Bit Explosion 1_6 » par Joao_Janz — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Joao_Janz/sounds/478277/"
+    },
+    {
+      "title": "large explosion 1",
+      "assetFilename": "freesound-482993.mp3",
+      "originalFilename": "large explosion 1",
+      "category": "Effets",
+      "durationMs": 3869,
+      "tags": [
+        "effet",
+        "explosion",
+        "impact",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Explosions.",
+      "sourceId": "freesound:482993",
+      "sourceUrl": "https://freesound.org/people/V-ktor/sounds/482993/",
+      "copyrightText": "« large explosion 1 » par V-ktor — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/V-ktor/sounds/482993/"
+    },
+    {
+      "title": "explosion",
+      "assetFilename": "freesound-446625.mp3",
+      "originalFilename": "explosion.wav",
+      "category": "Effets",
+      "durationMs": 2732,
+      "tags": [
+        "effet",
+        "explosion",
+        "impact",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Explosions.",
+      "sourceId": "freesound:446625",
+      "sourceUrl": "https://freesound.org/people/IdkMrGarcia/sounds/446625/",
+      "copyrightText": "« explosion.wav » par IdkMrGarcia — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/IdkMrGarcia/sounds/446625/"
+    },
+    {
+      "title": "Huge Explosion Part 1 - Shockwave",
+      "assetFilename": "freesound-366091.mp3",
+      "originalFilename": "Huge Explosion Part 1 - Shockwave",
+      "category": "Effets",
+      "durationMs": 2864,
+      "tags": [
+        "effet",
+        "explosion",
+        "impact",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Explosions.",
+      "sourceId": "freesound:366091",
+      "sourceUrl": "https://freesound.org/people/bevibeldesign/sounds/366091/",
+      "copyrightText": "« Huge Explosion Part 1 - Shockwave » par bevibeldesign — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/bevibeldesign/sounds/366091/"
+    },
+    {
+      "title": "Steady Rainfall",
+      "assetFilename": "freesound-406092.mp3",
+      "originalFilename": "Steady Rainfall.wav",
+      "category": "Ambiances",
+      "durationMs": 6496,
+      "tags": [
+        "ambiance",
+        "pluie",
+        "météo",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Pluie.",
+      "sourceId": "freesound:406092",
+      "sourceUrl": "https://freesound.org/people/Yin_Yang_Jake007/sounds/406092/",
+      "copyrightText": "« Steady Rainfall.wav » par Yin_Yang_Jake007 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Yin_Yang_Jake007/sounds/406092/"
+    },
+    {
+      "title": "rainfall",
+      "assetFilename": "freesound-562869.mp3",
+      "originalFilename": "rainfall",
+      "category": "Ambiances",
+      "durationMs": 8000,
+      "tags": [
+        "ambiance",
+        "pluie",
+        "météo",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Pluie.",
+      "sourceId": "freesound:562869",
+      "sourceUrl": "https://freesound.org/people/buzzatsea/sounds/562869/",
+      "copyrightText": "« rainfall » par buzzatsea — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/buzzatsea/sounds/562869/"
+    },
+    {
+      "title": "Light Rainfall",
+      "assetFilename": "freesound-416961.mp3",
+      "originalFilename": "Light Rainfall.mp3",
+      "category": "Ambiances",
+      "durationMs": 8000,
+      "tags": [
+        "ambiance",
+        "pluie",
+        "météo",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Pluie.",
+      "sourceId": "freesound:416961",
+      "sourceUrl": "https://freesound.org/people/Yin_Yang_Jake007/sounds/416961/",
+      "copyrightText": "« Light Rainfall.mp3 » par Yin_Yang_Jake007 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Yin_Yang_Jake007/sounds/416961/"
+    },
+    {
+      "title": "rainfall",
+      "assetFilename": "freesound-704572.mp3",
+      "originalFilename": "rainfall",
+      "category": "Ambiances",
+      "durationMs": 8000,
+      "tags": [
+        "ambiance",
+        "pluie",
+        "météo",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Pluie.",
+      "sourceId": "freesound:704572",
+      "sourceUrl": "https://freesound.org/people/mudflea2/sounds/704572/",
+      "copyrightText": "« rainfall » par mudflea2 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/mudflea2/sounds/704572/"
+    },
+    {
+      "title": "Rainfall by Krucifix Productions",
+      "assetFilename": "freesound-323638.mp3",
+      "originalFilename": "Rainfall by Krucifix Productions.wav",
+      "category": "Ambiances",
+      "durationMs": 8000,
+      "tags": [
+        "ambiance",
+        "pluie",
+        "météo",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Pluie.",
+      "sourceId": "freesound:323638",
+      "sourceUrl": "https://freesound.org/people/Krucifix444/sounds/323638/",
+      "copyrightText": "« Rainfall by Krucifix Productions.wav » par Krucifix444 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Krucifix444/sounds/323638/"
+    },
+    {
+      "title": "260623 055825 Taiwan Chiayi Alishan Ogasawara Lookout - June Early Morning - Forest Birds & Dawn Ambience 台灣嘉義阿里山小笠原觀景台6月 清晨",
+      "assetFilename": "freesound-860231.mp3",
+      "originalFilename": "260623_055825_Taiwan Chiayi Alishan Ogasawara Lookout - June Early Morning - Forest Birds & Dawn Ambience_台灣嘉義阿里山小笠原觀景台6月_清晨",
+      "category": "Ambiances",
+      "durationMs": 8000,
+      "tags": [
+        "ambiance",
+        "forêt",
+        "nature",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Forêt.",
+      "sourceId": "freesound:860231",
+      "sourceUrl": "https://freesound.org/people/BayTsai/sounds/860231/",
+      "copyrightText": "« 260623_055825_Taiwan Chiayi Alishan Ogasawara Lookout - June Early Morning - Forest Birds & Dawn Ambience_台灣嘉義阿里山小笠原觀景台6月_清晨 » par BayTsai — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/BayTsai/sounds/860231/"
+    },
+    {
+      "title": "Birds in park near forest",
+      "assetFilename": "freesound-273538.mp3",
+      "originalFilename": "Birds in park near forest",
+      "category": "Ambiances",
+      "durationMs": 8000,
+      "tags": [
+        "ambiance",
+        "forêt",
+        "nature",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Forêt.",
+      "sourceId": "freesound:273538",
+      "sourceUrl": "https://freesound.org/people/myrinvp/sounds/273538/",
+      "copyrightText": "« Birds in park near forest » par myrinvp — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/myrinvp/sounds/273538/"
+    },
+    {
+      "title": "Suburban Forest Birds",
+      "assetFilename": "freesound-635148.mp3",
+      "originalFilename": "Suburban Forest Birds",
+      "category": "Ambiances",
+      "durationMs": 8000,
+      "tags": [
+        "ambiance",
+        "forêt",
+        "nature",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Forêt.",
+      "sourceId": "freesound:635148",
+      "sourceUrl": "https://freesound.org/people/_MC5_/sounds/635148/",
+      "copyrightText": "« Suburban Forest Birds » par _MC5_ — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/_MC5_/sounds/635148/"
+    },
+    {
+      "title": "Forest birds 2",
+      "assetFilename": "freesound-278870.mp3",
+      "originalFilename": "Forest birds 2.WAV",
+      "category": "Ambiances",
+      "durationMs": 8000,
+      "tags": [
+        "ambiance",
+        "forêt",
+        "nature",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Forêt.",
+      "sourceId": "freesound:278870",
+      "sourceUrl": "https://freesound.org/people/Sandermotions/sounds/278870/",
+      "copyrightText": "« Forest birds 2.WAV » par Sandermotions — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Sandermotions/sounds/278870/"
+    },
+    {
+      "title": "Jungle / Forest Ambience",
+      "assetFilename": "freesound-644989.mp3",
+      "originalFilename": "Jungle / Forest Ambience",
+      "category": "Ambiances",
+      "durationMs": 8000,
+      "tags": [
+        "ambiance",
+        "forêt",
+        "nature",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Forêt.",
+      "sourceId": "freesound:644989",
+      "sourceUrl": "https://freesound.org/people/seventhsamurai/sounds/644989/",
+      "copyrightText": "« Jungle / Forest Ambience » par seventhsamurai — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/seventhsamurai/sounds/644989/"
+    },
+    {
+      "title": "Shopping Street Ambience",
+      "assetFilename": "freesound-451734.mp3",
+      "originalFilename": "Shopping Street Ambience",
+      "category": "Ambiances",
+      "durationMs": 8000,
+      "tags": [
+        "ambiance",
+        "ville",
+        "extérieur",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Ville.",
+      "sourceId": "freesound:451734",
+      "sourceUrl": "https://freesound.org/people/florianreichelt/sounds/451734/",
+      "copyrightText": "« Shopping Street Ambience » par florianreichelt — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/florianreichelt/sounds/451734/"
+    },
+    {
+      "title": "ambience street Pakistan Thar Desert Town Horns cars crowds",
+      "assetFilename": "freesound-132073.mp3",
+      "originalFilename": "ambience street Pakistan Thar Desert Town Horns cars crowds .aif",
+      "category": "Ambiances",
+      "durationMs": 8000,
+      "tags": [
+        "ambiance",
+        "ville",
+        "extérieur",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Ville.",
+      "sourceId": "freesound:132073",
+      "sourceUrl": "https://freesound.org/people/ghettodrone/sounds/132073/",
+      "copyrightText": "« ambience street Pakistan Thar Desert Town Horns cars crowds .aif » par ghettodrone — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/ghettodrone/sounds/132073/"
+    },
+    {
+      "title": "Entering from street to restricted area",
+      "assetFilename": "freesound-232687.mp3",
+      "originalFilename": "Entering from street to restricted area.wav",
+      "category": "Ambiances",
+      "durationMs": 6827,
+      "tags": [
+        "ambiance",
+        "ville",
+        "extérieur",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Ville.",
+      "sourceId": "freesound:232687",
+      "sourceUrl": "https://freesound.org/people/xavimuse/sounds/232687/",
+      "copyrightText": "« Entering from street to restricted area.wav » par xavimuse — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/xavimuse/sounds/232687/"
+    },
+    {
+      "title": "ambience, garage, parking, city, Moscow",
+      "assetFilename": "freesound-362946.mp3",
+      "originalFilename": "ambience, garage, parking, city, Moscow",
+      "category": "Ambiances",
+      "durationMs": 8000,
+      "tags": [
+        "ambiance",
+        "ville",
+        "extérieur",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Ville.",
+      "sourceId": "freesound:362946",
+      "sourceUrl": "https://freesound.org/people/AlexanderChe/sounds/362946/",
+      "copyrightText": "« ambience, garage, parking, city, Moscow » par AlexanderChe — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/AlexanderChe/sounds/362946/"
+    },
+    {
+      "title": "winter night street ambience",
+      "assetFilename": "freesound-260057.mp3",
+      "originalFilename": "winter_night_street_ambience.wav",
+      "category": "Ambiances",
+      "durationMs": 8000,
+      "tags": [
+        "ambiance",
+        "ville",
+        "extérieur",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Ville.",
+      "sourceId": "freesound:260057",
+      "sourceUrl": "https://freesound.org/people/ivolipa/sounds/260057/",
+      "copyrightText": "« winter_night_street_ambience.wav » par ivolipa — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/ivolipa/sounds/260057/"
+    },
+    {
+      "title": "whoosh2",
+      "assetFilename": "freesound-267951.mp3",
+      "originalFilename": "whoosh2.wav",
+      "category": "Transitions",
+      "durationMs": 2462,
+      "tags": [
+        "transition",
+        "whoosh",
+        "souffle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Souffles.",
+      "sourceId": "freesound:267951",
+      "sourceUrl": "https://freesound.org/people/anagar/sounds/267951/",
+      "copyrightText": "« whoosh2.wav » par anagar — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/anagar/sounds/267951/"
+    },
+    {
+      "title": "Whoosh stereo light (transition)",
+      "assetFilename": "freesound-701104.mp3",
+      "originalFilename": "Whoosh stereo light (transition)",
+      "category": "Transitions",
+      "durationMs": 2317,
+      "tags": [
+        "transition",
+        "whoosh",
+        "souffle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Souffles.",
+      "sourceId": "freesound:701104",
+      "sourceUrl": "https://freesound.org/people/xkeril/sounds/701104/",
+      "copyrightText": "« Whoosh stereo light (transition) » par xkeril — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/xkeril/sounds/701104/"
+    },
+    {
+      "title": "whoosh fx",
+      "assetFilename": "freesound-802119.mp3",
+      "originalFilename": "whoosh_fx",
+      "category": "Transitions",
+      "durationMs": 1000,
+      "tags": [
+        "transition",
+        "whoosh",
+        "souffle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Souffles.",
+      "sourceId": "freesound:802119",
+      "sourceUrl": "https://freesound.org/people/ScythicBlade/sounds/802119/",
+      "copyrightText": "« whoosh_fx » par ScythicBlade — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/ScythicBlade/sounds/802119/"
+    },
+    {
+      "title": "Whoosh-Pop?",
+      "assetFilename": "freesound-612072.mp3",
+      "originalFilename": "Whoosh-Pop?.aiff",
+      "category": "Transitions",
+      "durationMs": 1440,
+      "tags": [
+        "transition",
+        "whoosh",
+        "souffle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Souffles.",
+      "sourceId": "freesound:612072",
+      "sourceUrl": "https://freesound.org/people/BrodieSound/sounds/612072/",
+      "copyrightText": "« Whoosh-Pop?.aiff » par BrodieSound — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/BrodieSound/sounds/612072/"
+    },
+    {
+      "title": "FastWhoosh",
+      "assetFilename": "freesound-400372.mp3",
+      "originalFilename": "FastWhoosh.wav",
+      "category": "Transitions",
+      "durationMs": 520,
+      "tags": [
+        "transition",
+        "whoosh",
+        "souffle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Souffles.",
+      "sourceId": "freesound:400372",
+      "sourceUrl": "https://freesound.org/people/Psykoosiossi/sounds/400372/",
+      "copyrightText": "« FastWhoosh.wav » par Psykoosiossi — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Psykoosiossi/sounds/400372/"
+    },
+    {
+      "title": "Riser Hit sfx 119",
+      "assetFilename": "freesound-822419.mp3",
+      "originalFilename": "Riser Hit sfx 119",
+      "category": "Transitions",
+      "durationMs": 8000,
+      "tags": [
+        "transition",
+        "montée",
+        "riser",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Montées.",
+      "sourceId": "freesound:822419",
+      "sourceUrl": "https://freesound.org/people/AudioPapkin/sounds/822419/",
+      "copyrightText": "« Riser Hit sfx 119 » par AudioPapkin — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/AudioPapkin/sounds/822419/"
+    },
+    {
+      "title": "Riser Hit sfx 121",
+      "assetFilename": "freesound-824937.mp3",
+      "originalFilename": "Riser Hit sfx 121",
+      "category": "Transitions",
+      "durationMs": 8000,
+      "tags": [
+        "transition",
+        "montée",
+        "riser",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Montées.",
+      "sourceId": "freesound:824937",
+      "sourceUrl": "https://freesound.org/people/AudioPapkin/sounds/824937/",
+      "copyrightText": "« Riser Hit sfx 121 » par AudioPapkin — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/AudioPapkin/sounds/824937/"
+    },
+    {
+      "title": "Riser Hit sfx 120",
+      "assetFilename": "freesound-822420.mp3",
+      "originalFilename": "Riser Hit sfx 120",
+      "category": "Transitions",
+      "durationMs": 8000,
+      "tags": [
+        "transition",
+        "montée",
+        "riser",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Montées.",
+      "sourceId": "freesound:822420",
+      "sourceUrl": "https://freesound.org/people/AudioPapkin/sounds/822420/",
+      "copyrightText": "« Riser Hit sfx 120 » par AudioPapkin — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/AudioPapkin/sounds/822420/"
+    },
+    {
+      "title": "CLASSIC RISER BOUNCE",
+      "assetFilename": "freesound-832275.mp3",
+      "originalFilename": "CLASSIC RISER BOUNCE",
+      "category": "Transitions",
+      "durationMs": 8000,
+      "tags": [
+        "transition",
+        "montée",
+        "riser",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Montées.",
+      "sourceId": "freesound:832275",
+      "sourceUrl": "https://freesound.org/people/johnjohnfm/sounds/832275/",
+      "copyrightText": "« CLASSIC RISER BOUNCE » par johnjohnfm — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/johnjohnfm/sounds/832275/"
+    },
+    {
+      "title": "Long tension riser",
+      "assetFilename": "freesound-789101.mp3",
+      "originalFilename": "Long tension riser",
+      "category": "Transitions",
+      "durationMs": 8000,
+      "tags": [
+        "transition",
+        "montée",
+        "riser",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Montées.",
+      "sourceId": "freesound:789101",
+      "sourceUrl": "https://freesound.org/people/xkeril/sounds/789101/",
+      "copyrightText": "« Long tension riser » par xkeril — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/xkeril/sounds/789101/"
+    },
+    {
+      "title": "Swipe",
+      "assetFilename": "freesound-702773.mp3",
+      "originalFilename": "Swipe.wav",
+      "category": "Transitions",
+      "durationMs": 880,
+      "tags": [
+        "transition",
+        "balayage",
+        "mouvement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Balayages.",
+      "sourceId": "freesound:702773",
+      "sourceUrl": "https://freesound.org/people/LilMati/sounds/702773/",
+      "copyrightText": "« Swipe.wav » par LilMati — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/LilMati/sounds/702773/"
+    },
+    {
+      "title": "Cyberpunk Glitch Hologram Transition Whoosh",
+      "assetFilename": "freesound-856168.mp3",
+      "originalFilename": "Cyberpunk Glitch Hologram Transition Whoosh",
+      "category": "Transitions",
+      "durationMs": 3000,
+      "tags": [
+        "transition",
+        "balayage",
+        "mouvement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Balayages.",
+      "sourceId": "freesound:856168",
+      "sourceUrl": "https://freesound.org/people/brktkrgll/sounds/856168/",
+      "copyrightText": "« Cyberpunk Glitch Hologram Transition Whoosh » par brktkrgll — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/brktkrgll/sounds/856168/"
+    },
+    {
+      "title": "swipe various",
+      "assetFilename": "freesound-850347.mp3",
+      "originalFilename": "swipe various",
+      "category": "Transitions",
+      "durationMs": 8000,
+      "tags": [
+        "transition",
+        "balayage",
+        "mouvement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Balayages.",
+      "sourceId": "freesound:850347",
+      "sourceUrl": "https://freesound.org/people/Gravy42/sounds/850347/",
+      "copyrightText": "« swipe various » par Gravy42 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Gravy42/sounds/850347/"
+    },
+    {
+      "title": "Broomstick whoosh 3 - Quiet - OKM1",
+      "assetFilename": "freesound-816262.mp3",
+      "originalFilename": "Broomstick whoosh 3 - Quiet - OKM1",
+      "category": "Transitions",
+      "durationMs": 527,
+      "tags": [
+        "transition",
+        "balayage",
+        "mouvement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Balayages.",
+      "sourceId": "freesound:816262",
+      "sourceUrl": "https://freesound.org/people/Sadiquecat/sounds/816262/",
+      "copyrightText": "« Broomstick whoosh 3 - Quiet - OKM1 » par Sadiquecat — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Sadiquecat/sounds/816262/"
+    },
+    {
+      "title": "swoosh v2",
+      "assetFilename": "freesound-786514.mp3",
+      "originalFilename": "swoosh_v2",
+      "category": "Transitions",
+      "durationMs": 300,
+      "tags": [
+        "transition",
+        "balayage",
+        "mouvement",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Balayages.",
+      "sourceId": "freesound:786514",
+      "sourceUrl": "https://freesound.org/people/migoreng1/sounds/786514/",
+      "copyrightText": "« swoosh_v2 » par migoreng1 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/migoreng1/sounds/786514/"
+    },
+    {
+      "title": "Concert audience applause 1",
+      "assetFilename": "freesound-478414.mp3",
+      "originalFilename": "Concert audience applause 1",
+      "category": "Public",
+      "durationMs": 8000,
+      "tags": [
+        "public",
+        "applaudissements",
+        "spectacle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Applaudissements.",
+      "sourceId": "freesound:478414",
+      "sourceUrl": "https://freesound.org/people/thaighaudio/sounds/478414/",
+      "copyrightText": "« Concert audience applause 1 » par thaighaudio — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/thaighaudio/sounds/478414/"
+    },
+    {
+      "title": "Ambience Stereo Audience Applause Concert Hall Barcelona",
+      "assetFilename": "freesound-611604.mp3",
+      "originalFilename": "Ambience Stereo_Audience Applause_Concert Hall_Barcelona.wav",
+      "category": "Public",
+      "durationMs": 8000,
+      "tags": [
+        "public",
+        "applaudissements",
+        "spectacle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Applaudissements.",
+      "sourceId": "freesound:611604",
+      "sourceUrl": "https://freesound.org/people/JORDI77RS/sounds/611604/",
+      "copyrightText": "« Ambience Stereo_Audience Applause_Concert Hall_Barcelona.wav » par JORDI77RS — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/JORDI77RS/sounds/611604/"
+    },
+    {
+      "title": "Crowd applause",
+      "assetFilename": "freesound-467865.mp3",
+      "originalFilename": "Crowd applause",
+      "category": "Public",
+      "durationMs": 8000,
+      "tags": [
+        "public",
+        "applaudissements",
+        "spectacle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Applaudissements.",
+      "sourceId": "freesound:467865",
+      "sourceUrl": "https://freesound.org/people/Herr%20Klaus/sounds/467865/",
+      "copyrightText": "« Crowd applause » par Herr%20Klaus — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Herr%20Klaus/sounds/467865/"
+    },
+    {
+      "title": "Applause",
+      "assetFilename": "freesound-457295.mp3",
+      "originalFilename": "Applause.wav",
+      "category": "Public",
+      "durationMs": 8000,
+      "tags": [
+        "public",
+        "applaudissements",
+        "spectacle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Applaudissements.",
+      "sourceId": "freesound:457295",
+      "sourceUrl": "https://freesound.org/people/nervousneal/sounds/457295/",
+      "copyrightText": "« Applause.wav » par nervousneal — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/nervousneal/sounds/457295/"
+    },
+    {
+      "title": "100 applause",
+      "assetFilename": "freesound-338259.mp3",
+      "originalFilename": "100 applause.wav",
+      "category": "Public",
+      "durationMs": 8000,
+      "tags": [
+        "public",
+        "applaudissements",
+        "spectacle",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Applaudissements.",
+      "sourceId": "freesound:338259",
+      "sourceUrl": "https://freesound.org/people/leo153/sounds/338259/",
+      "copyrightText": "« 100 applause.wav » par leo153 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/leo153/sounds/338259/"
+    },
+    {
+      "title": "Crowd laughters & clap",
+      "assetFilename": "freesound-346688.mp3",
+      "originalFilename": "Crowd laughters & clap.wav",
+      "category": "Public",
+      "durationMs": 8000,
+      "tags": [
+        "public",
+        "rires",
+        "comédie",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Rires.",
+      "sourceId": "freesound:346688",
+      "sourceUrl": "https://freesound.org/people/deleted_user_2104797/sounds/346688/",
+      "copyrightText": "« Crowd laughters & clap.wav » par deleted_user_2104797 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/deleted_user_2104797/sounds/346688/"
+    },
+    {
+      "title": "live audience comedy show genuine laughter moderate",
+      "assetFilename": "freesound-581528.mp3",
+      "originalFilename": "live audience comedy show genuine laughter_moderate.wav",
+      "category": "Public",
+      "durationMs": 8000,
+      "tags": [
+        "public",
+        "rires",
+        "comédie",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Rires.",
+      "sourceId": "freesound:581528",
+      "sourceUrl": "https://freesound.org/people/HowardV/sounds/581528/",
+      "copyrightText": "« live audience comedy show genuine laughter_moderate.wav » par HowardV — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/HowardV/sounds/581528/"
+    },
+    {
+      "title": "People Talking & Laughing",
+      "assetFilename": "freesound-619051.mp3",
+      "originalFilename": "People Talking & Laughing.mp3",
+      "category": "Public",
+      "durationMs": 8000,
+      "tags": [
+        "public",
+        "rires",
+        "comédie",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Rires.",
+      "sourceId": "freesound:619051",
+      "sourceUrl": "https://freesound.org/people/mrrap4food/sounds/619051/",
+      "copyrightText": "« People Talking & Laughing.mp3 » par mrrap4food — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/mrrap4food/sounds/619051/"
+    },
+    {
+      "title": "hit with distant laughter",
+      "assetFilename": "freesound-109744.mp3",
+      "originalFilename": "hit with distant laughter.aiff",
+      "category": "Public",
+      "durationMs": 4594,
+      "tags": [
+        "public",
+        "rires",
+        "comédie",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Rires.",
+      "sourceId": "freesound:109744",
+      "sourceUrl": "https://freesound.org/people/SoundCollectah/sounds/109744/",
+      "copyrightText": "« hit with distant laughter.aiff » par SoundCollectah — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/SoundCollectah/sounds/109744/"
+    },
+    {
+      "title": "Sitcom Laughter 9x, Small Audience",
+      "assetFilename": "freesound-383207.mp3",
+      "originalFilename": "Sitcom Laughter 9x, Small Audience",
+      "category": "Public",
+      "durationMs": 8000,
+      "tags": [
+        "public",
+        "rires",
+        "comédie",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Rires.",
+      "sourceId": "freesound:383207",
+      "sourceUrl": "https://freesound.org/people/Kinoton/sounds/383207/",
+      "copyrightText": "« Sitcom Laughter 9x, Small Audience » par Kinoton — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Kinoton/sounds/383207/"
+    },
+    {
+      "title": "Crowd Cheer 5",
+      "assetFilename": "freesound-651646.mp3",
+      "originalFilename": "Crowd Cheer 5",
+      "category": "Public",
+      "durationMs": 6344,
+      "tags": [
+        "public",
+        "acclamations",
+        "foule",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Acclamations.",
+      "sourceId": "freesound:651646",
+      "sourceUrl": "https://freesound.org/people/Krizin/sounds/651646/",
+      "copyrightText": "« Crowd Cheer 5 » par Krizin — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/Krizin/sounds/651646/"
+    },
+    {
+      "title": "small crowd cheering",
+      "assetFilename": "freesound-264377.mp3",
+      "originalFilename": "small crowd cheering",
+      "category": "Public",
+      "durationMs": 8000,
+      "tags": [
+        "public",
+        "acclamations",
+        "foule",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Acclamations.",
+      "sourceId": "freesound:264377",
+      "sourceUrl": "https://freesound.org/people/HowardV/sounds/264377/",
+      "copyrightText": "« small crowd cheering » par HowardV — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/HowardV/sounds/264377/"
+    },
+    {
+      "title": "Crowd cheer 2",
+      "assetFilename": "freesound-346689.mp3",
+      "originalFilename": "Crowd cheer 2.wav",
+      "category": "Public",
+      "durationMs": 8000,
+      "tags": [
+        "public",
+        "acclamations",
+        "foule",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Acclamations.",
+      "sourceId": "freesound:346689",
+      "sourceUrl": "https://freesound.org/people/deleted_user_2104797/sounds/346689/",
+      "copyrightText": "« Crowd cheer 2.wav » par deleted_user_2104797 — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/deleted_user_2104797/sounds/346689/"
+    },
+    {
+      "title": "rodeo audio cheer distant",
+      "assetFilename": "freesound-728774.mp3",
+      "originalFilename": "rodeo audio cheer distant",
+      "category": "Public",
+      "durationMs": 7090,
+      "tags": [
+        "public",
+        "acclamations",
+        "foule",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Acclamations.",
+      "sourceId": "freesound:728774",
+      "sourceUrl": "https://freesound.org/people/jayfrosting/sounds/728774/",
+      "copyrightText": "« rodeo audio cheer distant » par jayfrosting — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/jayfrosting/sounds/728774/"
+    },
+    {
+      "title": "cheering and clapping crowd 1",
+      "assetFilename": "freesound-221568.mp3",
+      "originalFilename": "cheering and clapping crowd 1",
+      "category": "Public",
+      "durationMs": 8000,
+      "tags": [
+        "public",
+        "acclamations",
+        "foule",
+        "freesound"
+      ],
+      "description": "Son Freesound CC0 · Acclamations.",
+      "sourceId": "freesound:221568",
+      "sourceUrl": "https://freesound.org/people/AlaskaRobotics/sounds/221568/",
+      "copyrightText": "« cheering and clapping crowd 1 » par AlaskaRobotics — CC0 (https://creativecommons.org/publicdomain/zero/1.0/) — https://freesound.org/people/AlaskaRobotics/sounds/221568/"
+    }
+  ]
+}
