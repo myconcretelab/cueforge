@@ -1,5 +1,9 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { TrackPad } from '../src/client/components/TrackPad.js';
 import { intersectsSelection } from '../src/client/lib/track-selection.js';
+import type { Track } from '../src/client/types.js';
 
 describe('rectangle de sélection des morceaux', () => {
   const card = { left: 100, right: 200, top: 100, bottom: 200 };
@@ -11,5 +15,22 @@ describe('rectangle de sélection des morceaux', () => {
 
   it('ignore une carte extérieure au rectangle', () => {
     expect(intersectsSelection(card, { startX: 210, startY: 210, currentX: 300, currentY: 300 })).toBe(false);
+  });
+
+  it('rend une carte sélectionnée déplaçable sans activer le mode réorganisation', () => {
+    const track = {
+      id: 'track', projectId: 'project', categoryId: 'category', subcategoryId: null, title: 'Son', originalFilename: 'son.wav', mimeType: 'audio/wav', sizeBytes: 1,
+      durationMs: 1_000, startTimeMs: 0, endTimeMs: null, volume: 1, loop: false, fadeInMs: 0, fadeOutMs: 0, color: null, tags: [], description: null,
+      copyrightText: null, sourceUrl: null, sourceId: null, position: 0, createdAt: '',
+    } satisfies Track;
+    const ignore = () => undefined;
+    const markup = renderToStaticMarkup(createElement(TrackPad, {
+      track, color: '#22d3b6', active: false, playbacks: [], historyProgress: 0, loaded: false, reorderEnabled: false, playlistDropEnabled: false,
+      selectionMode: true, selected: true, dropTarget: false, bridgeOutputs: [], onPrimary: ignore, onOutputPlay: ignore, onSecondary: ignore, onEdit: ignore,
+      onSelect: ignore, onDragStart: ignore, onDragOver: ignore, onDrop: ignore, onDragEnd: ignore,
+    }));
+
+    expect(markup).toContain('draggable="true"');
+    expect(markup).toContain('selection-enabled is-selected');
   });
 });
