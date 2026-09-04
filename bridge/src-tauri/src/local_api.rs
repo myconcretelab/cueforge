@@ -62,7 +62,7 @@ struct PlayInput {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RemotePreviewInput {
-    id: u64,
+    id: String,
     url: String,
 }
 
@@ -228,7 +228,7 @@ async fn play(
     authorize(&headers, &state, false).await?;
     let path = if let Some(preview) = &input.remote_preview {
         state
-            .ensure_remote_preview(preview.id, &preview.url)
+            .ensure_remote_preview(&preview.id, &preview.url)
             .await?
     } else {
         state.ensure_track(&input.track).await?

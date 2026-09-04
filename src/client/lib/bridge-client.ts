@@ -126,9 +126,10 @@ class BridgeClient {
     return result.playbackId;
   }
 
-  async playRemotePreview(input: { id: number; name: string; url: string; durationMs: number; volume: number }, outputId?: string): Promise<string> {
+  async playRemotePreview(input: { id: string | number; name: string; url: string; durationMs: number; volume: number }, outputId?: string): Promise<string> {
+    const previewId = String(input.id);
     const track = {
-      id: `freesound-${input.id}`,
+      id: `openverse-${previewId}`,
       projectId: '',
       categoryId: null,
       subcategoryId: null,
@@ -148,13 +149,13 @@ class BridgeClient {
       description: null,
       copyrightText: null,
       sourceUrl: input.url,
-      sourceId: `freesound:${input.id}`,
+      sourceId: `openverse:${previewId}`,
       position: 0,
       createdAt: new Date().toISOString(),
     } satisfies Track;
     const result = await this.request<{ playbackId: string }>('/v1/play', {
       method: 'POST',
-      body: JSON.stringify({ track, fadeInMs: 0, volumeMultiplier: 1, channel: 'preview', outputId, remotePreview: { id: input.id, url: input.url } }),
+      body: JSON.stringify({ track, fadeInMs: 0, volumeMultiplier: 1, channel: 'preview', outputId, remotePreview: { id: previewId, url: input.url } }),
     });
     await this.refreshPlaybacks();
     return result.playbackId;

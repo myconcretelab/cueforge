@@ -14,6 +14,7 @@ import { DemoUploadError, insertTrackWithinQuota } from '../services/accounts.js
 import { requireUser } from '../services/auth.js';
 import { demoLimitsForUser } from '../services/demo.js';
 import { ownsProject } from '../services/ownership.js';
+import { isAllowedOpenverseAudioUrl } from '../services/openverse.js';
 import { parseByteRange } from '../services/range.js';
 import { reorderTracks } from '../services/reorder.js';
 import { applyTrackTagChange, batchTrackLocationUpdate } from '../services/track-batch.js';
@@ -192,14 +193,14 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(400).send({ error: 'Sous-catégorie invalide pour cette catégorie.' });
     }
     const remoteUrl = new URL(input.url);
-    if (remoteUrl.protocol !== 'https:' || remoteUrl.hostname !== 'cdn.freesound.org') {
-      return reply.code(400).send({ error: 'Seuls les médias distants Freesound sont autorisés.' });
+    if (!isAllowedOpenverseAudioUrl(input.url)) {
+      return reply.code(400).send({ error: 'Cette source audio Openverse n’est pas autorisée.' });
     }
 
     const response = await fetch(remoteUrl, { redirect: 'error', signal: AbortSignal.timeout(90_000) });
-    if (!response.ok || !response.body) return reply.code(502).send({ error: 'Téléchargement Freesound impossible.' });
+    if (!response.ok || !response.body) return reply.code(502).send({ error: 'Téléchargement Openverse impossible.' });
     const mimeType = response.headers.get('content-type')?.split(';')[0] ?? 'audio/mpeg';
-    if (!isAcceptedAudio(mimeType, remoteUrl.pathname)) return reply.code(415).send({ error: 'Format Freesound non pris en charge.' });
+    if (!isAcceptedAudio(mimeType, remoteUrl.pathname)) return reply.code(415).send({ error: 'Format Openverse non pris en charge.' });
     const demoLimits = user.isDemo ? await demoLimitsForUser(user.id) : null;
     const userMaxAudioBytes = demoLimits?.maxFileBytes ?? maxAudioBytes;
     const announcedSize = Number(response.headers.get('content-length') ?? 0);

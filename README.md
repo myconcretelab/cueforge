@@ -99,6 +99,8 @@ SESSION_SECRET=<une-valeur-aleatoire-d-au-moins-32-caracteres>
 STORAGE_PATH=/home/<compte>/sonoriva/storage
 PUBLIC_URL=https://<votre-domaine>
 FREESOUND_API_KEY=<clé-api-freesound>
+OPENVERSE_CLIENT_ID=<identifiant-client-openverse-optionnel>
+OPENVERSE_CLIENT_SECRET=<secret-client-openverse-optionnel>
 SUPER_ADMIN_EMAILS=<adresse-du-super-administrateur>
 STRIPE_MODE=test
 STRIPE_SECRET_KEY=<clé-restreinte-ou-secrète-test>
@@ -159,7 +161,7 @@ Le serveur utilise automatiquement les variables `IP` et `PORT` fournies par Alw
 
 Les fichiers audio résident dans `STORAGE_PATH`, jamais dans PostgreSQL. Ils sont servis uniquement après contrôle de la session et avec prise en charge des requêtes HTTP `Range`.
 
-La recherche Freesound utilise `FREESOUND_API_KEY` exclusivement côté serveur. Les préécoutes peuvent être écoutées sans stockage ou importées dans le spectacle sous un nouveau nom et dans la catégorie choisie. SonoRiva télécharge alors la préécoute haute qualité dans `STORAGE_PATH` et conserve l’auteur, la licence et l’URL source. Seuls les résultats CC0 et CC BY sont proposés.
+La recherche Openverse interroge les catalogues audio Freesound, Jamendo, Wikimedia Commons et ccMixter. Plusieurs sources peuvent être filtrées simultanément. Les préécoutes peuvent être écoutées sans stockage ou importées dans le spectacle sous un nouveau nom, dans la catégorie et la sous-catégorie choisies. SonoRiva télécharge alors le média dans `STORAGE_PATH` et conserve l’auteur, la licence, la source et son URL. La recherche fonctionne sans authentification ; `OPENVERSE_CLIENT_ID` et `OPENVERSE_CLIENT_SECRET` activent l’authentification OAuth côté serveur lorsque les deux variables sont définies. L’ancienne intégration Freesound reste disponible côté serveur mais n’est plus exposée dans l’interface.
 
 ## Structure
 

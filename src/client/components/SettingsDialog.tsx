@@ -33,7 +33,7 @@ interface Props {
   onDeleteProjectColor: (color: ProjectColor) => Promise<void>;
   onReorderProjectColors: (colorIds: string[]) => Promise<void>;
   onImportSoundShow: () => void;
-  onOpenFreesound: () => void;
+  onOpenOpenverse: () => void;
   onOpenWhatsNew: () => void;
   onToggleRemote: () => void;
   onCacheOffline: () => void;
@@ -108,7 +108,7 @@ function formatPrice(cents: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 }
 
-export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, openSubcategoriesOnDrag, appSkin, onAutomaticUpdatesChange, onOpenSubcategoriesOnDragChange, onAppSkinChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onUpdateKeyboardShortcut, onUpdatePlaylistGroupLimit, onUpdatePlaybackSettings, onLogout, onClose }: Props) {
+export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, openSubcategoriesOnDrag, appSkin, onAutomaticUpdatesChange, onOpenSubcategoriesOnDragChange, onAppSkinChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenOpenverse, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onUpdateKeyboardShortcut, onUpdatePlaylistGroupLimit, onUpdatePlaybackSettings, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
   const [newColor, setNewColor] = useState('#22d3b6');
   const [draggedProjectId, setDraggedProjectId] = useState<string>();
@@ -456,7 +456,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><FileArchive size={16} /><div><strong>Bibliothèque</strong><span>Importez ou préparez les médias de ce spectacle.</span></div></div>
-        <div className="settings-actions"><button className="button ghost" onClick={onImportSoundShow}><FileArchive size={17} />Importer SoundShow</button><button className="button ghost" onClick={onOpenFreesound}><Waves size={17} />Rechercher sur Freesound</button><button className="button ghost" onClick={onCacheOffline}><CloudDownload size={17} />{offlineStatus || 'Rendre disponible hors ligne'}</button></div>
+        <div className="settings-actions"><button className="button ghost" onClick={onImportSoundShow}><FileArchive size={17} />Importer SoundShow</button><button className="button ghost" onClick={onOpenOpenverse}><Waves size={17} />Rechercher sur Openverse</button><button className="button ghost" onClick={onCacheOffline}><CloudDownload size={17} />{offlineStatus || 'Rendre disponible hors ligne'}</button></div>
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><ListMusic size={16} /><div><strong>Playlists</strong><span>{playlistsEnabled ? 'Réglez le nombre maximal de morceaux pouvant partager une rangée.' : 'Cette fonctionnalité n’est pas incluse dans votre forfait.'}</span></div></div>

@@ -192,14 +192,15 @@ impl Runtime {
 
     pub async fn ensure_remote_preview(
         &self,
-        preview_id: u64,
+        preview_id: &str,
         preview_url: &str,
     ) -> Result<PathBuf, String> {
+        validate_track_id(preview_id)?;
         validate_remote_preview_url(preview_url)?;
         let path = self
             .store
             .cache_dir
-            .join(format!("freesound-{preview_id}.preview"));
+            .join(format!("openverse-{preview_id}.preview"));
         if let Ok(mut entries) = fs::read_dir(&self.store.cache_dir).await {
             while let Ok(Some(entry)) = entries.next_entry().await {
                 let candidate = entry.path();
@@ -225,7 +226,7 @@ impl Runtime {
         validate_remote_preview_url(response.url().as_str())?;
         if !response.status().is_success() {
             return Err(format!(
-                "Préécoute Freesound indisponible ({}).",
+                "Préécoute Openverse indisponible ({}).",
                 response.status()
             ));
         }
@@ -233,12 +234,12 @@ impl Runtime {
             .content_length()
             .is_some_and(|size| size > MAX_REMOTE_PREVIEW_BYTES)
         {
-            return Err("La préécoute Freesound dépasse 50 Mo.".to_string());
+            return Err("La préécoute Openverse dépasse 50 Mo.".to_string());
         }
         let temporary = self
             .store
             .cache_dir
-            .join(format!("freesound-{preview_id}.part"));
+            .join(format!("openverse-{preview_id}.part"));
         let mut file = fs::File::create(&temporary)
             .await
             .map_err(|error| error.to_string())?;
@@ -247,7 +248,7 @@ impl Runtime {
             received += chunk.len() as u64;
             if received > MAX_REMOTE_PREVIEW_BYTES {
                 let _ = fs::remove_file(&temporary).await;
-                return Err("La préécoute Freesound dépasse 50 Mo.".to_string());
+                return Err("La préécoute Openverse dépasse 50 Mo.".to_string());
             }
             file.write_all(&chunk)
                 .await
@@ -257,7 +258,7 @@ impl Runtime {
         drop(file);
         if received == 0 {
             let _ = fs::remove_file(&temporary).await;
-            return Err("La préécoute Freesound est vide.".to_string());
+            return Err("La préécoute Openverse est vide.".to_string());
         }
         fs::rename(&temporary, &path)
             .await
@@ -386,11 +387,17 @@ fn validate_remote_preview_url(value: &str) -> Result<(), String> {
     if url.scheme() == "https"
         && url
             .host_str()
-            .is_some_and(|host| host == "freesound.org" || host.ends_with(".freesound.org"))
+            .is_some_and(|host| {
+                host == "cdn.freesound.org"
+                    || (host.starts_with("prod-") && host.ends_with(".storage.jamendo.com"))
+                    || host == "upload.wikimedia.org"
+                    || host == "ccmixter.org"
+                    || host.ends_with(".ccmixter.org")
+            })
     {
         Ok(())
     } else {
-        Err("Seules les préécoutes HTTPS de Freesound sont autorisées.".to_string())
+        Err("Cette source de préécoute Openverse n’est pas autorisée.".to_string())
     }
 }
 
@@ -406,8 +413,11 @@ mod tests {
     }
 
     #[test]
-    fn accepts_only_freesound_preview_urls() {
+    fn accepts_only_openverse_preview_urls() {
         assert!(validate_remote_preview_url("https://cdn.freesound.org/previews/1/1.mp3").is_ok());
+        assert!(validate_remote_preview_url("https://prod-1.storage.jamendo.com/?trackid=1&format=mp32").is_ok());
+        assert!(validate_remote_preview_url("https://upload.wikimedia.org/wikipedia/commons/a/audio.ogg").is_ok());
+        assert!(validate_remote_preview_url("https://ccmixter.org/content/audio.mp3").is_ok());
         assert!(validate_remote_preview_url("http://cdn.freesound.org/previews/1/1.mp3").is_err());
         assert!(validate_remote_preview_url("https://example.com/audio.mp3").is_err());
     }

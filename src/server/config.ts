@@ -13,6 +13,14 @@ const schema = z.object({
     (value) => value === '' ? undefined : value,
     z.string().trim().min(1).optional(),
   ),
+  OPENVERSE_CLIENT_ID: z.preprocess(
+    (value) => value === '' ? undefined : value,
+    z.string().trim().min(1).optional(),
+  ),
+  OPENVERSE_CLIENT_SECRET: z.preprocess(
+    (value) => value === '' ? undefined : value,
+    z.string().trim().min(1).optional(),
+  ),
   SUPER_ADMIN_EMAILS: z.string().default('').transform((value) => value
     .split(',')
     .map((email) => email.trim().toLowerCase())
@@ -53,6 +61,13 @@ const schema = z.object({
   BILLING_RECONCILIATION_INTERVAL_MINUTES: z.coerce.number().int().min(0).max(10_080).default(360),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 }).superRefine((value, context) => {
+  if (Boolean(value.OPENVERSE_CLIENT_ID) !== Boolean(value.OPENVERSE_CLIENT_SECRET)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['OPENVERSE_CLIENT_ID'],
+      message: 'OPENVERSE_CLIENT_ID et OPENVERSE_CLIENT_SECRET doivent être définis ensemble.',
+    });
+  }
   if (Boolean(value.SMTP_USER) !== Boolean(value.SMTP_PASSWORD)) {
     context.addIssue({
       code: 'custom',

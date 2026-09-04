@@ -1,4 +1,4 @@
-import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, BatchTrackUpdateInput, BridgeDevice, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, Playlist, PlaylistEntry, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcuts, PublicDemo, PublicPlan, ReleaseInfo, SoundShowAnalysis, Track, TrackSubcategory, User } from '../types';
+import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, BatchTrackUpdateInput, BridgeDevice, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, OpenverseLicenseFilter, OpenverseSearchResult, OpenverseSource, Playlist, PlaylistEntry, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcuts, PublicDemo, PublicPlan, ReleaseInfo, SoundShowAnalysis, Track, TrackSubcategory, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -130,5 +130,14 @@ export const api = {
     if (input.minDuration) parameters.set('minDuration', String(input.minDuration));
     if (input.maxDuration) parameters.set('maxDuration', String(input.maxDuration));
     return request<FreesoundSearchResult>(`/api/freesound/search?${parameters}`, { signal });
+  },
+  searchOpenverse: (input: { query: string; license: OpenverseLicenseFilter; sources: OpenverseSource[]; page?: number }, signal?: AbortSignal) => {
+    const parameters = new URLSearchParams({
+      q: input.query,
+      license: input.license,
+      sources: input.sources.join(','),
+      page: String(input.page ?? 1),
+    });
+    return request<OpenverseSearchResult>(`/api/openverse/search?${parameters}`, { signal });
   },
 };

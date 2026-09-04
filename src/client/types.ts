@@ -352,6 +352,35 @@ export interface FreesoundSearchResult {
   results: FreesoundSound[];
 }
 
+export type OpenverseSource = 'freesound' | 'jamendo' | 'wikimedia_audio' | 'ccmixter';
+export type OpenverseLicenseFilter = 'all' | 'cc0' | 'by';
+
+export interface OpenverseSound {
+  id: string;
+  name: string;
+  username: string;
+  durationSeconds: number;
+  previewUrl: string;
+  pageUrl: string;
+  tags: string[];
+  source: OpenverseSource;
+  sourceLabel: string;
+  license: {
+    code: string;
+    label: string;
+    url: string;
+    attributionRequired: boolean;
+  };
+}
+
+export interface OpenverseSearchResult {
+  count: number;
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+  results: OpenverseSound[];
+}
+
 export type RemoteCommand =
   | { type: 'play'; trackId: string; volumeMultiplier?: number; outputId?: string }
   | { type: 'stop'; trackId: string }

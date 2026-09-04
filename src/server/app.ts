@@ -15,6 +15,7 @@ import { projectRoutes } from './routes/projects.js';
 import { trackRoutes } from './routes/tracks.js';
 import { importRoutes } from './routes/imports.js';
 import { freesoundRoutes } from './routes/freesound.js';
+import { openverseRoutes } from './routes/openverse.js';
 import { accountRoutes } from './routes/account.js';
 import { adminRoutes } from './routes/admin.js';
 import { releaseRoutes } from './routes/releases.js';
@@ -80,6 +81,7 @@ export async function buildApp() {
   await app.register(trackRoutes);
   await app.register(importRoutes);
   await app.register(freesoundRoutes);
+  await app.register(openverseRoutes);
 
   if (config.isProduction) {
     const currentDir = path.dirname(fileURLToPath(import.meta.url));
