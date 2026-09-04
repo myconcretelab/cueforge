@@ -31,7 +31,7 @@
             <a href="<?php echo esc_url(home_url('/#faq')); ?>">FAQ</a>
         </nav>
         <div class="header-actions">
-            <a class="button button-small button-light" href="https://app.sonoriva.fr/demo">Essayer maintenant ! <span aria-hidden="true">↗</span></a>
+            <a class="button button-small button-light" href="https://app.sonoriva.fr/demo">Essayer maintenant <span aria-hidden="true">↗</span></a>
         </div>
     </div>
 </header>

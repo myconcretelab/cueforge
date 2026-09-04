@@ -9,11 +9,16 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+require_once get_template_directory() . '/inc/home-content.php';
+
 function sonoriva_marketing_setup(): void
 {
     add_theme_support('title-tag');
     add_theme_support('post-thumbnails');
     add_theme_support('responsive-embeds');
+    add_theme_support('align-wide');
+    add_theme_support('editor-styles');
+    add_editor_style(['style.css', 'assets/css/editor.css']);
     add_theme_support('html5', ['search-form', 'comment-form', 'comment-list', 'gallery', 'caption', 'style', 'script']);
     register_nav_menus([
         'primary' => __('Navigation principale', 'sonoriva-marketing'),
@@ -21,6 +26,24 @@ function sonoriva_marketing_setup(): void
     ]);
 }
 add_action('after_setup_theme', 'sonoriva_marketing_setup');
+
+function sonoriva_marketing_register_patterns(): void
+{
+    if (!function_exists('register_block_pattern')) {
+        return;
+    }
+
+    register_block_pattern_category('sonoriva', [
+        'label' => __('SonoRiva', 'sonoriva-marketing'),
+    ]);
+    register_block_pattern('sonoriva/homepage', [
+        'title' => __('Page d’accueil SonoRiva', 'sonoriva-marketing'),
+        'description' => __('La présentation complète du produit, composée uniquement de blocs éditables.', 'sonoriva-marketing'),
+        'categories' => ['sonoriva'],
+        'content' => sonoriva_marketing_home_block_content(),
+    ]);
+}
+add_action('init', 'sonoriva_marketing_register_patterns');
 
 function sonoriva_marketing_assets(): void
 {
@@ -63,7 +86,7 @@ function sonoriva_marketing_seo_head(): void
         ? 'Importez un projet SoundShow dans SonoRiva et retrouvez une régie son cloud avec Freesound, multi-lecture, catégories, sorties audio et mode hors ligne.'
         : 'SonoRiva est une régie son cloud pour le théâtre et le spectacle vivant : soundboard, Freesound, multi-lecture, sorties audio et import SoundShow.';
     $url = $is_soundshow_page ? home_url('/alternative-soundshow/') : home_url('/');
-    $image = get_template_directory_uri() . '/assets/images/app-dashboard.png';
+    $image = get_template_directory_uri() . '/assets/images/app-regie-full.png';
 
     echo '<meta name="description" content="' . esc_attr($description) . '">' . "\n";
     echo '<meta name="theme-color" content="#09090b">' . "\n";

@@ -3,7 +3,7 @@ Theme Name: SonoRiva Marketing
 Theme URI: https://sonoriva.fr
 Author: SonoRiva
 Description: Thème de présentation moderne pour SonoRiva, la régie son web pensée pour la scène.
-Version: 4.1.0
+Version: 5.0.0
 Text Domain: sonoriva-marketing
 */
 
@@ -220,6 +220,165 @@ h1, h2, h3, p { margin-top: 0; }
   .feature-card { min-height: 410px; }.feature-card.feature-wide { min-height: 440px; }.cue-visual > span { width: 45px; height: 45px; }.cue-visual .current { width: 63px; height: 63px; }.cue-visual > i { width: 10px; }.remote-visual { gap: 7px; }.remote-visual > i { display: none; }.remote-visual { grid-template-columns: 1fr 1fr; }.import-visual { grid-template-columns: 55px auto 1fr; gap: 7px; }.import-visual > b { padding-inline: 8px; }.import-visual img { display: none; }
   .workflow-steps li { grid-template-columns: 55px 1fr; gap: 12px; }.workflow-steps > li > span { width: 42px; height: 42px; }.pricing-card { padding: 28px 24px; }.faq-list summary { font-size: .8rem; }.faq-list details p { padding-right: 0; }.footer-links { grid-template-columns: 1fr 1fr; row-gap: 35px; }
   .page-main { padding-top: 120px; }
+}
+
+/* Editable Gutenberg landing page — restrained product presentation */
+.sr-landing {
+  --sr-page: #0b0b0c;
+  --sr-panel: #111113;
+  --sr-panel-soft: #151518;
+  --sr-border: rgba(255, 255, 255, .11);
+  --sr-copy: #a8a8b0;
+  background: var(--sr-page);
+}
+
+.sr-landing > .wp-block-group { margin-block: 0; }
+.sr-landing .alignwide { width: var(--shell); max-width: none; margin-inline: auto; }
+.sr-landing .wp-block-columns { margin-bottom: 0; }
+.sr-landing .wp-block-column > :last-child { margin-bottom: 0; }
+.sr-landing .sr-section { padding: 104px 0; border-bottom: 1px solid var(--sr-border); }
+.sr-landing .sr-section > :where(.wp-block-columns, .wp-block-group) { width: var(--shell); margin-inline: auto; }
+.sr-landing .sr-kicker,
+.sr-landing .sr-index { margin-bottom: 18px; color: #57dac4; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.sr-landing h1,
+.sr-landing h2,
+.sr-landing h3 { color: #f4f4f5; font-weight: 630; letter-spacing: -.035em; }
+.sr-landing h1 { max-width: 690px; margin-bottom: 24px; font-size: clamp(3rem, 5.3vw, 5rem); line-height: .98; }
+.sr-landing h2 { max-width: 650px; margin-bottom: 22px; font-size: clamp(2.15rem, 3.7vw, 3.6rem); line-height: 1.04; }
+.sr-landing h3 { font-size: 1.3rem; line-height: 1.2; }
+.sr-landing p,
+.sr-landing li { color: var(--sr-copy); font-size: .98rem; line-height: 1.72; }
+.sr-landing .sr-lead { max-width: 630px; margin-bottom: 30px; color: #c7c7cd; font-size: 1.08rem; }
+.sr-landing .sr-note { margin-top: 20px; color: #777780; font-size: .76rem; }
+
+.sr-landing .wp-block-buttons { gap: 10px; }
+.sr-landing .wp-block-button__link { min-height: 47px; padding: 0 20px; display: inline-flex; align-items: center; border: 1px solid #57dac4; border-radius: 9px; color: #071412; background: #57dac4; font-size: .82rem; font-weight: 700; }
+.sr-landing .is-style-outline .wp-block-button__link { color: #d7d7dc; border-color: rgba(255,255,255,.2); background: transparent; }
+.sr-landing .wp-block-button__link:hover { color: #071412; background: #7ce7d4; }
+.sr-landing .is-style-outline .wp-block-button__link:hover { color: #fff; border-color: rgba(255,255,255,.38); background: rgba(255,255,255,.05); }
+
+.sr-hero { min-height: 760px; padding-top: 145px !important; background: #09090b; }
+.sr-hero-grid { gap: clamp(38px, 5vw, 76px); }
+.sr-hero .wp-block-column:first-child { position: relative; z-index: 2; }
+.sr-ui-shot { margin: 0; overflow: hidden; border: 1px solid rgba(255,255,255,.15); border-radius: 13px; background: #0d0d0f; box-shadow: 0 20px 60px rgba(0,0,0,.28); }
+.sr-ui-shot img { width: 100%; display: block; }
+.sr-ui-shot video { width: 100%; display: block; }
+.sr-ui-shot figcaption { margin: 0; padding: 11px 14px; color: #777780; border-top: 1px solid rgba(255,255,255,.09); background: #121214; font-size: .7rem; line-height: 1.45; text-align: left; }
+.sr-ui-shot-hero { margin-right: min(-14vw, -70px); }
+
+.sr-summary { border-bottom: 1px solid var(--sr-border); background: #101012; }
+.sr-summary > .wp-block-columns { width: var(--shell); }
+.sr-summary .wp-block-column { padding: 27px 25px; border-left: 1px solid var(--sr-border); }
+.sr-summary .wp-block-column:last-child { border-right: 1px solid var(--sr-border); }
+.sr-summary p { margin: 0; color: #76767e; font-size: .78rem; line-height: 1.55; }
+.sr-summary strong { color: #e7e7ea; font-size: .88rem; font-weight: 650; }
+
+.sr-feature { background: #0b0b0c; }
+.sr-feature-dark { background: #09090b; }
+.sr-feature-tint { background: #0f1012; }
+.sr-split { gap: clamp(44px, 7vw, 96px); }
+.sr-feature .wp-block-column > p:not(.sr-index, .sr-callout, .sr-status, .sr-routing-title, .sr-routing-track, .sr-layout-label) { max-width: 620px; }
+.sr-checks { margin: 28px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--sr-border); }
+.sr-checks li { padding: 11px 0 11px 25px; position: relative; border-bottom: 1px solid var(--sr-border); color: #b8b8bf; font-size: .86rem; }
+.sr-checks li::before { position: absolute; left: 2px; color: #57dac4; content: '✓'; }
+.sr-callout { margin-top: 26px; padding-left: 18px; border-left: 2px solid #57dac4; color: #d8d8dc !important; font-size: .9rem !important; }
+
+.sr-offline-panel { padding: 28px; border: 1px solid var(--sr-border); border-radius: 13px; background: #111315; }
+.sr-status-card { padding: 27px; border: 1px solid rgba(74,222,128,.2); border-radius: 10px; background: rgba(34,197,94,.035); }
+.sr-status { margin-bottom: 12px; color: #78dfa1 !important; font-size: .72rem !important; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.sr-status-card h3 { margin-bottom: 10px; }
+.sr-status-card p:last-child { margin-bottom: 0; font-size: .86rem; }
+.sr-mini-steps { gap: 8px; margin-top: 9px; }
+.sr-mini-steps .wp-block-column { padding: 14px; border: 1px solid var(--sr-border); border-radius: 8px; background: #0d0e10; }
+.sr-mini-steps p { margin: 0; font-size: .7rem; line-height: 1.45; }
+.sr-mini-steps strong { color: #78dfa1; }
+
+.sr-demo-gif,
+.sr-demo-video { max-width: 800px; margin-inline: auto; }
+.sr-layout-diagram,
+.sr-remote-diagram { padding: 28px; border: 1px solid var(--sr-border); border-radius: 13px; background: #111113; }
+.sr-layout-board { padding: 9px; border: 1px solid #333339; border-radius: 9px; }
+.sr-layout-board > .wp-block-columns { gap: 9px; }
+.sr-layout-board .wp-block-column { display: grid; gap: 9px; }
+.sr-layout-board .wp-block-column > p { min-height: 74px; margin: 0; padding: 14px; display: grid; place-items: center; border: 1px solid #34343a; border-radius: 7px; color: #cfcfd4; background: #18181b; font-size: .75rem; }
+.sr-layout-board .wp-block-column > p:first-child { border-color: rgba(87,218,196,.34); background: rgba(87,218,196,.055); }
+.sr-layout-board .wp-block-columns .wp-block-columns { gap: 9px; }
+.sr-layout-board .wp-block-columns .wp-block-columns p { min-height: 55px; }
+.sr-layout-label { margin: 14px 0 0; color: #777780 !important; font-size: .68rem !important; text-align: center; }
+
+.sr-routing { padding: 26px; border: 1px solid rgba(139,92,246,.3); border-radius: 13px; background: #111113; }
+.sr-routing-title { margin-bottom: 12px; color: #96969f !important; font-size: .7rem !important; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.sr-routing .wp-block-columns { gap: 8px; }
+.sr-routing .wp-block-column { padding: 13px; border: 1px solid #34343a; border-left: 3px solid #8b5cf6; border-radius: 7px; background: #18181b; }
+.sr-routing .wp-block-column:nth-child(2) { border-left-color: #06b6d4; }
+.sr-routing .wp-block-column:nth-child(3) { border-left-color: #22d3b6; }
+.sr-routing .wp-block-column p { margin: 0; color: #777780; font-size: .68rem; line-height: 1.4; }
+.sr-routing .wp-block-column strong { color: #e4e4e7; font-size: .78rem; }
+.sr-routing-track { margin: 8px 0 0; padding: 11px 13px; display: flex; justify-content: space-between; gap: 12px; border: 1px solid #2f2f34; border-radius: 7px; color: #c7c7cd !important; background: #161619; font-size: .72rem !important; }
+.sr-routing-track span { color: #8bdfd0; }
+
+.sr-device { min-height: 190px; padding: 23px; display: grid; align-content: center; gap: 9px; border: 1px solid #34343a; border-radius: 12px; background: #18181b; }
+.sr-device-phone { min-height: 250px; border-radius: 28px; }
+.sr-device p { margin: 0; padding: 10px; border: 1px solid #303036; border-radius: 7px; color: #bdbdc4; background: #121214; font-size: .72rem; }
+.sr-device p:first-child { padding: 0 0 9px; border: 0; color: #787881; background: transparent; font-size: .65rem; text-transform: uppercase; }
+.sr-device .sr-status { padding: 0; border: 0; background: transparent; }
+.sr-link { color: #57dac4 !important; font-size: 1.5rem !important; }
+
+.sr-two-facts { gap: 8px; margin-top: 26px; }
+.sr-two-facts .wp-block-column { padding: 16px; border: 1px solid var(--sr-border); border-radius: 8px; background: #121214; }
+.sr-two-facts h3 { margin-bottom: 5px; font-size: .86rem; }
+.sr-two-facts p { margin: 0; font-size: .7rem; line-height: 1.45; }
+
+.sr-pricing { background: #0e0e10; }
+.sr-section-head { margin-bottom: 52px !important; }
+.sr-section-head h2 { max-width: 850px; }
+.sr-final { padding: 84px 0 !important; background: #111c1a; text-align: center; }
+.sr-final > .wp-block-group { max-width: 790px !important; }
+.sr-final h2 { margin-inline: auto; }
+.sr-final p { max-width: 620px; margin: 0 auto 28px; }
+.sr-final .wp-block-buttons { justify-content: center; }
+
+.site-header .brand,
+.header-actions .button { font-weight: 680; }
+.header-actions .button { box-shadow: none; }
+.primary-nav a { font-weight: 560; }
+
+@media (max-width: 1100px) {
+  .sr-ui-shot-hero { margin-right: 0; }
+  .sr-landing .sr-section { padding-block: 88px; }
+}
+
+@media (max-width: 781px) {
+  .sr-landing .alignwide,
+  .sr-landing .sr-section > :where(.wp-block-columns, .wp-block-group),
+  .sr-summary > .wp-block-columns { width: min(100% - 32px, 680px); }
+  .sr-hero { min-height: 0; padding-top: 118px !important; }
+  .sr-hero-grid,
+  .sr-split { gap: 44px; }
+  .sr-split-reverse { flex-direction: column-reverse; }
+  .sr-landing h1 { font-size: clamp(2.7rem, 12vw, 4rem); }
+  .sr-landing h2 { font-size: clamp(2rem, 9vw, 3rem); }
+  .sr-summary .wp-block-columns { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+  .sr-summary .wp-block-column { margin: 0; border-bottom: 1px solid var(--sr-border); }
+  .sr-summary .wp-block-column:nth-child(2) { border-right: 1px solid var(--sr-border); }
+  .sr-layout-diagram,
+  .sr-remote-diagram,
+  .sr-offline-panel { padding: 18px; }
+}
+
+@media (max-width: 520px) {
+  .sr-landing .sr-section { padding-block: 68px; }
+  .sr-landing .wp-block-buttons { display: grid; }
+  .sr-landing .wp-block-button,
+  .sr-landing .wp-block-button__link { width: 100%; }
+  .sr-summary .wp-block-columns { grid-template-columns: 1fr; }
+  .sr-summary .wp-block-column,
+  .sr-summary .wp-block-column:nth-child(2) { border-right: 0; }
+  .sr-routing .wp-block-columns,
+  .sr-mini-steps { display: grid; grid-template-columns: 1fr; }
+  .sr-remote-diagram > .wp-block-columns { gap: 8px; }
+  .sr-device,
+  .sr-device-phone { min-height: 175px; padding: 13px; border-radius: 12px; }
 }
 
 /* SEO landing pages and SoundShow migration */

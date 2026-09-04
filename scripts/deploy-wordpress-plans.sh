@@ -48,7 +48,7 @@ ssh "$WORDPRESS_ACCOUNT@$WORDPRESS_SSH_HOST" "
   set -Eeuo pipefail
   find '$WORDPRESS_PLUGIN_ROOT' '$WORDPRESS_THEME_ROOT' -type f -name '*.php' -exec php -l {} \; >/dev/null
   cd '$WORDPRESS_ROOT'
-  php -r \"require 'wp-load.php'; require_once ABSPATH . 'wp-admin/includes/plugin.php'; activate_plugin('sonoriva-plans/sonoriva-plans.php'); switch_theme('sonoriva-marketing'); update_option('blog_public', '1'); update_option('WPLANG', 'fr_FR'); update_option('blogname', 'SonoRiva'); update_option('blogdescription', 'Régie son cloud pour le spectacle vivant'); if (null === get_page_by_path('alternative-soundshow', OBJECT, 'page')) { wp_insert_post(array('post_title' => 'Alternative cloud à SoundShow', 'post_name' => 'alternative-soundshow', 'post_status' => 'publish', 'post_type' => 'page', 'post_content' => '')); } delete_transient('sonoriva_plans_api_response'); flush_rewrite_rules(false);\"
+  php -r \"require 'wp-load.php'; require_once ABSPATH . 'wp-admin/includes/plugin.php'; activate_plugin('sonoriva-plans/sonoriva-plans.php'); switch_theme('sonoriva-marketing'); update_option('blog_public', '1'); update_option('WPLANG', 'fr_FR'); update_option('blogname', 'SonoRiva'); update_option('blogdescription', 'Régie son pour le spectacle vivant'); if (null === get_page_by_path('alternative-soundshow', OBJECT, 'page')) { wp_insert_post(array('post_title' => 'Alternative cloud à SoundShow', 'post_name' => 'alternative-soundshow', 'post_status' => 'publish', 'post_type' => 'page', 'post_content' => '')); } \$front_page_id = (int) get_option('page_on_front'); \$front_page = \$front_page_id > 0 ? get_post(\$front_page_id) : null; if (\$front_page && trim((string) \$front_page->post_content) === '') { require_once '$WORDPRESS_THEME_ROOT/inc/home-content.php'; wp_update_post(array('ID' => \$front_page_id, 'post_content' => sonoriva_marketing_home_block_content())); } delete_transient('sonoriva_plans_api_response'); flush_rewrite_rules(false);\"
 "
 
 expected_card_count=$(curl --fail --silent --show-error "$SONORIVA_PLANS_API_URL" | php -r '
@@ -65,7 +65,8 @@ for attempt in 1 2 3 4 5; do
     && grep --fixed-strings --quiet 'SonoRiva Bridge pour macOS et Windows' <<< "$wordpress_html" \
     && grep --fixed-strings --quiet 'Démarrer maintenant' <<< "$wordpress_html" \
     && grep --fixed-strings --quiet 'Choisir ce forfait' <<< "$wordpress_html" \
-    && grep --fixed-strings --quiet 'Essayer maintenant !' <<< "$wordpress_html"; then
+    && grep --fixed-strings --quiet 'Essayer maintenant' <<< "$wordpress_html" \
+    && grep --fixed-strings --quiet 'Vos sons prêts. Vos départs instantanés.' <<< "$wordpress_html"; then
     break
   fi
   [[ "$attempt" -eq 5 ]] || sleep 2
@@ -76,7 +77,8 @@ card_count=$(grep -o 'class="pricing-card[^"]*"' <<< "$wordpress_html" | wc -l |
 grep --fixed-strings --quiet 'SonoRiva Bridge pour macOS et Windows' <<< "$wordpress_html" || fail "le site WordPress n’affiche pas l’information SonoRiva Bridge."
 grep --fixed-strings --quiet 'Démarrer maintenant' <<< "$wordpress_html" || fail "le forfait gratuit n’affiche pas son nouveau bouton."
 grep --fixed-strings --quiet 'Choisir ce forfait' <<< "$wordpress_html" || fail "les forfaits payants n’affichent pas leur nouveau bouton."
-grep --fixed-strings --quiet 'Essayer maintenant !' <<< "$wordpress_html" || fail "le header WordPress ne renvoie pas vers la démonstration."
+grep --fixed-strings --quiet 'Essayer maintenant' <<< "$wordpress_html" || fail "le header WordPress ne renvoie pas vers la démonstration."
+grep --fixed-strings --quiet 'Vos sons prêts. Vos départs instantanés.' <<< "$wordpress_html" || fail "le contenu Gutenberg de la page d'accueil n'est pas publié."
 grep --fixed-strings --quiet '<html lang="fr-FR">' <<< "$wordpress_html" || fail "la langue du site WordPress n'est pas déclarée en français."
 grep --fixed-strings --quiet 'application/ld+json' <<< "$wordpress_html" || fail "les données structurées sont absentes de la page d'accueil."
 grep --fixed-strings --quiet 'Alternative SoundShow' <<< "$wordpress_html" || fail "le lien vers la page alternative SoundShow est absent."
