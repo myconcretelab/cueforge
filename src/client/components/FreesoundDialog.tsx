@@ -4,13 +4,14 @@ import { api } from '../lib/api';
 import { audioEngine } from '../lib/audio-engine';
 import { bridgeClient } from '../lib/bridge-client';
 import type { RoutedBridgeOutput } from '../lib/bridge-output-routing';
-import type { Category, FreesoundLicenseFilter, FreesoundSearchResult, FreesoundSound, ProjectColor } from '../types';
+import type { Category, FreesoundLicenseFilter, FreesoundSearchResult, FreesoundSound, ProjectColor, TrackSubcategory } from '../types';
 
 interface Props {
   initialQuery?: string;
   autoSearch?: boolean;
   projectId: string;
   categories: Category[];
+  subcategories: TrackSubcategory[];
   projectColors: ProjectColor[];
   defaultCategoryId?: string;
   nextPosition: number;
@@ -22,7 +23,7 @@ interface Props {
 
 type PlayerState = 'idle' | 'loading' | 'playing' | 'paused';
 
-export function FreesoundDialog({ initialQuery = '', autoSearch = false, projectId, categories, projectColors, defaultCategoryId, nextPosition, bridgeOutputs, mainBridgeOutputId, onImported, onClose }: Props) {
+export function FreesoundDialog({ initialQuery = '', autoSearch = false, projectId, categories, subcategories, projectColors, defaultCategoryId, nextPosition, bridgeOutputs, mainBridgeOutputId, onImported, onClose }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [license, setLicense] = useState<FreesoundLicenseFilter>('compatible');
   const [minDuration, setMinDuration] = useState('');
@@ -39,6 +40,7 @@ export function FreesoundDialog({ initialQuery = '', autoSearch = false, project
   const [soundToImport, setSoundToImport] = useState<FreesoundSound>();
   const [importTitle, setImportTitle] = useState('');
   const [importCategoryId, setImportCategoryId] = useState(defaultCategoryId ?? '');
+  const [importSubcategoryId, setImportSubcategoryId] = useState('');
   const [importColor, setImportColor] = useState(() => categories.find((category) => category.id === defaultCategoryId)?.color ?? projectColors[0]?.color ?? '#22d3b6');
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
@@ -243,6 +245,7 @@ export function FreesoundDialog({ initialQuery = '', autoSearch = false, project
     setSoundToImport(sound);
     setImportTitle(withoutAudioExtension(sound.name));
     setImportCategoryId(defaultCategoryId ?? '');
+    setImportSubcategoryId('');
     setImportColor(categories.find((category) => category.id === defaultCategoryId)?.color ?? projectColors[0]?.color ?? '#22d3b6');
     setImportError('');
   }
@@ -260,6 +263,7 @@ export function FreesoundDialog({ initialQuery = '', autoSearch = false, project
       await api.importRemoteTrack({
         projectId,
         categoryId: importCategoryId || undefined,
+        subcategoryId: importSubcategoryId || undefined,
         title,
         durationMs: Math.max(1, Math.round(soundToImport.durationSeconds * 1_000)),
         position: nextPosition,
@@ -304,6 +308,7 @@ export function FreesoundDialog({ initialQuery = '', autoSearch = false, project
   const progress = playerDuration ? Math.min(1, currentTime / playerDuration) : 0;
   const mainBridgeOutput = bridgeOutputs.find((output) => output.id === mainBridgeOutputId);
   const alternateBridgeOutputs = mainBridgeOutput ? bridgeOutputs.filter((output) => output.id !== mainBridgeOutput.id) : [];
+  const importSubcategories = subcategories.filter((subcategory) => subcategory.categoryId === (importCategoryId || null));
 
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && closeDialog()}>
     <section className="dialog freesound-dialog">
@@ -370,7 +375,8 @@ export function FreesoundDialog({ initialQuery = '', autoSearch = false, project
               </div>
               {preparingImport && <div className="freesound-import-morph">
                 <div className="freesound-import-morph-inner">
-                  <label>Catégorie de destination<select value={importCategoryId} onChange={(event) => setImportCategoryId(event.target.value)}><option value="">Sans catégorie</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+                  <label>Catégorie de destination<select value={importCategoryId} onChange={(event) => { setImportCategoryId(event.target.value); setImportSubcategoryId(''); }}><option value="">Sans catégorie</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+                  {importSubcategories.length > 0 && <label>Sous-catégorie<select value={importSubcategoryId} onChange={(event) => setImportSubcategoryId(event.target.value)}><option value="">À la racine de la catégorie</option>{importSubcategories.map((subcategory) => <option key={subcategory.id} value={subcategory.id}>{subcategory.name}</option>)}</select></label>}
                   <label className="freesound-import-color">Couleur du morceau<span><input type="color" value={importColor} onChange={(event) => setImportColor(event.target.value)} aria-label="Couleur personnalisée du morceau" />{projectColors.map((projectColor) => <button key={projectColor.id} type="button" className={projectColor.color.toLowerCase() === importColor.toLowerCase() ? 'is-selected' : ''} style={{ '--swatch-color': projectColor.color } as React.CSSProperties} onClick={() => setImportColor(projectColor.color)} aria-label={`Choisir la couleur ${projectColor.color}`} title={projectColor.color} />)}</span></label>
                   <div className="freesound-import-source"><ShieldCheck size={16} /><span><strong>{sound.license.label}</strong> · {sound.username}<small>La source et la licence seront enregistrées avec le morceau.</small></span></div>
                   {importError && <div className="form-error">{importError}</div>}

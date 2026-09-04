@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { TrackSubcategoryPad } from '../src/client/components/TrackSubcategoryPad.js';
-import { canDropTrackInSubcategoryDrawer, trackDropPlacement, trackIdAfterTarget } from '../src/client/lib/track-subcategories.js';
+import { canDropTrackInSubcategoryDrawer, subcategoryMatchesSearch, trackDropPlacement, trackIdAfterTarget } from '../src/client/lib/track-subcategories.js';
 import type { Track } from '../src/client/types.js';
 
 function track(id: string, position: number, subcategoryId: string | null = null): Track {
@@ -30,6 +30,11 @@ describe('sous-catégories de morceaux', () => {
     expect(trackIdAfterTarget(tracks, tracks[1]!)).toBe('three');
   });
 
+  it('recherche une sous-catégorie par son nom sans tenir compte de la casse', () => {
+    expect(subcategoryMatchesSearch('Ambiances de nuit', 'NUIT')).toBe(true);
+    expect(subcategoryMatchesSearch('Ambiances de nuit', 'matin')).toBe(false);
+  });
+
   it('conserve les morceaux lorsque leur sous-catégorie est supprimée', () => {
     const migration = readFileSync(new URL('../migrations/0027_wakeful_midnight.sql', import.meta.url), 'utf8');
     expect(migration).toContain('ON DELETE set null');
@@ -45,6 +50,7 @@ describe('sous-catégories de morceaux', () => {
       onToggle: () => undefined,
       onEdit: () => undefined,
       onDragOver: () => undefined,
+      onDragLeave: () => undefined,
       onDrop: () => undefined,
       onDragStart: () => undefined,
       onDragEnd: () => undefined,
@@ -52,7 +58,9 @@ describe('sous-catégories de morceaux', () => {
 
     expect(markup).toContain('subcategory-count-badge');
     expect(markup).toContain('aria-label="2 morceaux">2</span>');
+    expect(markup).toContain('subcategory-titlebar');
     expect(markup).toContain('subcategory-edge-title">Ambiances');
+    expect(markup).toContain('aria-label="Modifier Ambiances"');
     expect(markup).toContain('aria-expanded="false"');
   });
 });

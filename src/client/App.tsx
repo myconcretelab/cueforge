@@ -1,6 +1,6 @@
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import {
-  ArrowUpDown, AudioLines, AudioWaveform, ChevronDown, CircleCheck, Clock3, Columns3, Download, FolderOpen, FolderPlus, GripHorizontal, GripVertical, History, LayoutDashboard, ListMusic, ListPlus, LoaderCircle, Menu, Move, Pause, Play, Plus, Radio,
+  ArrowUpDown, AudioLines, AudioWaveform, ChevronDown, CircleCheck, Clock3, Columns3, Download, FolderInput, FolderPlus, GripHorizontal, GripVertical, History, LayoutDashboard, ListMusic, ListPlus, LoaderCircle, Menu, Move, Pause, Pencil, Play, Plus, Radio,
   LockKeyhole, LogIn, RefreshCcw, Repeat2, RotateCcw, Scan, Search, Settings, Settings2, SlidersHorizontal, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
@@ -9,6 +9,7 @@ import { AudioOutputConsole } from './components/AudioOutputConsole';
 import { AudioOutputUpgradeConsole, type AudioOutputUpgradeMode } from './components/AudioOutputUpgradeConsole';
 import { AppUpdateBanner } from './components/AppUpdateBanner';
 import { BatchTrackDialog } from './components/BatchTrackDialog';
+import { BatchTrackMoveDialog } from './components/BatchTrackMoveDialog';
 import { FreesoundDialog } from './components/FreesoundDialog';
 import { FolderImportDialog } from './components/FolderImportDialog';
 import { PlaylistPad } from './components/PlaylistPad';
@@ -40,7 +41,7 @@ import { movePlaylistItem as repositionPlaylistItem, playlistEntries, playlistQu
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
 import { intersectsSelection, type SelectionRectangle } from './lib/track-selection';
 import { normalizeTrackTags, trackMatchesSearch, type TrackSearchScope } from './lib/track-tags';
-import { canDropTrackInSubcategoryDrawer, trackDropPlacement, trackIdAfterTarget } from './lib/track-subcategories';
+import { canDropTrackInSubcategoryDrawer, subcategoryMatchesSearch, trackDropPlacement, trackIdAfterTarget } from './lib/track-subcategories';
 import { compactPlaylistMaximumRows, compactPlaylistMinimumRows, createWorkspaceLayout, dockWorkspaceItem, moveWorkspaceItem, placeWorkspaceItemOnGrid, readSavedWorkspaceLayouts, readWorkspaceLayout, resizeWorkspaceItem, setWorkspaceItemCollapsed, swapWorkspaceItems, workspaceBlockLabels, workspaceDockableBlockIds, workspaceDockItems, workspaceItemIsCollapsed, workspaceItemIsDocked, workspaceLayoutItem, workspaceLayoutsMatch, workspaceLayoutSnapshot, workspaceLayoutStorageKey, workspaceLayoutRows, workspaceSavedLayoutsStorageKey, type SavedWorkspaceLayout, type WorkspaceBlockId } from './lib/workspace-layout';
 import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcutKey, ReleaseInfo, RemoteCommand, Track, TrackSubcategory, User } from './types';
 
@@ -78,7 +79,7 @@ export default function App() {
   const [selectedProjectId, setSelectedProjectId] = useState(localStorage.getItem('sonoriva-project'));
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [search, setSearch] = useState('');
-  const [searchScope, setSearchScope] = useState<TrackSearchScope>('name');
+  const [searchScope, setSearchScope] = useState<TrackSearchScope | 'subcategories'>('name');
   const [activePlaybacks, setActivePlaybacks] = useState<ActivePlayback[]>([]);
   const [playbackHistory, setPlaybackHistory] = useState<Map<string, number>>(new Map());
   const [offlineTrackIds, setOfflineTrackIds] = useState<Set<string>>(new Set());
@@ -92,6 +93,7 @@ export default function App() {
   const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
   const [selectionRectangle, setSelectionRectangle] = useState<SelectionRectangle>();
   const [batchEditOpen, setBatchEditOpen] = useState(false);
+  const [batchMoveOpen, setBatchMoveOpen] = useState(false);
   const [draggedTrackId, setDraggedTrackId] = useState<string>();
   const [dropTrackId, setDropTrackId] = useState<string>();
   const [dropTrackPlacement, setDropTrackPlacement] = useState<'before' | 'group' | 'after'>();
@@ -111,6 +113,9 @@ export default function App() {
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [openSubcategoryId, setOpenSubcategoryId] = useState<string>();
+  const [editingSubcategoryName, setEditingSubcategoryName] = useState(false);
+  const [subcategoryNameDraft, setSubcategoryNameDraft] = useState('');
+  const [openSubcategoriesOnDrag, setOpenSubcategoriesOnDrag] = useState(() => localStorage.getItem('sonoriva-open-subcategories-on-drag') !== 'false');
   const [subcategoryDialog, setSubcategoryDialog] = useState<'new' | TrackSubcategory>();
   const [compactLayout, setCompactLayout] = useState(() => window.matchMedia('(max-width: 560px)').matches);
   const [stackedWorkspaceLayout, setStackedWorkspaceLayout] = useState(() => window.matchMedia('(max-width: 900px)').matches);
@@ -161,6 +166,7 @@ export default function App() {
   const marqueeStart = useRef<{ x: number; y: number; additive: boolean; selectedIds: Set<string> } | undefined>(undefined);
   const marqueeMoved = useRef(false);
   const suppressSelectionClick = useRef(false);
+  const subcategoryOpenTimerRef = useRef<{ id: string; timer: number } | undefined>(undefined);
   const playlistRunRef = useRef(false);
   const playlistTransitioningRef = useRef(false);
   const playlistAdvanceTimerRef = useRef<number | undefined>(undefined);
@@ -553,11 +559,15 @@ export default function App() {
   const isSearching = normalizedSearch.length > 0;
   const columnCategoryId = isSearching ? 'all' : selectedCategoryId;
   const categoryTracks = useMemo(() => (detail?.tracks ?? []).filter((track) => {
+    if (searchScope === 'subcategories') return false;
     const inCategory = isSearching || selectedCategoryId === 'all' || track.categoryId === selectedCategoryId;
     const matches = trackMatchesSearch(track, normalizedSearch, searchScope);
     return inCategory && matches;
   }), [detail?.tracks, isSearching, normalizedSearch, searchScope, selectedCategoryId]);
-  const visibleSubcategories = useMemo(() => isSearching ? [] : (detail?.subcategories ?? []).filter((subcategory) => selectedCategoryId === 'all' || subcategory.categoryId === selectedCategoryId), [detail?.subcategories, isSearching, selectedCategoryId]);
+  const visibleSubcategories = useMemo(() => (detail?.subcategories ?? []).filter((subcategory) => {
+    if (isSearching) return searchScope === 'subcategories' && subcategoryMatchesSearch(subcategory.name, normalizedSearch);
+    return selectedCategoryId === 'all' || subcategory.categoryId === selectedCategoryId;
+  }), [detail?.subcategories, isSearching, normalizedSearch, searchScope, selectedCategoryId]);
   const topLevelTracks = useMemo(() => isSearching ? categoryTracks : categoryTracks.filter((track) => !track.subcategoryId), [categoryTracks, isSearching]);
   const visiblePlaylists = useMemo(() => remote || !playlistsEnabled ? [] : (detail?.playlists ?? []).filter((playlist) =>
     playlistIsVisible(playlist.categoryId, selectedCategoryId, isSearching)
@@ -568,7 +578,10 @@ export default function App() {
     ...visiblePlaylists.map((playlist) => ({ kind: 'playlist' as const, id: playlist.id, position: playlist.position, playlist })),
   ].sort((first, second) => first.position - second.position || first.id.localeCompare(second.id)), [topLevelTracks, visiblePlaylists, visibleSubcategories]);
   const openSubcategory = useMemo(() => detail?.subcategories.find((subcategory) => subcategory.id === openSubcategoryId), [detail?.subcategories, openSubcategoryId]);
-  const openSubcategoryTracks = useMemo(() => categoryTracks.filter((track) => track.subcategoryId === openSubcategoryId).sort((first, second) => first.position - second.position), [categoryTracks, openSubcategoryId]);
+  const openSubcategoryTracks = useMemo(() => {
+    const candidates = isSearching && searchScope === 'subcategories' ? detail?.tracks ?? [] : categoryTracks;
+    return candidates.filter((track) => track.subcategoryId === openSubcategoryId).sort((first, second) => first.position - second.position);
+  }, [categoryTracks, detail?.tracks, isSearching, openSubcategoryId, searchScope]);
   const visibleTracks = useMemo(() => visibleBoardItems.flatMap((item) => {
     if (item.kind === 'track') return [item.track];
     if (item.kind === 'subcategory' && item.id === openSubcategoryId) return openSubcategoryTracks;
@@ -588,6 +601,10 @@ export default function App() {
       return [{ playback, track }];
     });
   }, [activePlaybacks, detail?.tracks]);
+
+  useEffect(() => () => {
+    if (subcategoryOpenTimerRef.current) window.clearTimeout(subcategoryOpenTimerRef.current.timer);
+  }, []);
   const maxActivePlaybacks = detail?.project.maxActivePlaybacks ?? 8;
   const compactPlaybackThreshold = detail?.project.compactPlaybackThreshold ?? 5;
   const compactPlayerCards = playingTracks.length >= compactPlaybackThreshold;
@@ -1412,6 +1429,41 @@ export default function App() {
     setSubcategoryDialog(undefined);
   }
 
+  async function renameSubcategory(subcategory: TrackSubcategory, nextName: string) {
+    if (!detail) return;
+    const name = nextName.trim();
+    setEditingSubcategoryName(false);
+    if (!name || name === subcategory.name) {
+      setSubcategoryNameDraft(subcategory.name);
+      return;
+    }
+    try {
+      const result = await api.updateTrackSubcategory(detail.project.id, subcategory.id, { name });
+      setDetail((current) => current ? { ...current, subcategories: current.subcategories.map((item) => item.id === result.subcategory.id ? result.subcategory : item) } : current);
+      setSubcategoryNameDraft(result.subcategory.name);
+    } catch (cause) {
+      setSubcategoryNameDraft(subcategory.name);
+      setError(cause instanceof Error ? cause.message : 'Renommage de la sous-catégorie impossible.');
+    }
+  }
+
+  function scheduleSubcategoryOpen(subcategoryId: string) {
+    if (!openSubcategoriesOnDrag || openSubcategoryId === subcategoryId || subcategoryOpenTimerRef.current?.id === subcategoryId) return;
+    if (subcategoryOpenTimerRef.current) window.clearTimeout(subcategoryOpenTimerRef.current.timer);
+    const timer = window.setTimeout(() => {
+      setOpenSubcategoryId(subcategoryId);
+      subcategoryOpenTimerRef.current = undefined;
+    }, 550);
+    subcategoryOpenTimerRef.current = { id: subcategoryId, timer };
+  }
+
+  function cancelScheduledSubcategoryOpen(subcategoryId?: string) {
+    const pending = subcategoryOpenTimerRef.current;
+    if (!pending || (subcategoryId && pending.id !== subcategoryId)) return;
+    window.clearTimeout(pending.timer);
+    subcategoryOpenTimerRef.current = undefined;
+  }
+
   async function reorderPlaylist(playlistId: string, targetKind: 'track' | 'playlist' | 'subcategory', targetId: string, afterTarget: boolean) {
     if (!detail || reordering || (targetKind === 'playlist' && playlistId === targetId)) return;
     const previousPlaylists = detail.playlists;
@@ -1773,6 +1825,12 @@ export default function App() {
     localStorage.setItem('sonoriva-automatic-updates', String(enabled));
   }
 
+  function setOpenSubcategoriesOnDragPreference(enabled: boolean) {
+    setOpenSubcategoriesOnDrag(enabled);
+    localStorage.setItem('sonoriva-open-subcategories-on-drag', String(enabled));
+    if (!enabled) cancelScheduledSubcategoryOpen();
+  }
+
   if (user === undefined) return <div className="app-loader"><span className="brand-mark loader pulse" aria-hidden="true">SR</span><span>SonoRiva</span></div>;
   if (!user) return <><AuthScreen onAuthenticated={(authenticated) => { localStorage.setItem('sonoriva-user', JSON.stringify(authenticated)); setUser(authenticated); }} />{error && <Toast message={error} onClose={() => setError('')} />}</>;
 
@@ -1842,7 +1900,7 @@ export default function App() {
         const beforeTrackId = placement === 'after' ? trackIdAfterTarget(detail?.tracks ?? [], track) : track.id;
         reorderTrack(sourceTrack.id, track.categoryId, beforeTrackId, track.subcategoryId).catch(() => undefined);
       }}
-      onDragEnd={() => { setDraggedTrackId(undefined); setDropTrackId(undefined); setDropTrackPlacement(undefined); setDropSubcategoryId(undefined); setDropCategoryId(undefined); }} />;
+      onDragEnd={() => { cancelScheduledSubcategoryOpen(); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropTrackPlacement(undefined); setDropSubcategoryId(undefined); setDropCategoryId(undefined); }} />;
   }
 
   function renderActionsContent() {
@@ -2128,7 +2186,7 @@ export default function App() {
           onResize={(id, width, height) => setWorkspaceLayout((current) => resizeWorkspaceItem(current, id, width, height))}>
 
       <section className="dashboard" aria-label="Tableau de bord des morceaux">
-        <div className="search"><div className="search-scope" role="group" aria-label="Champ de recherche"><button type="button" className={searchScope === 'name' ? 'active' : ''} aria-pressed={searchScope === 'name'} onClick={() => setSearchScope('name')}>Noms</button><button type="button" className={searchScope === 'tags' ? 'active' : ''} aria-pressed={searchScope === 'tags'} onClick={() => setSearchScope('tags')}>Tags</button></div><Search size={18} /><input ref={searchInputRef} aria-label={searchScope === 'tags' ? 'Rechercher des tags' : 'Rechercher un son par son nom'} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchScope === 'tags' ? 'Rechercher des tags…' : 'Rechercher un son…'} /><span className="search-end-actions">{!remote && <button type="button" className="search-freesound" onClick={() => { setFreesoundAutoSearch(true); setFreesoundOpen(true); }} aria-label={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Ouvrir la recherche Freesound'} title={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Rechercher sur Freesound'}><Waves size={17} /></button>}<kbd>{formatShortcut(projectShortcut(detail?.project ?? {}, 'searchShortcut'))}</kbd></span></div>
+        <div className="search"><div className="search-scope" role="group" aria-label="Champ de recherche"><button type="button" className={searchScope === 'name' ? 'active' : ''} aria-pressed={searchScope === 'name'} onClick={() => setSearchScope('name')}>Noms</button><button type="button" className={searchScope === 'tags' ? 'active' : ''} aria-pressed={searchScope === 'tags'} onClick={() => setSearchScope('tags')}>Tags</button><button type="button" className={searchScope === 'subcategories' ? 'active' : ''} aria-pressed={searchScope === 'subcategories'} onClick={() => setSearchScope('subcategories')}>SC</button></div><Search size={18} /><input ref={searchInputRef} aria-label={searchScope === 'tags' ? 'Rechercher des tags' : searchScope === 'subcategories' ? 'Rechercher une sous-catégorie par son nom' : 'Rechercher un son par son nom'} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchScope === 'tags' ? 'Rechercher des tags…' : searchScope === 'subcategories' ? 'Rechercher une sous-catégorie…' : 'Rechercher un son…'} /><span className="search-end-actions">{!remote && <button type="button" className="search-freesound" onClick={() => { setFreesoundAutoSearch(true); setFreesoundOpen(true); }} aria-label={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Ouvrir la recherche Freesound'} title={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Rechercher sur Freesound'}><Waves size={17} /></button>}<kbd>{formatShortcut(projectShortcut(detail?.project ?? {}, 'searchShortcut'))}</kbd></span></div>
         <div className="dashboard-actions">
           {!remote && <button className={`dashboard-button ${preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'is-loaded' : ''}`} onClick={() => preloadCategory()} disabled={!tracksToPreload.length || Boolean(preloadProgress) || preloadedInCategory === tracksToPreload.length}
             aria-label={preloadProgress ? `Mise hors ligne ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'}>
@@ -2152,18 +2210,18 @@ export default function App() {
             aria-label={currentCategory ? `Ajouter les ${tracksToPreload.length} morceaux de ${currentCategory.name} à la playlist` : `Ajouter les ${tracksToPreload.length} morceaux à la playlist`}
             title={!playlistsEnabled ? 'Playlists non incluses dans votre forfait' : currentCategory ? `Ajouter toute la catégorie « ${currentCategory.name} » à la playlist` : 'Ajouter tous les morceaux à la playlist'}><ListPlus size={19} /></button>}
           {!remote && !isSearching && <button className="dashboard-button" onClick={() => setSubcategoryDialog('new')} aria-label="Créer une sous-catégorie" title="Nouvelle sous-catégorie"><FolderPlus size={19} /></button>}
-          <div className="track-count"><span>{categoryTracks.length}</span><small>son{categoryTracks.length !== 1 ? 's' : ''}</small></div>
+          <div className="track-count"><span>{isSearching && searchScope === 'subcategories' ? visibleSubcategories.length : categoryTracks.length}</span><small>{isSearching && searchScope === 'subcategories' ? 'SC' : `son${categoryTracks.length !== 1 ? 's' : ''}`}</small></div>
         </div>
       </section>
 
       {selectionMode && <section className="selection-toolbar" aria-label="Outils de sélection multiple">
         <div><Scan size={18} /><span><strong>{selectedTrackIds.size ? `${selectedTrackIds.size} morceau${selectedTrackIds.size !== 1 ? 'x' : ''} sélectionné${selectedTrackIds.size !== 1 ? 's' : ''}` : 'Sélection multiple'}</strong><small>Cliquez les cartes ou tracez un rectangle sur la grille.</small></span></div>
-        <span className="selection-toolbar-actions"><button className="button ghost" onClick={() => setSelectedTrackIds(new Set(visibleTracks.map((track) => track.id)))} disabled={!visibleTracks.length}>Tout sélectionner</button><button className="button ghost" onClick={() => setSelectedTrackIds(new Set())} disabled={!selectedTrackIds.size}>Effacer</button><button className="button primary" onClick={() => setBatchEditOpen(true)} disabled={!selectedTrackIds.size}><SlidersHorizontal size={16} />Modifier{selectedTrackIds.size ? ` (${selectedTrackIds.size})` : ''}</button></span>
+        <span className="selection-toolbar-actions"><button className="button ghost" onClick={() => setSelectedTrackIds(new Set(visibleTracks.map((track) => track.id)))} disabled={!visibleTracks.length}>Tout sélectionner</button><button className="button ghost" onClick={() => setSelectedTrackIds(new Set())} disabled={!selectedTrackIds.size}>Effacer</button><button className="button ghost batch-move-button" onClick={() => setBatchMoveOpen(true)} disabled={!selectedTrackIds.size}><FolderInput size={16} />Déplacer{selectedTrackIds.size ? ` (${selectedTrackIds.size})` : ''}</button><button className="button primary" onClick={() => setBatchEditOpen(true)} disabled={!selectedTrackIds.size}><SlidersHorizontal size={16} />Modifier{selectedTrackIds.size ? ` (${selectedTrackIds.size})` : ''}</button></span>
       </section>}
 
       <section className="soundboard">
         {remote && <div className="remote-banner"><Radio size={18} /><span>Mode télécommande — les sons seront joués sur la régie connectée.</span></div>}
-        {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleBoardItems.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className={`track-grid ${selectionMode ? 'selection-mode' : ''}`} style={{ '--track-columns': trackColumns } as React.CSSProperties} onPointerDown={beginMarqueeSelection} onPointerMove={moveMarqueeSelection} onPointerUp={endMarqueeSelection} onPointerCancel={endMarqueeSelection}>
+        {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleBoardItems.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{searchScope === 'subcategories' && search ? 'Aucune sous-catégorie trouvée' : search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className={`track-grid ${selectionMode ? 'selection-mode' : ''}`} style={{ '--track-columns': trackColumns } as React.CSSProperties} onPointerDown={beginMarqueeSelection} onPointerMove={moveMarqueeSelection} onPointerUp={endMarqueeSelection} onPointerCancel={endMarqueeSelection}>
           {visibleBoardItems.map((boardItem, boardIndex) => {
             let tile: React.ReactNode;
             if (boardItem.kind === 'playlist') {
@@ -2180,9 +2238,10 @@ export default function App() {
                 onToggle={() => setOpenSubcategoryId((current) => current === subcategory.id ? undefined : subcategory.id)}
                 onEdit={() => setSubcategoryDialog(subcategory)}
                 onDragStart={(event) => { if (!reorderMode) return; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-sonoriva-track-subcategory', subcategory.id); setDraggedTrackSubcategoryId(subcategory.id); }}
-                onDragOver={(event) => { if (!reorderMode) return; if (draggedTrackId) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropSubcategoryId(subcategory.id); setDropSubcategoryPositionId(undefined); setDropTrackId(undefined); setDropTrackPlacement(undefined); return; } if ((draggedTrackSubcategoryId && draggedTrackSubcategoryId !== subcategory.id) || draggedPlaylistId) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; const bounds = event.currentTarget.getBoundingClientRect(); setDropSubcategoryPositionId(subcategory.id); setDropSubcategoryId(undefined); setDropPlaylistId(undefined); setDropPlaylistTrackId(undefined); setDropPlaylistAfter(event.clientX > bounds.left + bounds.width / 2); } }}
-                onDrop={(event) => { event.preventDefault(); if (draggedTrackId) { moveTrackIntoSubcategory(draggedTrackId, subcategory.id).catch(() => undefined); return; } const bounds = event.currentTarget.getBoundingClientRect(); const after = event.clientX > bounds.left + bounds.width / 2; if (draggedTrackSubcategoryId && draggedTrackSubcategoryId !== subcategory.id) reorderSubcategory(draggedTrackSubcategoryId, 'subcategory', subcategory.id, after).catch(() => undefined); else if (draggedPlaylistId) reorderPlaylist(draggedPlaylistId, 'subcategory', subcategory.id, after).catch(() => undefined); }}
-                onDragEnd={() => { setDraggedTrackSubcategoryId(undefined); setDropSubcategoryId(undefined); setDropSubcategoryPositionId(undefined); setDropPlaylistId(undefined); setDropPlaylistTrackId(undefined); setDropCategoryId(undefined); setDropPlaylistAfter(false); }} />;
+                onDragOver={(event) => { if (!reorderMode) return; if (draggedTrackId) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; scheduleSubcategoryOpen(subcategory.id); setDropSubcategoryId(subcategory.id); setDropSubcategoryPositionId(undefined); setDropTrackId(undefined); setDropTrackPlacement(undefined); return; } if ((draggedTrackSubcategoryId && draggedTrackSubcategoryId !== subcategory.id) || draggedPlaylistId) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; const bounds = event.currentTarget.getBoundingClientRect(); setDropSubcategoryPositionId(subcategory.id); setDropSubcategoryId(undefined); setDropPlaylistId(undefined); setDropPlaylistTrackId(undefined); setDropPlaylistAfter(event.clientX > bounds.left + bounds.width / 2); } }}
+                onDragLeave={(event) => { const nextTarget = event.relatedTarget as Node | null; if (nextTarget && event.currentTarget.contains(nextTarget)) return; cancelScheduledSubcategoryOpen(subcategory.id); }}
+                onDrop={(event) => { event.preventDefault(); cancelScheduledSubcategoryOpen(subcategory.id); if (draggedTrackId) { moveTrackIntoSubcategory(draggedTrackId, subcategory.id).catch(() => undefined); return; } const bounds = event.currentTarget.getBoundingClientRect(); const after = event.clientX > bounds.left + bounds.width / 2; if (draggedTrackSubcategoryId && draggedTrackSubcategoryId !== subcategory.id) reorderSubcategory(draggedTrackSubcategoryId, 'subcategory', subcategory.id, after).catch(() => undefined); else if (draggedPlaylistId) reorderPlaylist(draggedPlaylistId, 'subcategory', subcategory.id, after).catch(() => undefined); }}
+                onDragEnd={() => { cancelScheduledSubcategoryOpen(); setDraggedTrackSubcategoryId(undefined); setDropSubcategoryId(undefined); setDropSubcategoryPositionId(undefined); setDropPlaylistId(undefined); setDropPlaylistTrackId(undefined); setDropCategoryId(undefined); setDropPlaylistAfter(false); }} />;
             } else {
               tile = renderBoardTrack(boardItem.track);
             }
@@ -2190,11 +2249,15 @@ export default function App() {
             const rowStart = Math.floor(boardIndex / trackColumns) * trackColumns;
             const rowEndsHere = boardIndex % trackColumns === trackColumns - 1 || boardIndex === visibleBoardItems.length - 1;
             const showDrawer = rowEndsHere && openBoardIndex >= rowStart && openBoardIndex <= boardIndex;
-            return <Fragment key={`${boardItem.kind}:${boardItem.id}`}>{tile}{showDrawer && openSubcategory && <section className={`subcategory-drawer ${dropSubcategoryId === openSubcategory.id ? 'is-track-drop-target' : ''}`} style={{ '--subcategory-color': openSubcategory.color } as React.CSSProperties}
+            const subcategoryColumn = openBoardIndex % trackColumns;
+            const boardGap = compactLayout || appSkin === 'studio' ? 8 : 10;
+            const joinLeft = `calc(${subcategoryColumn * 100 / trackColumns}% + ${subcategoryColumn * boardGap / trackColumns}px)`;
+            const joinWidth = `calc(${100 / trackColumns}% - ${(trackColumns - 1) * boardGap / trackColumns}px)`;
+            return <Fragment key={`${boardItem.kind}:${boardItem.id}`}>{tile}{showDrawer && openSubcategory && <section className={`subcategory-drawer ${dropSubcategoryId === openSubcategory.id ? 'is-track-drop-target' : ''}`} style={{ '--subcategory-color': openSubcategory.color, '--subcategory-join-left': joinLeft, '--subcategory-join-width': joinWidth } as React.CSSProperties}
               onDragOver={(event) => { const overTrack = event.target instanceof Element && Boolean(event.target.closest('[data-track-id]')); if (!canDropTrackInSubcategoryDrawer(reorderMode, draggedTrackId, overTrack)) return; event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = 'move'; setDropSubcategoryId(openSubcategory.id); setDropTrackId(undefined); setDropTrackPlacement(undefined); }}
               onDragLeave={(event) => { const nextTarget = event.relatedTarget as Node | null; if (nextTarget && event.currentTarget.contains(nextTarget)) return; setDropSubcategoryId((current) => current === openSubcategory.id ? undefined : current); }}
               onDrop={(event) => { const overTrack = event.target instanceof Element && Boolean(event.target.closest('[data-track-id]')); if (!canDropTrackInSubcategoryDrawer(reorderMode, draggedTrackId, overTrack) || !draggedTrackId) return; event.preventDefault(); event.stopPropagation(); moveTrackIntoSubcategory(draggedTrackId, openSubcategory.id).catch(() => undefined); }}>
-              <header><span className="subcategory-drawer-heading"><span className="subcategory-drawer-actions"><button type="button" className="button ghost" onClick={() => setSubcategoryDialog(openSubcategory)}>Modifier</button><button type="button" className="button danger" onClick={() => { if (window.confirm(`Supprimer la sous-catégorie « ${openSubcategory.name} » ? Les morceaux resteront dans sa catégorie parente.`)) deleteSubcategory(openSubcategory).catch((cause) => setError(cause instanceof Error ? cause.message : 'Suppression impossible.')); }}>Supprimer</button></span><FolderOpen size={16} /><strong>{openSubcategory.name}</strong><em>{openSubcategoryTracks.length}</em></span><button type="button" className="icon-button" onClick={() => setOpenSubcategoryId(undefined)} aria-label="Fermer la sous-catégorie"><X size={16} /></button></header>
+              <header><span className="subcategory-drawer-heading"><em>{openSubcategoryTracks.length}</em>{editingSubcategoryName ? <input className="subcategory-inline-name" value={subcategoryNameDraft} maxLength={80} autoFocus aria-label="Nom de la sous-catégorie" onChange={(event) => setSubcategoryNameDraft(event.target.value)} onBlur={() => renameSubcategory(openSubcategory, subcategoryNameDraft).catch(() => undefined)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } else if (event.key === 'Escape') { event.preventDefault(); setSubcategoryNameDraft(openSubcategory.name); setEditingSubcategoryName(false); } }} /> : <button type="button" className="subcategory-inline-title" onClick={() => { setSubcategoryNameDraft(openSubcategory.name); setEditingSubcategoryName(true); }} title="Cliquer pour renommer"><strong>{openSubcategory.name}</strong></button>}</span><span className="subcategory-drawer-actions"><button type="button" className="icon-button" onClick={() => setSubcategoryDialog(openSubcategory)} aria-label={`Modifier ${openSubcategory.name}`} title="Modifier"><Pencil size={15} /></button><button type="button" className="icon-button danger" onClick={() => { if (window.confirm(`Supprimer la sous-catégorie « ${openSubcategory.name} » ? Les morceaux resteront dans sa catégorie parente.`)) deleteSubcategory(openSubcategory).catch((cause) => setError(cause instanceof Error ? cause.message : 'Suppression impossible.')); }} aria-label={`Supprimer ${openSubcategory.name}`} title="Supprimer"><Trash2 size={15} /></button><button type="button" className="icon-button" onClick={() => { setEditingSubcategoryName(false); setOpenSubcategoryId(undefined); }} aria-label="Fermer la sous-catégorie"><X size={16} /></button></span></header>
               {openSubcategoryTracks.length > 0 ? <div className="subcategory-drawer-grid">{openSubcategoryTracks.map((track) => renderBoardTrack(track))}</div> : <div className="subcategory-drawer-empty"><FolderPlus size={22} /><span>Glissez des morceaux dans le tiroir pour les ajouter.</span></div>}
             </section>}</Fragment>;
           })}
@@ -2207,13 +2270,14 @@ export default function App() {
     </main>
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
-    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} initialSection={settingsInitialSection} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} appSkin={appSkin} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onAppSkinChange={changeAppSkin} onAccountChange={handleAccountChange} onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined); }} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundAutoSearch(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onUpdateKeyboardShortcut={updateKeyboardShortcut} onUpdatePlaylistGroupLimit={updatePlaylistGroupLimit} onUpdatePlaybackSettings={updatePlaybackSettings} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} initialSection={settingsInitialSection} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} openSubcategoriesOnDrag={openSubcategoriesOnDrag} appSkin={appSkin} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onOpenSubcategoriesOnDragChange={setOpenSubcategoriesOnDragPreference} onAppSkinChange={changeAppSkin} onAccountChange={handleAccountChange} onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined); }} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenFreesound={() => { setSettingsOpen(false); setFreesoundAutoSearch(false); setFreesoundOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onUpdateKeyboardShortcut={updateKeyboardShortcut} onUpdatePlaylistGroupLimit={updatePlaylistGroupLimit} onUpdatePlaybackSettings={updatePlaybackSettings} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
     {whatsNewOpen && releaseInfo && <WhatsNewDialog releases={releasesForDialog} currentVersion={releaseInfo.currentVersion} onClose={closeWhatsNew} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
-    {freesoundOpen && detail && <FreesoundDialog initialQuery={search} autoSearch={freesoundAutoSearch} projectId={detail.project.id} categories={detail.categories} projectColors={detail.colors} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} bridgeOutputs={routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId} onImported={refreshProject} onClose={() => { setFreesoundOpen(false); setFreesoundAutoSearch(false); }} />}
+    {freesoundOpen && detail && <FreesoundDialog initialQuery={search} autoSearch={freesoundAutoSearch} projectId={detail.project.id} categories={detail.categories} subcategories={detail.subcategories} projectColors={detail.colors} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} bridgeOutputs={routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId} onImported={refreshProject} onClose={() => { setFreesoundOpen(false); setFreesoundAutoSearch(false); }} />}
     {editingTrack && detail && <TrackDialog track={editingTrack} categories={detail.categories} projectColors={detail.colors} onAddProjectColor={createProjectColor} onClose={() => setEditingTrack(undefined)} onChanged={async () => { setEditingTrack(undefined); await refreshProject(); }} />}
     {subcategoryDialog && detail && <TrackSubcategoryDialog subcategory={subcategoryDialog === 'new' ? undefined : subcategoryDialog} categories={detail.categories} colors={detail.colors} defaultCategoryId={selectedCategoryId === 'all' ? null : selectedCategoryId} defaultColor={currentCategory?.color ?? detail.colors[0]?.color ?? '#8b5cf6'} onClose={() => setSubcategoryDialog(undefined)} onSave={saveSubcategory} onDelete={() => subcategoryDialog === 'new' ? Promise.resolve() : deleteSubcategory(subcategoryDialog)} />}
     {batchEditOpen && detail && selectedTracks.length > 0 && <BatchTrackDialog projectId={detail.project.id} tracks={selectedTracks} categories={detail.categories} projectColors={detail.colors} onClose={() => setBatchEditOpen(false)} onChanged={applyBatchTrackChanges} />}
+    {batchMoveOpen && detail && selectedTracks.length > 0 && <BatchTrackMoveDialog projectId={detail.project.id} tracks={selectedTracks} categories={detail.categories} subcategories={detail.subcategories} onClose={() => setBatchMoveOpen(false)} onChanged={(tracks) => { setBatchMoveOpen(false); applyBatchTrackChanges(tracks); }} />}
     {folderImportFiles && <FolderImportDialog files={folderImportFiles} destinationName={currentCategory?.name ?? 'Sans catégorie'} onClose={() => setFolderImportFiles(undefined)} onConfirm={(mode) => {
       const files = folderImportFiles;
       setFolderImportFiles(undefined);

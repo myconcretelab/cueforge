@@ -20,3 +20,8 @@ export function trackIdAfterTarget(tracks: Track[], target: Track): string | und
   const targetIndex = siblings.findIndex((track) => track.id === target.id);
   return targetIndex < 0 ? undefined : siblings[targetIndex + 1]?.id;
 }
+
+export function subcategoryMatchesSearch(name: string, query: string): boolean {
+  const normalizedQuery = query.trim().toLocaleLowerCase('fr');
+  return !normalizedQuery || name.toLocaleLowerCase('fr').includes(normalizedQuery);
+}

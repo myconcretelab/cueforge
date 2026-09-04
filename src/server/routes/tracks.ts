@@ -16,7 +16,7 @@ import { demoLimitsForUser } from '../services/demo.js';
 import { ownsProject } from '../services/ownership.js';
 import { parseByteRange } from '../services/range.js';
 import { reorderTracks } from '../services/reorder.js';
-import { applyTrackTagChange } from '../services/track-batch.js';
+import { applyTrackTagChange, batchTrackLocationUpdate } from '../services/track-batch.js';
 
 const acceptedMimeTypes = new Set([
   'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/vnd.wave', 'audio/ogg', 'audio/flac',
@@ -40,6 +40,7 @@ const trackTagsSchema = z.array(trackTagSchema).max(30).transform((tags) => {
 const importedMetadataSchema = z.object({
   projectId: z.string().uuid(),
   categoryId: z.string().uuid().optional(),
+  subcategoryId: z.string().uuid().optional(),
   title: z.string().trim().min(1).max(160),
   durationMs: z.coerce.number().int().positive().optional(),
   startTimeMs: z.coerce.number().int().min(0).default(0),
@@ -76,6 +77,12 @@ async function categoryBelongsToProject(categoryId: string, projectId: string): 
   const [category] = await db.select({ id: categories.id }).from(categories)
     .where(and(eq(categories.id, categoryId), eq(categories.projectId, projectId))).limit(1);
   return Boolean(category);
+}
+
+async function subcategoryForProject(subcategoryId: string, projectId: string) {
+  const [subcategory] = await db.select().from(trackSubcategories)
+    .where(and(eq(trackSubcategories.id, subcategoryId), eq(trackSubcategories.projectId, projectId))).limit(1);
+  return subcategory;
 }
 
 export async function trackRoutes(app: FastifyInstance): Promise<void> {
@@ -132,10 +139,16 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
         await unlink(path.join(config.STORAGE_PATH, uploaded.key));
         return reply.code(400).send({ error: 'Catégorie invalide pour ce projet.' });
       }
+      const subcategory = input.subcategoryId ? await subcategoryForProject(input.subcategoryId, input.projectId) : undefined;
+      if (input.subcategoryId && (!subcategory || subcategory.categoryId !== (input.categoryId ?? null))) {
+        await unlink(path.join(config.STORAGE_PATH, uploaded.key));
+        return reply.code(400).send({ error: 'Sous-catégorie invalide pour cette catégorie.' });
+      }
 
       const track = await insertTrackWithinQuota(user.id, {
         projectId: input.projectId,
         categoryId: input.categoryId,
+        subcategoryId: input.subcategoryId,
         title: input.title,
         durationMs: input.durationMs,
         startTimeMs: input.startTimeMs,
@@ -174,6 +187,10 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     if (input.categoryId && !(await categoryBelongsToProject(input.categoryId, input.projectId))) {
       return reply.code(400).send({ error: 'Catégorie invalide pour ce projet.' });
     }
+    const subcategory = input.subcategoryId ? await subcategoryForProject(input.subcategoryId, input.projectId) : undefined;
+    if (input.subcategoryId && (!subcategory || subcategory.categoryId !== (input.categoryId ?? null))) {
+      return reply.code(400).send({ error: 'Sous-catégorie invalide pour cette catégorie.' });
+    }
     const remoteUrl = new URL(input.url);
     if (remoteUrl.protocol !== 'https:' || remoteUrl.hostname !== 'cdn.freesound.org') {
       return reply.code(400).send({ error: 'Seuls les médias distants Freesound sont autorisés.' });
@@ -208,6 +225,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
       const track = await insertTrackWithinQuota(user.id, {
         projectId: input.projectId,
         categoryId: input.categoryId,
+        subcategoryId: input.subcategoryId,
         title: input.title,
         originalFilename: path.basename(remoteUrl.pathname) || `${input.title}.mp3`,
         storageKey: key,
@@ -265,6 +283,7 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     if (!user) return;
     const commonUpdatesSchema = z.object({
       categoryId: z.string().uuid().nullable().optional(),
+      subcategoryId: z.string().uuid().nullable().optional(),
       volume: z.number().min(0).max(1).optional(),
       loop: z.boolean().optional(),
       fadeInMs: z.number().int().min(0).max(60_000).optional(),
@@ -283,6 +302,15 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
     if (input.updates?.categoryId && !(await categoryBelongsToProject(input.updates.categoryId, input.projectId))) {
       return reply.code(400).send({ error: 'Catégorie invalide pour ce projet.' });
     }
+    const destinationSubcategory = input.updates?.subcategoryId
+      ? await subcategoryForProject(input.updates.subcategoryId, input.projectId)
+      : undefined;
+    if (input.updates?.subcategoryId && !destinationSubcategory) {
+      return reply.code(400).send({ error: 'Sous-catégorie invalide pour ce projet.' });
+    }
+    if (destinationSubcategory && input.updates?.categoryId !== undefined && destinationSubcategory.categoryId !== input.updates.categoryId) {
+      return reply.code(400).send({ error: 'La sous-catégorie ne correspond pas à la catégorie de destination.' });
+    }
     const selectedTracks = await db.select().from(tracks)
       .where(and(eq(tracks.projectId, input.projectId), inArray(tracks.id, input.trackIds)));
     if (selectedTracks.length !== input.trackIds.length) {
@@ -299,7 +327,8 @@ export async function trackRoutes(app: FastifyInstance): Promise<void> {
 
     await db.transaction(async (transaction) => {
       if (input.updates) {
-        await transaction.update(tracks).set({ ...input.updates, ...(input.updates.categoryId !== undefined ? { subcategoryId: null } : {}) })
+        const locationUpdate = batchTrackLocationUpdate(input.updates, destinationSubcategory);
+        await transaction.update(tracks).set({ ...input.updates, ...locationUpdate })
           .where(and(eq(tracks.projectId, input.projectId), inArray(tracks.id, input.trackIds)));
       }
       if (nextTags) {

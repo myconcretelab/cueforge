@@ -285,7 +285,7 @@ export interface Track {
 export interface BatchTrackUpdateInput {
   projectId: string;
   trackIds: string[];
-  updates?: Partial<Pick<Track, 'categoryId' | 'volume' | 'loop' | 'fadeInMs' | 'fadeOutMs' | 'color'>>;
+  updates?: Partial<Pick<Track, 'categoryId' | 'subcategoryId' | 'volume' | 'loop' | 'fadeInMs' | 'fadeOutMs' | 'color'>>;
   tagChange?: { mode: 'add' | 'remove' | 'replace'; tags: string[] };
 }
 

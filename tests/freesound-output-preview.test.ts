@@ -39,4 +39,11 @@ describe('préécoute Freesound par sortie', () => {
     expect(source).toContain('projectColors.map');
     expect(source).toContain('color: importColor');
   });
+
+  it('propose et transmet une sous-catégorie compatible pendant l’import', () => {
+    const source = readFileSync(new URL('../src/client/components/FreesoundDialog.tsx', import.meta.url), 'utf8');
+    expect(source).toContain('subcategory.categoryId === (importCategoryId || null)');
+    expect(source).toContain('setImportSubcategoryId');
+    expect(source).toContain('subcategoryId: importSubcategoryId || undefined');
+  });
 });

@@ -19,3 +19,13 @@ export function applyTrackTagChange(existingTags: string[], change: TrackTagChan
   }
   return result;
 }
+
+export function batchTrackLocationUpdate(
+  updates: { categoryId?: string | null; subcategoryId?: string | null },
+  destinationSubcategory?: { id: string; categoryId: string | null },
+): { categoryId?: string | null; subcategoryId?: string | null } {
+  if (destinationSubcategory) return { categoryId: destinationSubcategory.categoryId, subcategoryId: destinationSubcategory.id };
+  if (updates.subcategoryId !== undefined) return { subcategoryId: updates.subcategoryId };
+  if (updates.categoryId !== undefined) return { subcategoryId: null };
+  return {};
+}

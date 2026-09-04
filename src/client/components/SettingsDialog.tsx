@@ -19,8 +19,10 @@ interface Props {
   appVersion?: string;
   hasUnseenReleases: boolean;
   automaticUpdates: boolean;
+  openSubcategoriesOnDrag: boolean;
   appSkin: AppSkin;
   onAutomaticUpdatesChange: (enabled: boolean) => void;
+  onOpenSubcategoriesOnDragChange: (enabled: boolean) => void;
   onAppSkinChange: (skin: AppSkin) => void;
   onAccountChange: (account: AccountSummary) => void;
   onChooseProject: (id: string) => void;
@@ -106,7 +108,7 @@ function formatPrice(cents: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 }
 
-export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, appSkin, onAutomaticUpdatesChange, onAppSkinChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onUpdateKeyboardShortcut, onUpdatePlaylistGroupLimit, onUpdatePlaybackSettings, onLogout, onClose }: Props) {
+export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, openSubcategoriesOnDrag, appSkin, onAutomaticUpdatesChange, onOpenSubcategoriesOnDragChange, onAppSkinChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenFreesound, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onUpdateKeyboardShortcut, onUpdatePlaylistGroupLimit, onUpdatePlaybackSettings, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
   const [newColor, setNewColor] = useState('#22d3b6');
   const [draggedProjectId, setDraggedProjectId] = useState<string>();
@@ -416,6 +418,7 @@ export function SettingsDialog({ user, projects, projectColors, selectedProjectI
             <span><strong>Studio</strong><small>Régie éditoriale · chaude et structurée</small></span>
           </label>
         </div>
+        <label className="automatic-update-setting"><span><strong>Ouvrir au survol pendant un déplacement</strong><small>Déplie une sous-catégorie après une courte pause quand un morceau est glissé sur sa carte.</small></span><input type="checkbox" checked={openSubcategoriesOnDrag} onChange={(event) => onOpenSubcategoriesOnDragChange(event.target.checked)} /><i aria-hidden="true" /></label>
       </section>
       <section className="settings-section">
         <div className="settings-section-title"><Settings2 size={16} /><div><strong>Spectacles</strong><span>Sélectionnez, glissez ou supprimez une régie.</span></div></div>
