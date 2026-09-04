@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
 
 function sonoriva_marketing_home_block_content(): string
 {
-    $theme_uri = esc_url(get_template_directory_uri());
+    $theme_uri = esc_url(set_url_scheme(get_template_directory_uri(), 'https'));
 
     return <<<HTML
 <!-- wp:group {"align":"full","className":"sr-section sr-hero","layout":{"type":"constrained"}} -->
