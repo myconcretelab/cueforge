@@ -40,6 +40,12 @@ describe('sous-catégories de morceaux', () => {
     expect(migration).toContain('ON DELETE set null');
   });
 
+  it('fait chevaucher les arrondis de jonction avec les traits verticaux', () => {
+    const styles = readFileSync(new URL('../src/client/styles.css', import.meta.url), 'utf8');
+    expect(styles).toContain('.subcategory-drawer-join::before { left: -16px;');
+    expect(styles).toContain('.subcategory-drawer-join::after { right: -16px;');
+  });
+
   it('affiche une tuile compacte avec son titre et son compteur', () => {
     const markup = renderToStaticMarkup(createElement(TrackSubcategoryPad, {
       subcategory: { id: 'group', projectId: 'project', categoryId: 'category', name: 'Ambiances', color: '#8b5cf6', position: 0, createdAt: '', updatedAt: '' },

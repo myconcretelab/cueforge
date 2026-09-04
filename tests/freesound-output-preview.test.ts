@@ -1,5 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { filterOpenverseResults, mergeOpenverseResults } from '../src/client/lib/openverse-results.js';
+import type { OpenverseSound } from '../src/client/types.js';
+
+function openverseSound(id: string, source: OpenverseSound['source']): OpenverseSound {
+  return { id, source, sourceLabel: source, name: id, username: 'Auteur', durationSeconds: 1, previewUrl: 'https://cdn.freesound.org/test.mp3', pageUrl: 'https://freesound.org/test', tags: [], license: { code: 'cc0', label: 'CC0', url: 'https://creativecommons.org/publicdomain/zero/1.0/', attributionRequired: false } };
+}
 
 describe('préécoute Openverse par sortie', () => {
   it('affiche un bouton coloré pour chaque sortie secondaire', () => {
@@ -68,5 +74,22 @@ describe('préécoute Openverse par sortie', () => {
     expect(sources).toBeGreaterThan(search);
     expect(license).toBeGreaterThan(sources);
     expect(source).not.toContain('Openverse rassemble Freesound');
+  });
+
+  it('masque immédiatement les résultats des sources décochées', () => {
+    const results = [openverseSound('free', 'freesound'), openverseSound('wiki', 'wikimedia_audio')];
+    expect(filterOpenverseResults(results, new Set(['wikimedia_audio']))).toEqual([results[1]]);
+  });
+
+  it('ajoute les résultats nouvellement chargés sans doublons', () => {
+    const freesound = openverseSound('free', 'freesound');
+    const wikimedia = openverseSound('wiki', 'wikimedia_audio');
+    const merged = mergeOpenverseResults(
+      { count: 10, page: 1, pageSize: 24, hasNext: false, results: [freesound] },
+      { count: 5, page: 1, pageSize: 24, hasNext: true, results: [freesound, wikimedia] },
+    );
+    expect(merged.results).toEqual([freesound, wikimedia]);
+    expect(merged.count).toBe(15);
+    expect(merged.hasNext).toBe(true);
   });
 });

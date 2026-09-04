@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { audioEngine } from '../lib/audio-engine';
 import { bridgeClient, isBridgeUnavailableError } from '../lib/bridge-client';
 import type { RoutedBridgeOutput } from '../lib/bridge-output-routing';
+import { filterOpenverseResults, mergeOpenverseResults } from '../lib/openverse-results';
 import type { Category, OpenverseLicenseFilter, OpenverseSearchResult, OpenverseSound, OpenverseSource, ProjectColor, TrackSubcategory } from '../types';
 
 interface Props {
@@ -33,6 +34,8 @@ export function OpenverseDialog({ initialQuery = '', autoSearch = false, project
   const [query, setQuery] = useState(initialQuery);
   const [license, setLicense] = useState<OpenverseLicenseFilter>('all');
   const [sources, setSources] = useState<Set<OpenverseSource>>(() => new Set(sourceOptions.map((source) => source.value)));
+  const [loadedSources, setLoadedSources] = useState<Set<OpenverseSource>>(new Set());
+  const [loadingSources, setLoadingSources] = useState<Set<OpenverseSource>>(new Set());
   const [result, setResult] = useState<OpenverseSearchResult>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -55,6 +58,9 @@ export function OpenverseDialog({ initialQuery = '', autoSearch = false, project
   const previewSequenceRef = useRef(0);
   const searchRef = useRef<AbortController | undefined>(undefined);
   const autoSearchStartedRef = useRef(false);
+  const searchGenerationRef = useRef(0);
+  const lastSearchRef = useRef<{ query: string; license: OpenverseLicenseFilter; page: number } | undefined>(undefined);
+  const enrichingSourcesRef = useRef<Set<OpenverseSource>>(new Set());
 
   const stopPreview = useCallback(() => {
     previewSequenceRef.current += 1;
@@ -112,6 +118,8 @@ export function OpenverseDialog({ initialQuery = '', autoSearch = false, project
     }
     searchRef.current?.abort();
     const controller = new AbortController();
+    const generation = searchGenerationRef.current + 1;
+    searchGenerationRef.current = generation;
     searchRef.current = controller;
     setLoading(true);
     setError('');
@@ -122,7 +130,10 @@ export function OpenverseDialog({ initialQuery = '', autoSearch = false, project
         sources: [...sources],
         page,
       }, controller.signal);
+      if (generation !== searchGenerationRef.current) return;
       setResult(response);
+      setLoadedSources(new Set(sources));
+      lastSearchRef.current = { query: normalized, license, page };
     } catch (cause) {
       if (controller.signal.aborted) return;
       setError(cause instanceof Error ? cause.message : 'Recherche Openverse impossible.');
@@ -130,6 +141,38 @@ export function OpenverseDialog({ initialQuery = '', autoSearch = false, project
       if (searchRef.current === controller) setLoading(false);
     }
   }, [license, query, sources]);
+
+  async function enrichResultsWithSource(source: OpenverseSource) {
+    const lastSearch = lastSearchRef.current;
+    if (!result || !lastSearch || loadedSources.has(source) || enrichingSourcesRef.current.has(source)) return;
+    const generation = searchGenerationRef.current;
+    enrichingSourcesRef.current.add(source);
+    setLoadingSources((current) => new Set(current).add(source));
+    setError('');
+    try {
+      const response = await api.searchOpenverse({
+        query: lastSearch.query,
+        license: lastSearch.license,
+        sources: [source],
+        page: lastSearch.page,
+      });
+      if (generation !== searchGenerationRef.current) return;
+      setResult((current) => current ? mergeOpenverseResults(current, response) : response);
+      setLoadedSources((current) => new Set(current).add(source));
+    } catch (cause) {
+      if (generation === searchGenerationRef.current) {
+        const label = sourceOptions.find((option) => option.value === source)?.label ?? source;
+        setError(cause instanceof Error ? cause.message : `Les résultats ${label} n’ont pas pu être ajoutés.`);
+      }
+    } finally {
+      enrichingSourcesRef.current.delete(source);
+      setLoadingSources((current) => {
+        const next = new Set(current);
+        next.delete(source);
+        return next;
+      });
+    }
+  }
 
   useEffect(() => {
     if (!autoSearch || autoSearchStartedRef.current || initialQuery.trim().length < 2) return;
@@ -320,17 +363,19 @@ export function OpenverseDialog({ initialQuery = '', autoSearch = false, project
   const importSubcategories = subcategories.filter((subcategory) => subcategory.categoryId === (importCategoryId || null));
 
   function toggleSource(source: OpenverseSource) {
-    setSources((current) => {
-      const next = new Set(current);
-      if (next.has(source)) {
-        if (next.size === 1) return current;
-        next.delete(source);
-      } else {
-        next.add(source);
-      }
-      return next;
-    });
+    const next = new Set(sources);
+    if (next.has(source)) {
+      if (next.size === 1) return;
+      next.delete(source);
+      if (currentSound?.source === source) stopPreview();
+    } else {
+      next.add(source);
+      enrichResultsWithSource(source).catch(() => undefined);
+    }
+    setSources(next);
   }
+
+  const visibleResults = result ? filterOpenverseResults(result.results, sources) : [];
 
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && closeDialog()}>
     <section className="dialog freesound-dialog openverse-dialog">
@@ -343,7 +388,7 @@ export function OpenverseDialog({ initialQuery = '', autoSearch = false, project
         <label className="freesound-query"><Search size={18} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Applaudissements, porte, orage…" /></label>
         <button className="button primary" disabled={loading}>{loading ? <LoaderCircle className="spin" size={17} /> : <Search size={17} />}Rechercher</button>
         <div className="openverse-source-filters" role="group" aria-label="Sources Openverse cumulables">
-          {sourceOptions.map((source) => <button type="button" key={source.value} className={`openverse-source-filter source-${source.value}${sources.has(source.value) ? ' is-selected' : ''}`} aria-pressed={sources.has(source.value)} onClick={() => toggleSource(source.value)}>{source.label}</button>)}
+          {sourceOptions.map((source) => <button type="button" key={source.value} className={`openverse-source-filter source-${source.value}${sources.has(source.value) ? ' is-selected' : ''}`} aria-pressed={sources.has(source.value)} disabled={loading || loadingSources.has(source.value)} onClick={() => toggleSource(source.value)}>{loadingSources.has(source.value) && <LoaderCircle className="spin" size={12} />}{source.label}</button>)}
         </div>
         <select className="openverse-license-filter" aria-label="Licence" value={license} onChange={(event) => setLicense(event.target.value as OpenverseLicenseFilter)}>
           <option value="all">Toutes les licences CC</option>
@@ -355,9 +400,9 @@ export function OpenverseDialog({ initialQuery = '', autoSearch = false, project
       {error && <div className="form-error">{error}</div>}
 
       {!result && !loading ? <div className="freesound-empty"><Waves size={34} /><strong>Trouvez un son pour la scène</strong><span>Choisissez une ou plusieurs sources Openverse.</span></div> : result && <>
-        <div className="freesound-results-heading"><strong>{result.count.toLocaleString('fr-FR')} résultat{result.count !== 1 ? 's' : ''}</strong><span>Page {result.page}</span></div>
+        <div className="freesound-results-heading"><strong>{visibleResults.length !== result.results.length ? `${visibleResults.length} résultat${visibleResults.length !== 1 ? 's' : ''} affiché${visibleResults.length !== 1 ? 's' : ''}` : `${result.count.toLocaleString('fr-FR')} résultat${result.count !== 1 ? 's' : ''}`}</strong><span>Page {result.page}</span></div>
         <div className="freesound-results">
-          {result.results.map((sound) => {
+          {visibleResults.map((sound) => {
             const active = currentSound?.id === sound.id;
             const preparingImport = soundToImport?.id === sound.id;
             return <article key={sound.id} className={`freesound-result openverse-result source-${sound.source}${active ? ' is-active' : ''}${preparingImport ? ' is-importing' : ''}`}>
@@ -394,7 +439,7 @@ export function OpenverseDialog({ initialQuery = '', autoSearch = false, project
               </div>}
             </article>;
           })}
-          {result.results.length === 0 && <div className="freesound-empty compact"><strong>Aucun son sur cette page</strong><span>Essayez une autre recherche ou davantage de sources.</span></div>}
+          {visibleResults.length === 0 && <div className="freesound-empty compact"><strong>Aucun son pour ces sources</strong><span>Activez une autre source ou lancez une nouvelle recherche.</span></div>}
         </div>
         <div className="freesound-pagination">
           <button className="button ghost" disabled={loading || result.page <= 1} onClick={() => searchSounds(result.page - 1).catch(() => undefined)}>Précédent</button>
