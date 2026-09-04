@@ -29,3 +29,15 @@ export function trackMatchesSearch(track: Track, query: string, scope: TrackSear
   const tags = (track.tags ?? []).map((tag) => tag.toLocaleLowerCase('fr'));
   return normalizedQuery.split(/\s+/).every((term) => tags.some((tag) => tag.includes(term)));
 }
+
+export function trackMatchesEnabledSearch(track: Track, query: string, enabled: Record<TrackSearchScope, boolean>): boolean {
+  return (enabled.name && trackMatchesSearch(track, query, 'name'))
+    || (enabled.tags && trackMatchesSearch(track, query, 'tags'));
+}
+
+export function toggleSearchScopeSelection<T extends string>(current: ReadonlySet<T>, scope: T): Set<T> {
+  if (current.has(scope) && current.size === 1) return new Set(current);
+  const next = new Set(current);
+  if (next.has(scope)) next.delete(scope); else next.add(scope);
+  return next;
+}

@@ -40,7 +40,7 @@ import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAud
 import { movePlaylistItem as repositionPlaylistItem, playlistEntries, playlistQueueItems, playlistRows as groupPlaylistItems, type PlaylistItemPlacement, type PlaylistQueueItem } from './lib/playlist-rows';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
 import { intersectsSelection, type SelectionRectangle } from './lib/track-selection';
-import { normalizeTrackTags, trackMatchesSearch, type TrackSearchScope } from './lib/track-tags';
+import { normalizeTrackTags, toggleSearchScopeSelection, trackMatchesEnabledSearch, type TrackSearchScope } from './lib/track-tags';
 import { canDropTrackInSubcategoryDrawer, subcategoryMatchesSearch, trackDropPlacement, trackIdAfterTarget } from './lib/track-subcategories';
 import { compactPlaylistMaximumRows, compactPlaylistMinimumRows, createWorkspaceLayout, dockWorkspaceItem, moveWorkspaceItem, placeWorkspaceItemOnGrid, readSavedWorkspaceLayouts, readWorkspaceLayout, resizeWorkspaceItem, setWorkspaceItemCollapsed, swapWorkspaceItems, workspaceBlockLabels, workspaceDockableBlockIds, workspaceDockItems, workspaceItemIsCollapsed, workspaceItemIsDocked, workspaceLayoutItem, workspaceLayoutsMatch, workspaceLayoutSnapshot, workspaceLayoutStorageKey, workspaceLayoutRows, workspaceSavedLayoutsStorageKey, type SavedWorkspaceLayout, type WorkspaceBlockId } from './lib/workspace-layout';
 import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcutKey, ReleaseInfo, RemoteCommand, Track, TrackSubcategory, User } from './types';
@@ -54,6 +54,7 @@ const mouseActions: Array<{ value: MouseAction; label: string }> = [
   { value: 'stop', label: 'Arrêter' },
   { value: 'none', label: 'Aucune action' },
 ];
+type SearchScope = TrackSearchScope | 'subcategories';
 const clockFormatter = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 function formatBytes(bytes: number): string {
@@ -79,7 +80,7 @@ export default function App() {
   const [selectedProjectId, setSelectedProjectId] = useState(localStorage.getItem('sonoriva-project'));
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [search, setSearch] = useState('');
-  const [searchScope, setSearchScope] = useState<TrackSearchScope | 'subcategories'>('name');
+  const [searchScopes, setSearchScopes] = useState<Set<SearchScope>>(() => new Set(['name']));
   const [activePlaybacks, setActivePlaybacks] = useState<ActivePlayback[]>([]);
   const [playbackHistory, setPlaybackHistory] = useState<Map<string, number>>(new Map());
   const [offlineTrackIds, setOfflineTrackIds] = useState<Set<string>>(new Set());
@@ -559,19 +560,21 @@ export default function App() {
   const isSearching = normalizedSearch.length > 0;
   const columnCategoryId = isSearching ? 'all' : selectedCategoryId;
   const categoryTracks = useMemo(() => (detail?.tracks ?? []).filter((track) => {
-    if (searchScope === 'subcategories') return false;
     const inCategory = isSearching || selectedCategoryId === 'all' || track.categoryId === selectedCategoryId;
-    const matches = trackMatchesSearch(track, normalizedSearch, searchScope);
+    const matches = !isSearching || trackMatchesEnabledSearch(track, normalizedSearch, {
+      name: searchScopes.has('name'),
+      tags: searchScopes.has('tags'),
+    });
     return inCategory && matches;
-  }), [detail?.tracks, isSearching, normalizedSearch, searchScope, selectedCategoryId]);
+  }), [detail?.tracks, isSearching, normalizedSearch, searchScopes, selectedCategoryId]);
   const visibleSubcategories = useMemo(() => (detail?.subcategories ?? []).filter((subcategory) => {
-    if (isSearching) return searchScope === 'subcategories' && subcategoryMatchesSearch(subcategory.name, normalizedSearch);
+    if (isSearching) return searchScopes.has('subcategories') && subcategoryMatchesSearch(subcategory.name, normalizedSearch);
     return selectedCategoryId === 'all' || subcategory.categoryId === selectedCategoryId;
-  }), [detail?.subcategories, isSearching, normalizedSearch, searchScope, selectedCategoryId]);
+  }), [detail?.subcategories, isSearching, normalizedSearch, searchScopes, selectedCategoryId]);
   const topLevelTracks = useMemo(() => isSearching ? categoryTracks : categoryTracks.filter((track) => !track.subcategoryId), [categoryTracks, isSearching]);
   const visiblePlaylists = useMemo(() => remote || !playlistsEnabled ? [] : (detail?.playlists ?? []).filter((playlist) =>
     playlistIsVisible(playlist.categoryId, selectedCategoryId, isSearching)
-    && (!isSearching || (searchScope === 'name' && playlist.name.toLocaleLowerCase('fr').includes(normalizedSearch)))), [detail?.playlists, isSearching, normalizedSearch, playlistsEnabled, remote, searchScope, selectedCategoryId]);
+    && (!isSearching || (searchScopes.has('name') && playlist.name.toLocaleLowerCase('fr').includes(normalizedSearch)))), [detail?.playlists, isSearching, normalizedSearch, playlistsEnabled, remote, searchScopes, selectedCategoryId]);
   const visibleBoardItems = useMemo(() => [
     ...topLevelTracks.map((track) => ({ kind: 'track' as const, id: track.id, position: track.position, track })),
     ...visibleSubcategories.map((subcategory) => ({ kind: 'subcategory' as const, id: subcategory.id, position: subcategory.position, subcategory })),
@@ -579,9 +582,10 @@ export default function App() {
   ].sort((first, second) => first.position - second.position || first.id.localeCompare(second.id)), [topLevelTracks, visiblePlaylists, visibleSubcategories]);
   const openSubcategory = useMemo(() => detail?.subcategories.find((subcategory) => subcategory.id === openSubcategoryId), [detail?.subcategories, openSubcategoryId]);
   const openSubcategoryTracks = useMemo(() => {
-    const candidates = isSearching && searchScope === 'subcategories' ? detail?.tracks ?? [] : categoryTracks;
+    const subcategoryMatches = Boolean(isSearching && searchScopes.has('subcategories') && openSubcategory && subcategoryMatchesSearch(openSubcategory.name, normalizedSearch));
+    const candidates = subcategoryMatches ? detail?.tracks ?? [] : categoryTracks;
     return candidates.filter((track) => track.subcategoryId === openSubcategoryId).sort((first, second) => first.position - second.position);
-  }, [categoryTracks, detail?.tracks, isSearching, openSubcategoryId, searchScope]);
+  }, [categoryTracks, detail?.tracks, isSearching, normalizedSearch, openSubcategory, openSubcategoryId, searchScopes]);
   const visibleTracks = useMemo(() => visibleBoardItems.flatMap((item) => {
     if (item.kind === 'track') return [item.track];
     if (item.kind === 'subcategory' && item.id === openSubcategoryId) return openSubcategoryTracks;
@@ -1638,6 +1642,10 @@ export default function App() {
     if (!next) setSelectedTrackIds(new Set());
   }
 
+  function toggleSearchScope(scope: SearchScope) {
+    setSearchScopes((current) => toggleSearchScopeSelection(current, scope));
+  }
+
   function toggleTrackSelection(trackId: string) {
     if (suppressSelectionClick.current) return;
     setSelectedTrackIds((current) => {
@@ -2213,7 +2221,7 @@ export default function App() {
           onResize={(id, width, height) => setWorkspaceLayout((current) => resizeWorkspaceItem(current, id, width, height))}>
 
       <section className="dashboard" aria-label="Tableau de bord des morceaux">
-        <div className="search"><div className="search-scope" role="group" aria-label="Champ de recherche"><button type="button" className={searchScope === 'name' ? 'active' : ''} aria-pressed={searchScope === 'name'} onClick={() => setSearchScope('name')}>Noms</button><button type="button" className={searchScope === 'tags' ? 'active' : ''} aria-pressed={searchScope === 'tags'} onClick={() => setSearchScope('tags')}>Tags</button><button type="button" className={searchScope === 'subcategories' ? 'active' : ''} aria-pressed={searchScope === 'subcategories'} onClick={() => setSearchScope('subcategories')}>SC</button></div><Search size={18} /><input ref={searchInputRef} aria-label={searchScope === 'tags' ? 'Rechercher des tags' : searchScope === 'subcategories' ? 'Rechercher une sous-catégorie par son nom' : 'Rechercher un son par son nom'} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchScope === 'tags' ? 'Rechercher des tags…' : searchScope === 'subcategories' ? 'Rechercher une sous-catégorie…' : 'Rechercher un son…'} /><span className="search-end-actions">{!remote && <button type="button" className="search-freesound" onClick={() => { setFreesoundAutoSearch(true); setFreesoundOpen(true); }} aria-label={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Ouvrir la recherche Freesound'} title={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Rechercher sur Freesound'}><Waves size={17} /></button>}<kbd>{formatShortcut(projectShortcut(detail?.project ?? {}, 'searchShortcut'))}</kbd></span></div>
+        <div className="search"><div className="search-scope" role="group" aria-label="Filtres de recherche cumulables"><button type="button" className={searchScopes.has('name') ? 'active' : ''} aria-pressed={searchScopes.has('name')} onClick={() => toggleSearchScope('name')}>Noms</button><button type="button" className={searchScopes.has('tags') ? 'active' : ''} aria-pressed={searchScopes.has('tags')} onClick={() => toggleSearchScope('tags')}>Tags</button><button type="button" className={searchScopes.has('subcategories') ? 'active' : ''} aria-pressed={searchScopes.has('subcategories')} onClick={() => toggleSearchScope('subcategories')}>SC</button></div><Search size={18} /><input ref={searchInputRef} aria-label="Rechercher dans les filtres actifs" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher…" /><span className="search-end-actions">{isSearching && <button type="button" className="search-clear" onClick={() => { setSearch(''); searchInputRef.current?.focus(); }} aria-label="Annuler la recherche" title="Effacer la recherche"><X size={16} /></button>}{!remote && <button type="button" className="search-freesound" onClick={() => { setFreesoundAutoSearch(true); setFreesoundOpen(true); }} aria-label={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Ouvrir la recherche Freesound'} title={search.trim() ? `Rechercher « ${search.trim()} » sur Freesound` : 'Rechercher sur Freesound'}><Waves size={17} /></button>}<kbd>{formatShortcut(projectShortcut(detail?.project ?? {}, 'searchShortcut'))}</kbd></span></div>
         <div className="dashboard-actions">
           {!remote && <button className={`dashboard-button ${preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'is-loaded' : ''}`} onClick={() => preloadCategory()} disabled={!tracksToPreload.length || Boolean(preloadProgress) || preloadedInCategory === tracksToPreload.length}
             aria-label={preloadProgress ? `Mise hors ligne ${preloadProgress.done} sur ${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Catégorie disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'} title={preloadProgress ? `${preloadProgress.done}/${preloadProgress.total}` : preloadedInCategory === tracksToPreload.length && tracksToPreload.length ? 'Disponible hors ligne' : 'Rendre la catégorie disponible hors ligne'}>
@@ -2237,7 +2245,7 @@ export default function App() {
             aria-label={currentCategory ? `Ajouter les ${tracksToPreload.length} morceaux de ${currentCategory.name} à la playlist` : `Ajouter les ${tracksToPreload.length} morceaux à la playlist`}
             title={!playlistsEnabled ? 'Playlists non incluses dans votre forfait' : currentCategory ? `Ajouter toute la catégorie « ${currentCategory.name} » à la playlist` : 'Ajouter tous les morceaux à la playlist'}><ListPlus size={19} /></button>}
           {!remote && !isSearching && <button className="dashboard-button" onClick={() => setSubcategoryDialog('new')} aria-label="Créer une sous-catégorie" title="Nouvelle sous-catégorie"><FolderPlus size={19} /></button>}
-          <div className="track-count"><span>{isSearching && searchScope === 'subcategories' ? visibleSubcategories.length : categoryTracks.length}</span><small>{isSearching && searchScope === 'subcategories' ? 'SC' : `son${categoryTracks.length !== 1 ? 's' : ''}`}</small></div>
+          <div className="track-count"><span>{isSearching ? visibleBoardItems.length : categoryTracks.length}</span><small>{isSearching ? 'rés.' : `son${categoryTracks.length !== 1 ? 's' : ''}`}</small></div>
         </div>
       </section>
 
@@ -2248,7 +2256,7 @@ export default function App() {
 
       <section className="soundboard">
         {remote && <div className="remote-banner"><Radio size={18} /><span>Mode télécommande — les sons seront joués sur la régie connectée.</span></div>}
-        {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleBoardItems.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{searchScope === 'subcategories' && search ? 'Aucune sous-catégorie trouvée' : search ? 'Aucun son trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou catégorie.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className={`track-grid ${selectionMode ? 'selection-mode' : ''} ${draggingSelectedTracks ? 'dragging-selection' : ''}`} style={{ '--track-columns': trackColumns } as React.CSSProperties} onPointerDown={beginMarqueeSelection} onPointerMove={moveMarqueeSelection} onPointerUp={endMarqueeSelection} onPointerCancel={endMarqueeSelection}>
+        {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleBoardItems.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun résultat trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou activez un autre filtre.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className={`track-grid ${selectionMode ? 'selection-mode' : ''} ${draggingSelectedTracks ? 'dragging-selection' : ''}`} style={{ '--track-columns': trackColumns } as React.CSSProperties} onPointerDown={beginMarqueeSelection} onPointerMove={moveMarqueeSelection} onPointerUp={endMarqueeSelection} onPointerCancel={endMarqueeSelection}>
           {visibleBoardItems.map((boardItem, boardIndex) => {
             let tile: React.ReactNode;
             if (boardItem.kind === 'playlist') {
