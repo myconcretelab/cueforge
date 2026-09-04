@@ -1,6 +1,6 @@
 import type { MouseAction, Track } from '../types';
 import { fetchTrackAudio } from './offline-audio';
-import { bridgeClient, type AudioPlaybackMode } from './bridge-client';
+import { bridgeClient, isBridgeUnavailableError, type AudioPlaybackMode } from './bridge-client';
 
 export interface ActivePlayback {
   id: string;
@@ -352,7 +352,14 @@ class AudioEngine {
   }
 
   async preload(track: Track): Promise<void> {
-    if (bridgeClient.isEnabled()) return bridgeClient.preload(track);
+    if (bridgeClient.isEnabled()) {
+      try {
+        return await bridgeClient.preload(track);
+      } catch (cause) {
+        if (!isBridgeUnavailableError(cause)) throw cause;
+        bridgeClient.fallbackToBrowser();
+      }
+    }
     await this.load(track);
   }
 
@@ -362,7 +369,14 @@ class AudioEngine {
     }
     this.pendingMainPlaybacks += 1;
     try {
-      if (bridgeClient.isEnabled()) return await bridgeClient.play(track, fadeInMs, volumeMultiplier, 'main', outputId);
+      if (bridgeClient.isEnabled()) {
+        try {
+          return await bridgeClient.play(track, fadeInMs, volumeMultiplier, 'main', outputId);
+        } catch (cause) {
+          if (!isBridgeUnavailableError(cause)) throw cause;
+          bridgeClient.fallbackToBrowser();
+        }
+      }
       const [context, buffer] = await Promise.all([this.getContext(), this.load(track)]);
       const gain = context.createGain();
       const startAt = Math.min(track.startTimeMs / 1000, Math.max(0, buffer.duration - 0.01));

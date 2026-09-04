@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CircleCheck, Download, ExternalLink, LoaderCircle, Pause, Play, Search, ShieldCheck, Square, Volume2, Waves, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { audioEngine } from '../lib/audio-engine';
-import { bridgeClient } from '../lib/bridge-client';
+import { bridgeClient, isBridgeUnavailableError } from '../lib/bridge-client';
 import type { RoutedBridgeOutput } from '../lib/bridge-output-routing';
 import type { Category, OpenverseLicenseFilter, OpenverseSearchResult, OpenverseSound, OpenverseSource, ProjectColor, TrackSubcategory } from '../types';
 
@@ -141,6 +141,11 @@ export function OpenverseDialog({ initialQuery = '', autoSearch = false, project
   function togglePreview(sound: OpenverseSound, output?: RoutedBridgeOutput) {
     if (bridgeClient.isEnabled()) {
       toggleBridgePreview(sound, output).catch((cause) => {
+        if (isBridgeUnavailableError(cause)) {
+          bridgeClient.fallbackToBrowser();
+          togglePreview(sound);
+          return;
+        }
         setPlayerState('paused');
         setError(cause instanceof Error ? cause.message : 'La préécoute Openverse ne peut pas démarrer dans le Bridge.');
       });

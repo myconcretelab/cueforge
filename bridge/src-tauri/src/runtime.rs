@@ -385,15 +385,13 @@ fn validate_track_id(value: &str) -> Result<(), String> {
 fn validate_remote_preview_url(value: &str) -> Result<(), String> {
     let url = url::Url::parse(value).map_err(|_| "Adresse de préécoute invalide.".to_string())?;
     if url.scheme() == "https"
-        && url
-            .host_str()
-            .is_some_and(|host| {
-                host == "cdn.freesound.org"
-                    || (host.starts_with("prod-") && host.ends_with(".storage.jamendo.com"))
-                    || host == "upload.wikimedia.org"
-                    || host == "ccmixter.org"
-                    || host.ends_with(".ccmixter.org")
-            })
+        && url.host_str().is_some_and(|host| {
+            host == "cdn.freesound.org"
+                || (host.starts_with("prod-") && host.ends_with(".storage.jamendo.com"))
+                || host == "upload.wikimedia.org"
+                || host == "ccmixter.org"
+                || host.ends_with(".ccmixter.org")
+        })
     {
         Ok(())
     } else {
@@ -415,8 +413,18 @@ mod tests {
     #[test]
     fn accepts_only_openverse_preview_urls() {
         assert!(validate_remote_preview_url("https://cdn.freesound.org/previews/1/1.mp3").is_ok());
-        assert!(validate_remote_preview_url("https://prod-1.storage.jamendo.com/?trackid=1&format=mp32").is_ok());
-        assert!(validate_remote_preview_url("https://upload.wikimedia.org/wikipedia/commons/a/audio.ogg").is_ok());
+        assert!(
+            validate_remote_preview_url(
+                "https://prod-1.storage.jamendo.com/?trackid=1&format=mp32"
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_remote_preview_url(
+                "https://upload.wikimedia.org/wikipedia/commons/a/audio.ogg"
+            )
+            .is_ok()
+        );
         assert!(validate_remote_preview_url("https://ccmixter.org/content/audio.mp3").is_ok());
         assert!(validate_remote_preview_url("http://cdn.freesound.org/previews/1/1.mp3").is_err());
         assert!(validate_remote_preview_url("https://example.com/audio.mp3").is_err());

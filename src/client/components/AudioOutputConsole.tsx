@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Cable, LoaderCircle, Power, RefreshCcw } from 'lucide-react';
 import { audioEngine } from '../lib/audio-engine';
-import { bridgeClient } from '../lib/bridge-client';
+import { bridgeClient, isBridgeUnavailableError } from '../lib/bridge-client';
 import { associateLocalBridge, bridgeConnectionView, openLocalBridge } from '../lib/bridge-connection';
 import { bridgePhysicalOutputs, playbackBridgeOutput, routableBridgeOutputs, supportsPerPlaybackOutput, type RoutedBridgeOutput } from '../lib/bridge-output-routing';
 
@@ -49,8 +49,9 @@ export function AudioOutputConsole({ bridgeAvailable, onError, onRoutingChange }
       const routableOutputs = routableBridgeOutputs(result.outputs, supportsPerPlaybackOutput(status));
       onRoutingChange(routableOutputs, playbackBridgeOutput(routableOutputs, result.mainOutputId)?.id);
       return true;
-    } catch {
+    } catch (cause) {
       if (sequence !== refreshSequence.current) return false;
+      if (isBridgeUnavailableError(cause)) bridgeClient.fallbackToBrowser();
       setBridgeDetected(false);
       clearOutputs();
       return false;

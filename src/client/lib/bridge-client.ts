@@ -45,7 +45,18 @@ const bridgeBaseUrl = 'http://127.0.0.1:43821';
 const associationStorageKey = 'sonoriva-bridge-association-v1';
 const modeStorageKey = 'sonoriva-audio-mode-v1';
 
-class BridgeClient {
+export class BridgeUnavailableError extends Error {
+  constructor() {
+    super('SonoRiva Bridge est arrêté. Le mode Web Audio a été activé.');
+    this.name = 'BridgeUnavailableError';
+  }
+}
+
+export function isBridgeUnavailableError(cause: unknown): cause is BridgeUnavailableError {
+  return cause instanceof BridgeUnavailableError;
+}
+
+export class BridgeClient {
   private association = readAssociation();
   private mode: AudioPlaybackMode = readMode();
   private playbacks: BridgePlayback[] = [];
@@ -72,6 +83,19 @@ class BridgeClient {
     this.notifyPlaybacks();
     this.notifyCache();
     this.notifyRouting();
+  }
+
+  fallbackToBrowser(): boolean {
+    if (!this.isEnabled()) return false;
+    this.stopPolling();
+    this.mode = 'browser';
+    this.playbacks = [];
+    this.cachedTrackIds.clear();
+    localStorage.setItem(modeStorageKey, 'browser');
+    this.notifyPlaybacks();
+    this.notifyCache();
+    this.notifyRouting();
+    return true;
   }
 
   saveAssociation(deviceId: string, localToken: string): void {
@@ -229,8 +253,11 @@ class BridgeClient {
 
   private startHttpPolling(): void {
     if (this.polling || typeof window === 'undefined') return;
-    this.refreshPlaybacks().catch(() => undefined);
-    this.polling = window.setInterval(() => this.refreshPlaybacks().catch(() => undefined), 250);
+    const refresh = () => this.refreshPlaybacks().catch((cause) => {
+      if (isBridgeUnavailableError(cause)) this.fallbackToBrowser();
+    });
+    refresh();
+    this.polling = window.setInterval(refresh, 250);
   }
 
   private stopPolling(): void {
@@ -274,14 +301,20 @@ class BridgeClient {
 
   private async request<T>(path: string, init: RequestInit = {}, authenticated = true): Promise<T> {
     if (authenticated && !this.association) throw new Error('SonoRiva Bridge n’est pas associé à ce navigateur.');
-    const response = await fetch(`${bridgeBaseUrl}${path}`, {
-      ...init,
-      headers: {
-        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-        ...(authenticated ? { Authorization: `Bearer ${this.association!.localToken}` } : {}),
-        ...init.headers,
-      },
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${bridgeBaseUrl}${path}`, {
+        ...init,
+        headers: {
+          ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+          ...(authenticated ? { Authorization: `Bearer ${this.association!.localToken}` } : {}),
+          ...init.headers,
+        },
+      });
+    } catch (cause) {
+      if ((cause as { name?: string })?.name === 'AbortError') throw cause;
+      throw new BridgeUnavailableError();
+    }
     if (!response.ok) {
       const body = await response.json().catch(() => ({ error: 'SonoRiva Bridge ne répond pas.' }));
       throw new Error(body.error ?? 'SonoRiva Bridge ne répond pas.');
