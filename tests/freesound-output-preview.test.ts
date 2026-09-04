@@ -47,13 +47,26 @@ describe('préécoute Openverse par sortie', () => {
     expect(source).toContain('subcategoryId: importSubcategoryId || undefined');
   });
 
-  it('permet de cumuler les quatre sources et les distingue dans les résultats', () => {
+  it('permet de cumuler les trois sources affichées et les distingue dans les résultats', () => {
     const source = readFileSync(new URL('../src/client/components/FreesoundDialog.tsx', import.meta.url), 'utf8');
     expect(source).toContain("value: 'freesound'");
     expect(source).toContain("value: 'jamendo'");
     expect(source).toContain("value: 'wikimedia_audio'");
-    expect(source).toContain("value: 'ccmixter'");
+    expect(source).not.toContain("value: 'ccmixter'");
     expect(source).toContain('aria-pressed={sources.has(source.value)}');
     expect(source).toContain('source-${sound.source}');
+  });
+
+  it('place la recherche à droite du champ et la licence à droite des sources', () => {
+    const source = readFileSync(new URL('../src/client/components/FreesoundDialog.tsx', import.meta.url), 'utf8');
+    const query = source.indexOf('className="freesound-query"');
+    const search = source.indexOf('Rechercher</button>', query);
+    const sources = source.indexOf('className="openverse-source-filters"', search);
+    const license = source.indexOf('className="openverse-license-filter"', sources);
+    expect(query).toBeGreaterThan(-1);
+    expect(search).toBeGreaterThan(query);
+    expect(sources).toBeGreaterThan(search);
+    expect(license).toBeGreaterThan(sources);
+    expect(source).not.toContain('Openverse rassemble Freesound');
   });
 });

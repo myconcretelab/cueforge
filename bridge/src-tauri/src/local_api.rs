@@ -62,8 +62,24 @@ struct PlayInput {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RemotePreviewInput {
-    id: String,
+    id: RemotePreviewId,
     url: String,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum RemotePreviewId {
+    Number(u64),
+    Text(String),
+}
+
+impl RemotePreviewId {
+    fn normalized(&self) -> String {
+        match self {
+            Self::Number(value) => value.to_string(),
+            Self::Text(value) => value.clone(),
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -227,8 +243,9 @@ async fn play(
 ) -> ApiResult<Json<serde_json::Value>> {
     authorize(&headers, &state, false).await?;
     let path = if let Some(preview) = &input.remote_preview {
+        let preview_id = preview.id.normalized();
         state
-            .ensure_remote_preview(&preview.id, &preview.url)
+            .ensure_remote_preview(&preview_id, &preview.url)
             .await?
     } else {
         state.ensure_track(&input.track).await?
@@ -520,4 +537,18 @@ fn now_ms() -> u128 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RemotePreviewId;
+
+    #[test]
+    fn accepts_legacy_numeric_and_openverse_text_preview_ids() {
+        let numeric: RemotePreviewId = serde_json::from_str("123456").expect("numeric id");
+        let text: RemotePreviewId =
+            serde_json::from_str("\"baf7990c-657a-47ab-83c0-4ec2437095c3\"").expect("text id");
+        assert_eq!(numeric.normalized(), "123456");
+        assert_eq!(text.normalized(), "baf7990c-657a-47ab-83c0-4ec2437095c3");
+    }
 }

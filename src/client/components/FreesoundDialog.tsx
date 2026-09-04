@@ -27,7 +27,6 @@ const sourceOptions: Array<{ value: OpenverseSource; label: string }> = [
   { value: 'freesound', label: 'Freesound' },
   { value: 'jamendo', label: 'Jamendo' },
   { value: 'wikimedia_audio', label: 'Wikimedia' },
-  { value: 'ccmixter', label: 'ccMixter' },
 ];
 
 export function OpenverseDialog({ initialQuery = '', autoSearch = false, projectId, categories, subcategories, projectColors, defaultCategoryId, nextPosition, bridgeOutputs, mainBridgeOutputId, onImported, onClose }: Props) {
@@ -342,18 +341,17 @@ export function OpenverseDialog({ initialQuery = '', autoSearch = false, project
 
       <form className="freesound-search-form" onSubmit={(event) => { event.preventDefault(); searchSounds().catch(() => undefined); }}>
         <label className="freesound-query"><Search size={18} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Applaudissements, porte, orage…" /></label>
-        <select aria-label="Licence" value={license} onChange={(event) => setLicense(event.target.value as OpenverseLicenseFilter)}>
+        <button className="button primary" disabled={loading}>{loading ? <LoaderCircle className="spin" size={17} /> : <Search size={17} />}Rechercher</button>
+        <div className="openverse-source-filters" role="group" aria-label="Sources Openverse cumulables">
+          {sourceOptions.map((source) => <button type="button" key={source.value} className={`openverse-source-filter source-${source.value}${sources.has(source.value) ? ' is-selected' : ''}`} aria-pressed={sources.has(source.value)} onClick={() => toggleSource(source.value)}>{source.label}</button>)}
+        </div>
+        <select className="openverse-license-filter" aria-label="Licence" value={license} onChange={(event) => setLicense(event.target.value as OpenverseLicenseFilter)}>
           <option value="all">Toutes les licences CC</option>
           <option value="cc0">CC0 uniquement</option>
           <option value="by">CC BY uniquement</option>
         </select>
-        <div className="openverse-source-filters" role="group" aria-label="Sources Openverse cumulables">
-          {sourceOptions.map((source) => <button type="button" key={source.value} className={`openverse-source-filter source-${source.value}${sources.has(source.value) ? ' is-selected' : ''}`} aria-pressed={sources.has(source.value)} onClick={() => toggleSource(source.value)}>{source.label}</button>)}
-        </div>
-        <button className="button primary" disabled={loading}>{loading ? <LoaderCircle className="spin" size={17} /> : <Search size={17} />}Rechercher</button>
       </form>
 
-      <div className="freesound-license-note"><ShieldCheck size={17} /><span>Openverse rassemble Freesound, Jamendo, Wikimedia et ccMixter. La source et la licence sont conservées à l’import.</span></div>
       {error && <div className="form-error">{error}</div>}
 
       {!result && !loading ? <div className="freesound-empty"><Waves size={34} /><strong>Trouvez un son pour la scène</strong><span>Choisissez une ou plusieurs sources Openverse.</span></div> : result && <>

@@ -152,6 +152,7 @@ export class BridgeClient {
 
   async playRemotePreview(input: { id: string | number; name: string; url: string; durationMs: number; volume: number }, outputId?: string): Promise<string> {
     const previewId = String(input.id);
+    const bridgePreviewId = remotePreviewBridgeId(previewId);
     const track = {
       id: `openverse-${previewId}`,
       projectId: '',
@@ -179,7 +180,7 @@ export class BridgeClient {
     } satisfies Track;
     const result = await this.request<{ playbackId: string }>('/v1/play', {
       method: 'POST',
-      body: JSON.stringify({ track, fadeInMs: 0, volumeMultiplier: 1, channel: 'preview', outputId, remotePreview: { id: previewId, url: input.url } }),
+      body: JSON.stringify({ track, fadeInMs: 0, volumeMultiplier: 1, channel: 'preview', outputId, remotePreview: { id: bridgePreviewId, url: input.url } }),
     });
     await this.refreshPlaybacks();
     return result.playbackId;
@@ -316,12 +317,25 @@ export class BridgeClient {
       throw new BridgeUnavailableError();
     }
     if (!response.ok) {
-      const body = await response.json().catch(() => ({ error: 'SonoRiva Bridge ne répond pas.' }));
-      throw new Error(body.error ?? 'SonoRiva Bridge ne répond pas.');
+      const responseBody = await response.text().catch(() => '');
+      let message = responseBody.trim();
+      try {
+        const body = JSON.parse(responseBody) as { error?: unknown };
+        if (typeof body.error === 'string') message = body.error;
+      } catch { /* Les anciennes versions du Bridge renvoient parfois du texte brut. */ }
+      throw new Error(message || `SonoRiva Bridge a répondu avec le statut ${response.status}.`);
     }
     if (response.status === 204) return undefined as T;
     return response.json() as Promise<T>;
   }
+}
+
+export function remotePreviewBridgeId(id: string): number {
+  const hexadecimal = id.replaceAll('-', '').slice(0, 13);
+  if (/^[0-9a-f]{13}$/i.test(hexadecimal)) return Number.parseInt(hexadecimal, 16);
+  let hash = 0;
+  for (const character of id) hash = (hash * 31 + character.charCodeAt(0)) % 1_000_000_000;
+  return hash;
 }
 
 function readAssociation(): BridgeAssociation | undefined {

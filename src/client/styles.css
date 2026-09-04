@@ -720,15 +720,15 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .freesound-query { position: relative; display: flex; align-items: center; color: #71717a; }
 .freesound-query svg { position: absolute; left: 12px; pointer-events: none; }
 .freesound-query input { padding-left: 39px; }
-.openverse-dialog .freesound-search-form { grid-template-columns: minmax(210px, 1fr) 180px auto; }
-.openverse-source-filters { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.openverse-dialog .freesound-search-form { grid-template-columns: minmax(210px, 1fr) auto; }
+.openverse-source-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.openverse-license-filter { min-width: 180px; }
 .openverse-source-filter { --openverse-source-color: #a1a1aa; min-height: 31px; padding: 0 10px; border: 1px solid color-mix(in srgb, var(--openverse-source-color) 28%, #27272a); border-radius: 999px; color: color-mix(in srgb, var(--openverse-source-color) 55%, #a1a1aa); background: color-mix(in srgb, var(--openverse-source-color) 5%, #111113); cursor: pointer; font-size: .62rem; font-weight: 750; }
 .openverse-source-filter.is-selected { color: #fff; border-color: color-mix(in srgb, var(--openverse-source-color) 76%, #fff); background: color-mix(in srgb, var(--openverse-source-color) 24%, #111113); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--openverse-source-color) 18%, transparent); }
 .source-freesound { --openverse-source-color: #22d3ee; }
 .source-jamendo { --openverse-source-color: #fb923c; }
 .source-wikimedia_audio { --openverse-source-color: #a78bfa; }
 .source-ccmixter { --openverse-source-color: #4ade80; }
-.freesound-license-note { padding: 10px 12px; display: flex; align-items: center; gap: 9px; border: 1px solid rgba(34,197,94,.18); border-radius: 9px; color: #86efac; background: rgba(34,197,94,.055); font-size: .69rem; line-height: 1.4; }
 .freesound-results-heading { display: flex; align-items: center; justify-content: space-between; color: #71717a; font-size: .67rem; }
 .freesound-results-heading strong { color: #d4d4d8; font-size: .75rem; }
 .freesound-results { max-height: min(46vh, 440px); display: grid; gap: 7px; overflow-y: auto; padding-right: 3px; }
@@ -1043,6 +1043,9 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
   .freesound-search-form { grid-template-columns: 1fr 1fr; }
   .freesound-query { grid-column: 1 / -1; }
   .freesound-search-form .button { grid-column: 1 / -1; }
+  .openverse-dialog .freesound-query { grid-column: 1; }
+  .openverse-dialog .freesound-search-form .button { grid-column: 2; }
+  .openverse-dialog .openverse-license-filter { min-width: 0; }
   .freesound-result-summary { grid-template-columns: auto minmax(0, 1fr); }
   .freesound-play { width: 38px; height: 38px; }
   .freesound-output-play { width: 24px; height: 24px; }
