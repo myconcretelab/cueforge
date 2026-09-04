@@ -180,12 +180,16 @@ export function OpenverseDialog({ initialQuery = '', autoSearch = false, project
     searchSounds().catch(() => undefined);
   }, [autoSearch, initialQuery, searchSounds]);
 
-  function togglePreview(sound: OpenverseSound, output?: RoutedBridgeOutput) {
-    if (bridgeClient.isEnabled()) {
+  function togglePreview(sound: OpenverseSound, output?: RoutedBridgeOutput, browserOnly = false) {
+    if (!browserOnly && bridgeClient.isEnabled()) {
       toggleBridgePreview(sound, output).catch((cause) => {
         if (isBridgeUnavailableError(cause)) {
           bridgeClient.fallbackToBrowser();
-          togglePreview(sound);
+          togglePreview(sound, undefined, true);
+          return;
+        }
+        if (sound.source !== 'freesound') {
+          togglePreview(sound, undefined, true);
           return;
         }
         setPlayerState('paused');

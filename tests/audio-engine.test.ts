@@ -205,6 +205,13 @@ describe('audio player instance controls', () => {
     await audioEngine.applyAudioOutput({ setSinkId } as unknown as HTMLMediaElement, 'Haut-parleurs MacBook Pro', true);
     expect(setSinkId).toHaveBeenCalledWith('');
 
+    const unavailableSink = vi.fn()
+      .mockRejectedValueOnce(new Error('sortie déconnectée'))
+      .mockResolvedValueOnce(undefined);
+    await audioEngine.applyAudioOutput({ setSinkId: unavailableSink } as unknown as HTMLMediaElement);
+    expect(unavailableSink).toHaveBeenNthCalledWith(1, 'studio-output');
+    expect(unavailableSink).toHaveBeenNthCalledWith(2, '');
+
     await audioEngine.setAudioOutput('');
     expect(FakeAudioContext.lastSinkId).toBe('');
     expect(localStorage.getItem('sonoriva-audio-output-v1')).toBeNull();

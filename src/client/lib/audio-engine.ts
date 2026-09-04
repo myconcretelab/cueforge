@@ -175,7 +175,11 @@ class AudioEngine {
   async applyAudioOutput(element: HTMLMediaElement, preferredOutputLabel?: string, systemDefault = false): Promise<void> {
     if (typeof element.setSinkId !== 'function') return;
     if (!preferredOutputLabel) {
-      await element.setSinkId(this.outputSelection.deviceId);
+      try {
+        await element.setSinkId(this.outputSelection.deviceId);
+      } catch {
+        await element.setSinkId('');
+      }
       return;
     }
     if (systemDefault) {
@@ -184,8 +188,15 @@ class AudioEngine {
     }
     const devices = await this.listAudioOutputDevices();
     const selected = devices.find((device) => outputLabelsMatch(device.label, preferredOutputLabel));
-    if (!selected || !selected.deviceId) throw new Error(`La sortie « ${preferredOutputLabel} » n’est pas accessible au navigateur.`);
-    await element.setSinkId(selected.deviceId);
+    if (!selected || !selected.deviceId) {
+      await element.setSinkId('');
+      return;
+    }
+    try {
+      await element.setSinkId(selected.deviceId);
+    } catch {
+      await element.setSinkId('');
+    }
   }
 
   subscribe(listener: Listener): () => void {

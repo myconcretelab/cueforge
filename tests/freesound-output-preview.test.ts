@@ -26,6 +26,8 @@ describe('préécoute Openverse par sortie', () => {
     expect(source).toContain('bridgeClient.isEnabled()');
     expect(source).toContain("includes('remotePreview')");
     expect(source).toContain('bridgeClient.playRemotePreview');
+    expect(source).toContain("sound.source !== 'freesound'");
+    expect(source).toContain('togglePreview(sound, undefined, true)');
   });
 
   it('place le raccourci Openverse dans la recherche sans remplacer son filtrage', () => {

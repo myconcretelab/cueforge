@@ -42,6 +42,8 @@ describe('sous-catégories de morceaux', () => {
 
   it('fait chevaucher les arrondis de jonction avec les traits verticaux', () => {
     const styles = readFileSync(new URL('../src/client/styles.css', import.meta.url), 'utf8');
+    expect(styles).toContain('height: 30px; border-right: 2px solid var(--subcategory-drawer-border)');
+    expect(styles).toContain('bottom: 0; width: 18px; height: 18px;');
     expect(styles).toContain('.subcategory-drawer-join::before { left: -16px;');
     expect(styles).toContain('.subcategory-drawer-join::after { right: -16px;');
   });
