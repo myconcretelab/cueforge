@@ -38,4 +38,19 @@ describe('site de présentation WordPress', () => {
     expect(deploy).toContain('sonoriva_marketing_classic_content_to_blocks');
     expect(deploy).toContain('!has_blocks');
   });
+
+  it('utilise le nouveau logo et protège le menu mobile du contenu de page', () => {
+    const header = themeFile('header.php');
+    const mark = themeFile('assets/images/sonoriva-mark.svg');
+    const styles = themeFile('style.css');
+
+    expect(header).toContain('assets/images/sonoriva-mark.svg');
+    expect(mark).toContain('viewBox="0 0 2048 2048"');
+    expect(mark).toContain('<path');
+    expect(mark).not.toContain('<text');
+    expect(styles).toContain('body.nav-open .site-header');
+    expect(styles).toContain('.primary-nav.is-open');
+    expect(styles).toContain('background-color: #DBEDF7');
+    expect(styles).toContain('.sr-hero-grid > .wp-block-column:last-child { display: none; }');
+  });
 });
