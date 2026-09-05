@@ -74,5 +74,8 @@ describe('sous-catégories de morceaux', () => {
     expect(markup).toContain('subcategory-edge-title">Ambiances');
     expect(markup).toContain('aria-label="Modifier Ambiances"');
     expect(markup).toContain('aria-expanded="false"');
+    expect(markup).toContain('role="button"');
+    expect(markup).toContain('<div class="subcategory-trigger"');
+    expect(markup).not.toContain('<button type="button" class="subcategory-trigger"');
   });
 });

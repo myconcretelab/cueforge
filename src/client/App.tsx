@@ -41,7 +41,7 @@ import { mobileTrackAutoScrollDelta, type ClientPoint } from './lib/mobile-track
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { movePlaylistItem as repositionPlaylistItem, playlistEntries, playlistQueueItems, playlistRows as groupPlaylistItems, type PlaylistItemPlacement, type PlaylistQueueItem } from './lib/playlist-rows';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
-import { defaultSoundboardViewSettings, readSoundboardViewSettings, resolveSoundboardView, soundboardViewStorageKey, type SoundboardViewMode, type SoundboardViewSettings } from './lib/soundboard-view';
+import { applySoundboardViewMode, defaultSoundboardViewSettings, readSoundboardViewSettings, resolveSoundboardView, soundboardViewModeForCategory, soundboardViewStorageKey, type SoundboardViewMode, type SoundboardViewSettings } from './lib/soundboard-view';
 import { intersectsSelection, type SelectionRectangle } from './lib/track-selection';
 import { normalizeTrackTags, toggleSearchScopeSelection, trackMatchesEnabledSearch, type TrackSearchScope } from './lib/track-tags';
 import { canDropTrackInSubcategoryDrawer, subcategoryMatchesSearch, trackDropPlacement, trackIdAfterTarget } from './lib/track-subcategories';
@@ -165,6 +165,7 @@ export default function App() {
   const [desktopColumns, setDesktopColumns] = useState(() => readNumberRange('sonoriva-track-columns', 6, 2, 12));
   const [mobileColumns, setMobileColumns] = useState(() => readNumberRange('sonoriva-track-columns-mobile', 2, 1, 3));
   const [soundboardViewSettings, setSoundboardViewSettings] = useState<SoundboardViewSettings>(() => ({ ...defaultSoundboardViewSettings }));
+  const [soundboardViewScope, setSoundboardViewScope] = useState<'category' | 'all'>('category');
   const [uploadOpen, setUploadOpen] = useState(false);
   const [soundShowImportOpen, setSoundShowImportOpen] = useState(false);
   const [openverseOpen, setOpenverseOpen] = useState(false);
@@ -675,7 +676,10 @@ export default function App() {
     return detail.tracks.filter((track) => track.categoryId === selectedCategoryId);
   }, [detail, selectedCategoryId]);
   const preloadedInCategory = tracksToPreload.filter((track) => offlineTrackIds.has(track.id)).length;
-  const soundboardView = resolveSoundboardView(soundboardViewSettings.mode, categoryTracks.length, soundboardViewSettings.automaticListThreshold);
+  const soundboardCategoryScopeAvailable = !isSearching && selectedCategoryId !== 'all';
+  const effectiveSoundboardViewScope = soundboardCategoryScopeAvailable ? soundboardViewScope : 'all';
+  const soundboardViewMode = soundboardViewModeForCategory(soundboardViewSettings, effectiveSoundboardViewScope === 'category' ? selectedCategoryId : undefined);
+  const soundboardView = resolveSoundboardView(soundboardViewMode, categoryTracks.length, soundboardViewSettings.automaticListThreshold);
   const trackColumns = soundboardView === 'list'
     ? compactLayout ? soundboardViewSettings.mobileListColumns : soundboardViewSettings.desktopListColumns
     : compactLayout ? mobileColumns : desktopColumns;
@@ -1842,6 +1846,25 @@ export default function App() {
     });
   }
 
+  function updateSoundboardViewMode(mode: SoundboardViewMode) {
+    if (!detail) return;
+    setSoundboardViewSettings((current) => {
+      const next = applySoundboardViewMode(current, mode, effectiveSoundboardViewScope === 'category' ? selectedCategoryId : undefined);
+      localStorage.setItem(soundboardViewStorageKey(detail.project.id), JSON.stringify(next));
+      return next;
+    });
+  }
+
+  function applySoundboardViewToAll() {
+    if (!detail) return;
+    setSoundboardViewScope('all');
+    setSoundboardViewSettings((current) => {
+      const next = applySoundboardViewMode(current, soundboardViewMode);
+      localStorage.setItem(soundboardViewStorageKey(detail.project.id), JSON.stringify(next));
+      return next;
+    });
+  }
+
   function resetPlaybackProgress(scope: 'category' | 'project') {
     if (!detail) return;
     const trackIds = scope === 'category' && currentCategory
@@ -2409,10 +2432,11 @@ export default function App() {
           <div className="dashboard-control">
             <button className={`dashboard-button ${columnsOpen ? 'active' : ''}`} onClick={() => { setColumnsOpen((current) => !current); setHistoryOpen(false); }} aria-label="Régler l’affichage du soundboard" title="Affichage du soundboard"><Columns3 size={18} /></button>
             {columnsOpen && <div className="dashboard-popover columns-popover">
-              <label><span>Affichage</span><select value={soundboardViewSettings.mode} onChange={(event) => updateSoundboardViewSettings({ mode: event.target.value as SoundboardViewMode })}><option value="cards">Cartes</option><option value="list">Liste</option><option value="auto">Automatique</option></select></label>
-              {soundboardViewSettings.mode === 'auto' && <label><span>Liste à partir de</span><strong>{soundboardViewSettings.automaticListThreshold} morceaux</strong><input type="range" min="5" max="200" value={soundboardViewSettings.automaticListThreshold} onChange={(event) => updateSoundboardViewSettings({ automaticListThreshold: Number(event.target.value) })} /></label>}
+              {soundboardCategoryScopeAvailable && <div className="soundboard-view-scope"><span>Appliquer à</span><div role="group" aria-label="Portée du mode d’affichage"><button type="button" className={effectiveSoundboardViewScope === 'category' ? 'active' : ''} aria-pressed={effectiveSoundboardViewScope === 'category'} onClick={() => setSoundboardViewScope('category')}>Cette catégorie</button><button type="button" className={effectiveSoundboardViewScope === 'all' ? 'active' : ''} aria-pressed={effectiveSoundboardViewScope === 'all'} onClick={applySoundboardViewToAll}>Toutes</button></div></div>}
+              <label><span>Affichage</span><select value={soundboardViewMode} onChange={(event) => updateSoundboardViewMode(event.target.value as SoundboardViewMode)}><option value="cards">Cartes</option><option value="list">Liste</option><option value="auto">Automatique</option></select></label>
+              {soundboardViewMode === 'auto' && <label><span>Liste à partir de</span><strong>{soundboardViewSettings.automaticListThreshold} morceaux</strong><input type="range" min="5" max="200" value={soundboardViewSettings.automaticListThreshold} onChange={(event) => updateSoundboardViewSettings({ automaticListThreshold: Number(event.target.value) })} /></label>}
               <label><span>{soundboardView === 'list' ? 'Colonnes de liste' : 'Colonnes de cartes'}</span><strong>{trackColumns}</strong><input type="range" min={soundboardView === 'list' ? 1 : compactLayout ? 1 : 2} max={soundboardView === 'list' ? compactLayout ? 2 : 4 : compactLayout ? 3 : 12} value={trackColumns} onChange={(event) => updateTrackColumns(Number(event.target.value))} /></label>
-              {soundboardViewSettings.mode === 'auto' && <small>Affichage actuel : {soundboardView === 'list' ? 'liste' : 'cartes'}</small>}
+              {soundboardViewMode === 'auto' && <small>Affichage actuel : {soundboardView === 'list' ? 'liste' : 'cartes'}</small>}
             </div>}
           </div>
           {!remote && <div className="dashboard-control">

@@ -39,7 +39,7 @@ Les catégories possèdent un nom, une couleur et un ordre. Leur ordre est modif
 
 ## Affichage du soundboard
 
-La commande **Affichage du soundboard** propose les modes **Cartes**, **Liste** et **Automatique**. Le mode automatique utilise la liste lorsque le nombre de morceaux de la vue atteint le seuil configuré, compris entre 5 et 200 morceaux.
+La commande **Affichage du soundboard** propose les modes **Cartes**, **Liste** et **Automatique**. Lorsque la vue correspond à une catégorie, la portée **Cette catégorie** enregistre le mode uniquement pour celle-ci. La portée **Toutes** applique le mode affiché à toutes les catégories et supprime les exceptions par catégorie. Le mode automatique utilise la liste lorsque le nombre de morceaux de la vue atteint le seuil configuré, compris entre 5 et 200 morceaux.
 
 Le nombre de colonnes est réglé séparément pour les cartes et pour la liste. La liste accepte de une à quatre colonnes sur ordinateur et de une à deux colonnes sur mobile. Chaque ligne de morceau affiche sa couleur, son bouton de lecture principal, les boutons de sorties supplémentaires disponibles, son nom, sa durée et son raccourci clavier. Ces réglages sont conservés localement pour chaque spectacle.
 
@@ -47,7 +47,7 @@ Le nombre de colonnes est réglé séparément pour les cartes et pour la liste.
 
 Une sous-catégorie regroupe des morceaux à l’intérieur d’une catégorie parente. Elle occupe une case de la grille, quel que soit son nombre de morceaux. Sa tuile affiche son titre sur la bordure, un macaron du nombre de morceaux juste à gauche et une mosaïque de quatre aperçus.
 
-Un clic sur la tuile ouvre un tiroir pleine largeur sous sa ligne. Les morceaux du tiroir conservent les commandes de lecture, d’édition, de sélection et de glisser-déposer des autres morceaux. Les commandes **Modifier** et **Supprimer** sont placées à gauche du titre du tiroir. Un second clic sur la tuile ou la commande de fermeture du tiroir le referme.
+Un clic n’importe où sur la tuile ouvre ou ferme un tiroir pleine largeur sous sa ligne. L’icône d’édition de la tuile est placée dans son angle supérieur droit et n’ouvre pas le tiroir. Les morceaux du tiroir conservent les commandes de lecture, d’édition, de sélection et de glisser-déposer des autres morceaux. Les commandes **Modifier** et **Supprimer** sont placées à gauche du titre du tiroir. La commande de fermeture du tiroir le referme également.
 
 En mode **Réorganiser** :
 
