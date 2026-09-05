@@ -48,6 +48,7 @@ export function TrackPad({ track, color, active, playbacks, historyProgress, loa
 
   function beginMobileDrag(event: ReactPointerEvent<HTMLElement>) {
     if (!mobileDragEnabled || event.pointerType === 'mouse' || event.button !== 0) return;
+    event.currentTarget.style.setProperty('-webkit-user-drag', 'none');
     pointerDrag.current = { pointerId: event.pointerId, start: { clientX: event.clientX, clientY: event.clientY }, started: false };
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -70,6 +71,7 @@ export function TrackPad({ track, color, active, playbacks, historyProgress, loa
     const gesture = pointerDrag.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    event.currentTarget.style.removeProperty('-webkit-user-drag');
     pointerDrag.current = undefined;
     if (!gesture.started) return;
     event.preventDefault();

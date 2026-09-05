@@ -491,7 +491,7 @@ kbd { padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px; col
 .track-pad.playlist-position-target.drop-after::after { right: -7px; left: auto; }
 .mobile-track-drag-preview { position: fixed; z-index: 210; top: 0; left: 0; width: min(240px, calc(100vw - 32px)); min-height: 48px; padding: 9px 42px 9px 13px; display: flex; align-items: center; overflow: hidden; transform: translate(-50%, calc(-100% - 14px)); border: 2px solid color-mix(in srgb, var(--track-color) 75%, #fff); border-radius: 10px; color: #f4f4f5; background: #141a27; box-shadow: 0 14px 34px rgba(0,0,0,.48); pointer-events: none; font-size: .68rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
 .mobile-track-drag-preview strong { position: absolute; right: 7px; min-width: 27px; height: 27px; padding: 0 6px; display: grid; place-items: center; border-radius: 999px; color: #384661; background: #DBEDF7; font-size: .65rem; }
-.track-pad.mobile-drag-enabled { touch-action: none; -webkit-user-drag: none; }
+.track-pad.mobile-drag-enabled { touch-action: none; }
 .playlist-pad { outline: 1px dashed color-mix(in srgb, var(--track-color) 55%, transparent); outline-offset: -6px; background: color-mix(in srgb, var(--track-color) 7%, var(--surface)); }
 .playlist-pad.is-drop-target::after { position: absolute; z-index: 4; top: 7px; bottom: 7px; left: -7px; border-left: 2px dashed #fff; content: ''; filter: drop-shadow(0 0 4px var(--track-color)); }
 .playlist-pad.is-drop-target.drop-after::after { right: -7px; left: auto; }

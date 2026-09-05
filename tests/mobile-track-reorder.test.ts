@@ -60,6 +60,7 @@ describe('réorganisation tactile des morceaux', () => {
     const pad = container.querySelector<HTMLElement>('[data-track-id]')!;
 
     act(() => pad.dispatchEvent(pointerEvent('pointerdown', 20, 20)));
+    expect(pad.style.getPropertyValue('-webkit-user-drag')).toBe('none');
     act(() => pad.dispatchEvent(pointerEvent('pointermove', 25, 24)));
     expect(start).not.toHaveBeenCalled();
     act(() => pad.dispatchEvent(pointerEvent('pointermove', 33, 20)));
@@ -67,6 +68,28 @@ describe('réorganisation tactile des morceaux', () => {
     expect(move).toHaveBeenCalledWith({ clientX: 33, clientY: 20 });
     act(() => pad.dispatchEvent(pointerEvent('pointerup', 40, 28)));
     expect(end).toHaveBeenCalledWith({ clientX: 40, clientY: 28 }, false);
+    expect(pad.style.getPropertyValue('-webkit-user-drag')).toBe('');
+
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  it('conserve le glisser natif avec une souris de bureau', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const root = createRoot(container);
+    const ignore = () => undefined;
+
+    act(() => root.render(createElement(TrackPad, {
+      track, color: '#22d3b6', active: false, playbacks: [], historyProgress: 0, loaded: false, reorderEnabled: false, playlistDropEnabled: false,
+      selectionMode: true, selected: true, dropTarget: false, bridgeOutputs: [], onPrimary: ignore, onOutputPlay: ignore, onSecondary: ignore, onEdit: ignore,
+      onSelect: ignore, onDragStart: ignore, onDragOver: ignore, onDrop: ignore, onDragEnd: ignore, mobileDragEnabled: true,
+    })));
+    const pad = container.querySelector<HTMLElement>('[data-track-id]')!;
+
+    expect(pad.draggable).toBe(true);
+    act(() => pad.dispatchEvent(pointerEvent('pointerdown', 20, 20, 'mouse')));
+    expect(pad.style.getPropertyValue('-webkit-user-drag')).toBe('');
 
     act(() => root.unmount());
     container.remove();
@@ -83,6 +106,7 @@ describe('réorganisation tactile des morceaux', () => {
     expect(app).toContain("target.kind === 'subcategory'");
     expect(app).toContain("target.kind === 'category'");
     expect(app).toContain('mobile-track-drag-preview');
-    expect(styles).toContain('.track-pad.mobile-drag-enabled { touch-action: none; -webkit-user-drag: none; }');
+    expect(styles).toContain('.track-pad.mobile-drag-enabled { touch-action: none; }');
+    expect(styles).not.toContain('.track-pad.mobile-drag-enabled { touch-action: none; -webkit-user-drag: none; }');
   });
 });
