@@ -49,7 +49,7 @@ export function OpenverseDialog({ initialQuery = '', autoSearch = false, project
   const [importTitle, setImportTitle] = useState('');
   const [importCategoryId, setImportCategoryId] = useState(defaultCategoryId ?? '');
   const [importSubcategoryId, setImportSubcategoryId] = useState('');
-  const [importColor, setImportColor] = useState(() => categories.find((category) => category.id === defaultCategoryId)?.color ?? projectColors[0]?.color ?? '#22d3b6');
+  const [importColor, setImportColor] = useState(() => categories.find((category) => category.id === defaultCategoryId)?.color ?? projectColors[0]?.color ?? '#DBEDF7');
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
   const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
@@ -302,7 +302,7 @@ export function OpenverseDialog({ initialQuery = '', autoSearch = false, project
     setImportTitle(withoutAudioExtension(sound.name));
     setImportCategoryId(defaultCategoryId ?? '');
     setImportSubcategoryId('');
-    setImportColor(categories.find((category) => category.id === defaultCategoryId)?.color ?? projectColors[0]?.color ?? '#22d3b6');
+    setImportColor(categories.find((category) => category.id === defaultCategoryId)?.color ?? projectColors[0]?.color ?? '#DBEDF7');
     setImportError('');
   }
 

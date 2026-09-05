@@ -3,7 +3,13 @@ const BUILD_REVISION = '__SONORIVA_BUILD_REVISION__';
 const SHELL_CACHE = `sonoriva-shell-${BUILD_REVISION}`;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(['/', '/manifest.webmanifest', '/icon.svg'])));
+  event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll([
+    '/',
+    '/manifest.webmanifest',
+    '/icon.png',
+    '/icon.svg',
+    '/sonoriva-logo.svg',
+  ])));
 });
 
 self.addEventListener('activate', (event) => {

@@ -14,7 +14,7 @@ export function TrackDialog({ track, categories, projectColors, onAddProjectColo
   const [startTimeMs, setStartTimeMs] = useState(track.startTimeMs);
   const [endTimeMs, setEndTimeMs] = useState<number | null>(track.endTimeMs);
   const [tags, setTags] = useState(track.tags ?? []);
-  const inheritedColor = categories.find((category) => category.id === track.categoryId)?.color ?? '#22d3b6';
+  const inheritedColor = categories.find((category) => category.id === track.categoryId)?.color ?? '#DBEDF7';
   const [color, setColor] = useState(track.color ?? inheritedColor);
   const colorIsPreset = projectColors.some((item) => item.color.toLowerCase() === color.toLowerCase());
 

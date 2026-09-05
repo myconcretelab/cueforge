@@ -31,7 +31,7 @@ export function PasswordResetScreen() {
 
   return <main className="auth-shell">
     <section className="auth-intro">
-      <div className="brand-mark" aria-label="SonoRiva">SR</div>
+      <img className="brand-mark" src="/sonoriva-logo.svg" alt="SonoRiva" />
       <p className="eyebrow">Régie son en ligne</p>
       <h1>Play sound.<br /><span>Play the scene.</span></h1>
       <div className="signal-lines" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /></div>

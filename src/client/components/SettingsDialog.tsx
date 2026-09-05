@@ -110,7 +110,7 @@ function formatPrice(cents: number): string {
 
 export function SettingsDialog({ user, projects, projectColors, selectedProjectId, initialSection, offlineStatus, remote, appVersion, hasUnseenReleases, automaticUpdates, openSubcategoriesOnDrag, appSkin, onAutomaticUpdatesChange, onOpenSubcategoriesOnDragChange, onAppSkinChange, onAccountChange, onChooseProject, onCreateProject, onReorderProjects, onDeleteProject, onCreateProjectColor, onDeleteProjectColor, onReorderProjectColors, onImportSoundShow, onOpenOpenverse, onOpenWhatsNew, onToggleRemote, onCacheOffline, onUpdateKeyAction, onUpdateKeyboardShortcut, onUpdatePlaylistGroupLimit, onUpdatePlaybackSettings, onLogout, onClose }: Props) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
-  const [newColor, setNewColor] = useState('#22d3b6');
+  const [newColor, setNewColor] = useState('#DBEDF7');
   const [draggedProjectId, setDraggedProjectId] = useState<string>();
   const [dropProjectId, setDropProjectId] = useState<string>();
   const [dropProjectAfter, setDropProjectAfter] = useState(false);

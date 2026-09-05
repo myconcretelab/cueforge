@@ -72,7 +72,7 @@ export function BatchTrackDialog({ projectId, tracks, categories, projectColors,
     }
   }
 
-  const defaultColor = color ?? projectColors[0]?.color ?? '#22d3b6';
+  const defaultColor = color ?? projectColors[0]?.color ?? '#DBEDF7';
   const selectionLabel = `${tracks.length} morceau${tracks.length !== 1 ? 'x' : ''}`;
   return <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <form className="dialog batch-track-dialog" onSubmit={submit}>

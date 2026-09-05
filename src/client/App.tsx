@@ -45,7 +45,7 @@ import { canDropTrackInSubcategoryDrawer, subcategoryMatchesSearch, trackDropPla
 import { compactPlaylistMaximumRows, compactPlaylistMinimumRows, createWorkspaceLayout, dockWorkspaceItem, moveWorkspaceItem, placeWorkspaceItemOnGrid, readSavedWorkspaceLayouts, readWorkspaceLayout, resizeWorkspaceItem, setWorkspaceItemCollapsed, swapWorkspaceItems, workspaceBlockLabels, workspaceDockableBlockIds, workspaceDockItems, workspaceItemIsCollapsed, workspaceItemIsDocked, workspaceLayoutItem, workspaceLayoutsMatch, workspaceLayoutSnapshot, workspaceLayoutStorageKey, workspaceLayoutRows, workspaceSavedLayoutsStorageKey, type SavedWorkspaceLayout, type WorkspaceBlockId } from './lib/workspace-layout';
 import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcutKey, ReleaseInfo, RemoteCommand, Track, TrackSubcategory, User } from './types';
 
-const colors = ['#22d3b6', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
+const colors = ['#DBEDF7', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
 const mouseActions: Array<{ value: MouseAction; label: string }> = [
   { value: 'start', label: 'Démarrer' },
   { value: 'crossfade', label: 'Fondu enchaîné' },
@@ -1866,7 +1866,7 @@ export default function App() {
     if (!enabled) cancelScheduledSubcategoryOpen();
   }
 
-  if (user === undefined) return <div className="app-loader"><span className="brand-mark loader pulse" aria-hidden="true">SR</span><span>SonoRiva</span></div>;
+  if (user === undefined) return <div className="app-loader"><img className="brand-mark loader pulse" src="/sonoriva-logo.svg" alt="" /><span>SonoRiva</span></div>;
   if (!user) return <><AuthScreen onAuthenticated={(authenticated) => { localStorage.setItem('sonoriva-user', JSON.stringify(authenticated)); setUser(authenticated); }} />{error && <Toast message={error} onClose={() => setError('')} />}</>;
 
   const audioOutputUpgradeMode: AudioOutputUpgradeMode | undefined = user.isDemo
@@ -2104,7 +2104,7 @@ export default function App() {
 
   return <div className={`app-shell ${remote ? 'remote-mode' : ''}`}>
     <aside className={sidebarOpen ? 'sidebar open' : 'sidebar'}>
-      <header className="brand"><span className="brand-mark small" aria-hidden="true">SR</span><strong>SonoRiva</strong><button className="icon-button sidebar-close" onClick={() => setSidebarOpen(false)}><X /></button></header>
+      <header className="brand"><img className="brand-mark small" src="/sonoriva-logo.svg" alt="" /><strong>SonoRiva</strong><button className="icon-button sidebar-close" onClick={() => setSidebarOpen(false)}><X /></button></header>
       <div className={`sidebar-layout-dock ${layoutEditing ? 'is-editing' : ''} ${compactPlaylistLayout ? 'has-compact-playlist' : ''} ${compactPlaylistLayout && workspaceLayout.compactPlaylistOpen ? 'is-compact-playlist-open' : ''}`} style={{ '--compact-playlist-rows': compactPlaylistRows } as React.CSSProperties}
         onDragOver={(event) => { if (!layoutEditing || !event.dataTransfer.types.includes(workspaceBlockMime)) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; }}
         onDrop={(event) => { if (!layoutEditing || (event.target instanceof Element && event.target.closest('[data-workspace-block]'))) return; const blockId = event.dataTransfer.getData(workspaceBlockMime) as WorkspaceBlockId; if (!workspaceDockableBlockIds.includes(blockId)) return; event.preventDefault(); setWorkspaceLayout((current) => dockWorkspaceItem(current, blockId)); }}>

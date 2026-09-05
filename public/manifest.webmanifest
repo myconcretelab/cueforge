@@ -4,10 +4,11 @@
   "description": "Play sound. Play the scene. Votre régie son en ligne et hors connexion.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#09090b",
-  "theme_color": "#09090b",
+  "background_color": "#384661",
+  "theme_color": "#384661",
   "lang": "fr",
   "icons": [
+    { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
     { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
 }

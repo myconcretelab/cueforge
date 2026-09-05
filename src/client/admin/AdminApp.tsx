@@ -111,7 +111,7 @@ export function AdminApp() {
 
   return <div className="admin-shell">
     <aside className="admin-sidebar">
-      <a className="admin-brand" href="/"><span className="brand-mark small">SR</span><span><strong>SonoRiva</strong><small>Administration</small></span></a>
+      <a className="admin-brand" href="/"><img className="brand-mark small" src="/sonoriva-logo.svg" alt="" /><span><strong>SonoRiva</strong><small>Administration</small></span></a>
       <nav>{sections.map((item) => <button key={item.id} className={section === item.id ? 'active' : ''} onClick={() => { setSection(item.id); setSearch(''); }}><item.icon size={18} />{item.label}</button>)}</nav>
       <div className="admin-identity"><span>{user.displayName.slice(0, 1).toUpperCase()}</span><div><strong>{user.displayName}</strong><small>{roleLabels[user.platformRole]}</small></div><button onClick={logout} title="Se déconnecter"><LogOut size={17} /></button></div>
     </aside>
