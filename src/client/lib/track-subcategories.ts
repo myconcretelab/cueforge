@@ -6,6 +6,10 @@ export function canDropTrackInSubcategoryDrawer(reorderMode: boolean, draggedTra
   return reorderMode && Boolean(draggedTrackId) && !overTrack;
 }
 
+export function subcategoryDrawerEdgeClasses(column: number, columnCount: number): string {
+  return [column === 0 ? 'joins-left-edge' : '', column === columnCount - 1 ? 'joins-right-edge' : ''].filter(Boolean).join(' ');
+}
+
 export function trackDropPlacement(clientX: number, left: number, width: number): TrackDropPlacement {
   if (width <= 0) return 'group';
   const ratio = (clientX - left) / width;

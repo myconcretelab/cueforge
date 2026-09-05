@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { TrackSubcategoryPad } from '../src/client/components/TrackSubcategoryPad.js';
-import { canDropTrackInSubcategoryDrawer, subcategoryMatchesSearch, trackDropPlacement, trackIdAfterTarget } from '../src/client/lib/track-subcategories.js';
+import { canDropTrackInSubcategoryDrawer, subcategoryDrawerEdgeClasses, subcategoryMatchesSearch, trackDropPlacement, trackIdAfterTarget } from '../src/client/lib/track-subcategories.js';
 import type { Track } from '../src/client/types.js';
 
 function track(id: string, position: number, subcategoryId: string | null = null): Track {
@@ -50,6 +50,16 @@ describe('sous-catégories de morceaux', () => {
     expect(styles).toContain('.subcategory-drawer-join::before { left: -18px;');
     expect(styles).toContain('.subcategory-drawer-join::after { right: -18px;');
     expect(styles).toContain('var(--subcategory-drawer-border) 16px 18px');
+  });
+
+  it('ne fait pas dépasser le raccord aux extrémités de la grille', () => {
+    const styles = readFileSync(new URL('../src/client/styles.css', import.meta.url), 'utf8');
+    expect(subcategoryDrawerEdgeClasses(0, 6)).toBe('joins-left-edge');
+    expect(subcategoryDrawerEdgeClasses(2, 6)).toBe('');
+    expect(subcategoryDrawerEdgeClasses(5, 6)).toBe('joins-right-edge');
+    expect(subcategoryDrawerEdgeClasses(0, 1)).toBe('joins-left-edge joins-right-edge');
+    expect(styles).toContain('.subcategory-drawer.joins-left-edge .subcategory-drawer-join::before { display: none; }');
+    expect(styles).toContain('.subcategory-drawer.joins-right-edge .subcategory-drawer-join::after { display: none; }');
   });
 
   it('affiche une tuile compacte avec son titre et son compteur', () => {
