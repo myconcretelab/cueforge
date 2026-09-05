@@ -20,12 +20,14 @@ import {
 } from '../src/client/lib/workspace-layout';
 
 describe('workspace layout', () => {
-  it('places trigger actions in the left dock by default', () => {
+  it('places actions, playbacks and playlist in the left dock by default', () => {
     const layout = createWorkspaceLayout();
-    expect(layout.dock).toEqual(['actions']);
+    expect(layout.dock).toEqual(['actions', 'players', 'playlist']);
     expect(workspaceItemIsDocked(layout, 'actions')).toBe(true);
-    expect(workspaceLayoutItem(layout, 'categories')).toMatchObject({ y: 0, h: 3 });
-    expect(workspaceLayoutItem(layout, 'soundboard')).toMatchObject({ y: 3, h: 9 });
+    expect(workspaceItemIsDocked(layout, 'players')).toBe(true);
+    expect(workspaceItemIsDocked(layout, 'playlist')).toBe(true);
+    expect(workspaceLayoutItem(layout, 'categories')).toMatchObject({ x: 0, y: 0, w: 12, h: 3 });
+    expect(workspaceLayoutItem(layout, 'soundboard')).toMatchObject({ x: 0, y: 3, w: 12, h: 9 });
   });
 
   it('provides a full-height playlist preset', () => {
@@ -59,7 +61,7 @@ describe('workspace layout', () => {
 
   it('keeps the proportions when the grid resolution changes', () => {
     const layout = workspaceLayoutWithColumns(createWorkspaceLayout('classic'), 6);
-    expect(workspaceLayoutItem(layout, 'categories')).toMatchObject({ x: 0, w: 5 });
+    expect(workspaceLayoutItem(layout, 'categories')).toMatchObject({ x: 0, w: 6 });
     expect(workspaceLayoutItem(layout, 'players')).toMatchObject({ x: 5, w: 1 });
   });
 
@@ -71,8 +73,8 @@ describe('workspace layout', () => {
 
   it('rejects moves and resizes that overlap another block', () => {
     const layout = createWorkspaceLayout('classic');
-    expect(moveWorkspaceItem(layout, 'playlist', 8, 5)).toBe(layout);
-    expect(resizeWorkspaceItem(layout, 'players', 4, 8)).toBe(layout);
+    expect(moveWorkspaceItem(layout, 'categories', 0, 3)).toBe(layout);
+    expect(resizeWorkspaceItem(layout, 'categories', 12, 4)).toBe(layout);
   });
 
   it('accepts a resize inside the free geometry and marks the layout custom', () => {
@@ -85,15 +87,16 @@ describe('workspace layout', () => {
   it('swaps two complete block slots without creating overlap', () => {
     const layout = createWorkspaceLayout('classic');
     const swapped = swapWorkspaceItems(layout, 'players', 'playlist');
-    expect(workspaceLayoutItem(swapped, 'players')).toMatchObject({ x: 9, y: 6, w: 3, h: 6 });
-    expect(workspaceLayoutItem(swapped, 'playlist')).toMatchObject({ x: 9, y: 0, w: 3, h: 6 });
+    expect(workspaceDockItems(swapped)).toEqual(['actions', 'playlist', 'players']);
+    expect(workspaceLayoutItem(swapped, 'players')).toMatchObject({ x: 9, y: 0, w: 3, h: 6 });
+    expect(workspaceLayoutItem(swapped, 'playlist')).toMatchObject({ x: 9, y: 6, w: 3, h: 6 });
   });
 
   it('exchanges a docked block with a compatible grid block', () => {
-    const layout = swapWorkspaceItems(createWorkspaceLayout(), 'actions', 'players');
+    const layout = swapWorkspaceItems(createWorkspaceLayout('playlist-vertical'), 'actions', 'players');
     expect(workspaceDockItems(layout)).toEqual(['players']);
     expect(workspaceItemIsDocked(layout, 'actions')).toBe(false);
-    expect(workspaceLayoutItem(layout, 'actions')).toMatchObject({ x: 9, y: 0, w: 3, h: 6 });
+    expect(workspaceLayoutItem(layout, 'actions')).toMatchObject({ x: 10, y: 3, w: 2, h: 9 });
   });
 
   it('moves the compact player and playlist pair into the dock when actions take its slot', () => {
@@ -124,8 +127,21 @@ describe('workspace layout', () => {
     const legacy = JSON.stringify({ columns: current.columns, preset: current.preset, items: current.items.filter((item) => item.id !== 'actions') });
     const migrated = readWorkspaceLayout(legacy);
     expect(workspaceLayoutItem(migrated, 'actions').id).toBe('actions');
-    expect(migrated.dock).toEqual(['actions']);
+    expect(migrated.dock).toEqual(['actions', 'players', 'playlist']);
     expect(migrated.collapsed).toEqual([]);
+  });
+
+  it('migrates the former classic right column into the left dock', () => {
+    const current = createWorkspaceLayout();
+    const legacy = JSON.stringify({
+      ...current,
+      dock: ['actions'],
+      items: current.items.map((item) => item.id === 'categories' || item.id === 'soundboard' ? { ...item, w: 9 } : item),
+    });
+    const migrated = readWorkspaceLayout(legacy);
+    expect(migrated.dock).toEqual(['actions', 'players', 'playlist']);
+    expect(workspaceLayoutItem(migrated, 'categories')).toMatchObject({ x: 0, w: 12 });
+    expect(workspaceLayoutItem(migrated, 'soundboard')).toMatchObject({ x: 0, w: 12 });
   });
 
   it('migrates the compact playlist drawer to the reusable collapsed state', () => {

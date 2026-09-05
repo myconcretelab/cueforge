@@ -52,8 +52,8 @@ export const workspacePresetLabels: Record<Exclude<WorkspacePreset, 'custom'>, s
 const basePresets: Record<Exclude<WorkspacePreset, 'custom'>, WorkspaceLayoutItem[]> = {
   classic: [
     { id: 'actions', x: 0, y: 0, w: 3, h: 4 },
-    { id: 'categories', x: 0, y: 0, w: 9, h: 3 },
-    { id: 'soundboard', x: 0, y: 3, w: 9, h: 9 },
+    { id: 'categories', x: 0, y: 0, w: 12, h: 3 },
+    { id: 'soundboard', x: 0, y: 3, w: 12, h: 9 },
     { id: 'players', x: 9, y: 0, w: 3, h: 6 },
     { id: 'playlist', x: 9, y: 6, w: 3, h: 6 },
   ],
@@ -89,7 +89,8 @@ const minimumSizes: Record<WorkspaceBlockId, { w: number; h: number }> = {
 };
 
 export function createWorkspaceLayout(preset: Exclude<WorkspacePreset, 'custom'> = 'classic', columns: WorkspaceGridColumns = 12): WorkspaceLayout {
-  return { columns, preset, items: scaleItems(basePresets[preset], 12, columns), dock: ['actions'], collapsed: preset === 'compact-control' ? ['playlist'] : [], compactPlaylistEnabled: preset === 'compact-control', compactPlaylistOpen: false, compactPlaylistRows: 6 };
+  const dock: WorkspaceBlockId[] = preset === 'classic' ? ['actions', 'players', 'playlist'] : ['actions'];
+  return { columns, preset, items: scaleItems(basePresets[preset], 12, columns), dock, collapsed: preset === 'compact-control' ? ['playlist'] : [], compactPlaylistEnabled: preset === 'compact-control', compactPlaylistOpen: false, compactPlaylistRows: 6 };
 }
 
 export function workspaceLayoutWithColumns(layout: WorkspaceLayout, columns: WorkspaceGridColumns): WorkspaceLayout {
@@ -212,12 +213,17 @@ export function readWorkspaceLayout(serialized: string | null): WorkspaceLayout 
     const storedItems = Array.isArray(value.items) && !value.items.some((item) => item.id === 'actions')
       ? [...value.items, createWorkspaceLayout('classic', value.columns).items.find((item) => item.id === 'actions')!]
       : value.items;
-    const dock = Array.isArray(value.dock) ? value.dock.filter((id): id is WorkspaceBlockId => workspaceDockableBlockIds.includes(id as WorkspaceBlockId)) : ['actions'] as WorkspaceBlockId[];
+    const storedDock = Array.isArray(value.dock) ? value.dock.filter((id): id is WorkspaceBlockId => workspaceDockableBlockIds.includes(id as WorkspaceBlockId)) : ['actions'] as WorkspaceBlockId[];
+    const legacyClassic = value.preset === 'classic' && storedDock.length === 1 && storedDock[0] === 'actions';
+    const dock = legacyClassic ? ['actions', 'players', 'playlist'] as WorkspaceBlockId[] : storedDock;
     const compactPlaylistEnabled = Boolean(value.compactPlaylistEnabled ?? value.preset === 'compact-control');
     const collapsed = Array.isArray(value.collapsed)
       ? value.collapsed.filter((id): id is WorkspaceBlockId => workspaceCollapsibleBlockIds.includes(id as WorkspaceBlockId))
       : compactPlaylistEnabled && !value.compactPlaylistOpen ? ['playlist'] as WorkspaceBlockId[] : [];
-    const expandedItems = Array.isArray(storedItems) ? expandCategorySpace(storedItems) : storedItems;
+    const classicItems = legacyClassic && Array.isArray(storedItems)
+      ? storedItems.map((item) => item.id === 'categories' || item.id === 'soundboard' ? { ...item, x: 0, w: value.columns } : item)
+      : storedItems;
+    const expandedItems = Array.isArray(classicItems) ? expandCategorySpace(classicItems) : classicItems;
     const items = Array.isArray(expandedItems) && layoutItemsAreValid(expandedItems, value.columns, dock, compactPlaylistEnabled) ? expandedItems : storedItems;
     if (!workspaceLayoutColumns.includes(value.columns) || !Array.isArray(items) || !layoutItemsAreValid(items, value.columns, dock, compactPlaylistEnabled)) return createWorkspaceLayout();
     const restored: WorkspaceLayout = {

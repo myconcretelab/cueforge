@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
@@ -32,5 +33,15 @@ describe('rectangle de sélection des morceaux', () => {
 
     expect(markup).toContain('draggable="true"');
     expect(markup).toContain('selection-enabled is-selected');
+  });
+
+  it('affiche toute la sélection pendant le déplacement et active les cibles de regroupement', () => {
+    const app = readFileSync(new URL('../src/client/App.tsx', import.meta.url), 'utf8');
+    const styles = readFileSync(new URL('../src/client/styles.css', import.meta.url), 'utf8');
+    expect(app).toContain('setSelectionDragImage(event, selectedTracks)');
+    expect(app).toContain("setDropTrackPlacement(draggingSelectedTracks ? 'group'");
+    expect(app).toContain('createSubcategoryFromSelectedTracks(track)');
+    expect(styles).toContain('.selection-drag-preview-card');
+    expect(styles).toContain('@keyframes drop-target-march');
   });
 });

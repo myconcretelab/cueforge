@@ -16,6 +16,7 @@ interface Props {
   selectionMode: boolean;
   selected: boolean;
   dropTarget: boolean;
+  dropLabel?: string;
   reorderPositionTarget?: 'before' | 'after';
   playlistPositionTarget?: 'before' | 'after';
   shortcut?: string;
@@ -32,11 +33,11 @@ interface Props {
   onDragEnd: () => void;
 }
 
-export function TrackPad({ track, color, active, playbacks, historyProgress, loaded, reorderEnabled, playlistDropEnabled, selectionMode, selected, dropTarget, reorderPositionTarget, playlistPositionTarget, shortcut, bridgeOutputs, mainBridgeOutputId, onPrimary, onOutputPlay, onSecondary, onEdit, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: Props) {
+export function TrackPad({ track, color, active, playbacks, historyProgress, loaded, reorderEnabled, playlistDropEnabled, selectionMode, selected, dropTarget, dropLabel, reorderPositionTarget, playlistPositionTarget, shortcut, bridgeOutputs, mainBridgeOutputId, onPrimary, onOutputPlay, onSecondary, onEdit, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: Props) {
   const mainOutput = bridgeOutputs.find((output) => output.id === mainBridgeOutputId);
   const alternateOutputs = mainOutput ? bridgeOutputs.filter((output) => output.id !== mainOutput.id) : [];
   return <article className={`track-pad ${active ? 'is-active' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${playlistDropEnabled ? 'playlist-drag-enabled' : ''} ${selectionMode ? 'selection-enabled' : ''} ${selected ? 'is-selected' : ''} ${dropTarget ? 'is-drop-target group-drop-target' : ''} ${reorderPositionTarget ? `reorder-position-target drop-${reorderPositionTarget}` : ''} ${playlistPositionTarget ? `playlist-position-target drop-${playlistPositionTarget}` : ''}`}
-    style={{ '--track-color': color, '--track-contrast': contrastColor(color) } as React.CSSProperties} draggable={selectionMode ? selected : reorderEnabled || playlistDropEnabled} data-track-id={track.id} onClick={() => selectionMode && onSelect()}
+    style={{ '--track-color': color, '--track-contrast': contrastColor(color) } as React.CSSProperties} draggable={selectionMode ? selected : reorderEnabled || playlistDropEnabled} data-track-id={track.id} data-drop-label={dropTarget ? dropLabel : undefined} onClick={() => selectionMode && onSelect()}
     onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}>
     {selectionMode && <span className="track-selection-indicator" aria-hidden="true">{selected && <CircleCheck size={18} />}</span>}
     {loaded && <span className="track-loaded" title="Disponible hors ligne" aria-label="Disponible hors ligne"><CircleCheck size={15} /></span>}
