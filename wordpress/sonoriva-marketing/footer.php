@@ -9,7 +9,7 @@
     <div class="shell footer-grid">
         <div class="footer-brand">
             <a class="brand" href="<?php echo esc_url(home_url('/')); ?>">
-                <img src="<?php echo esc_url(get_template_directory_uri() . '/assets/images/sonoriva-mark.svg'); ?>" alt="" width="38" height="38">
+                <img src="<?php echo esc_url(add_query_arg('ver', wp_get_theme()->get('Version'), get_template_directory_uri() . '/assets/images/sonoriva-mark.svg')); ?>" alt="" width="38" height="38">
                 <span class="brand-lockup"><strong>SonoRiva</strong><small>Play sound. Play the scene.</small></span>
             </a>
             <p>La régie son web conçue pour celles et ceux qui font vivre la scène.</p>

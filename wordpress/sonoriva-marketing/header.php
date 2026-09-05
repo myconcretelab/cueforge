@@ -17,7 +17,7 @@
 <header class="site-header" data-site-header>
     <div class="shell header-inner">
         <a class="brand" href="<?php echo esc_url(home_url('/')); ?>" aria-label="SonoRiva — Accueil">
-            <img src="<?php echo esc_url(get_template_directory_uri() . '/assets/images/sonoriva-mark.svg'); ?>" alt="" width="42" height="42">
+            <img src="<?php echo esc_url(add_query_arg('ver', wp_get_theme()->get('Version'), get_template_directory_uri() . '/assets/images/sonoriva-mark.svg')); ?>" alt="" width="42" height="42">
             <span class="brand-lockup"><strong>SonoRiva</strong><small>Play sound. Play the scene.</small></span>
         </a>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" data-nav-toggle>
