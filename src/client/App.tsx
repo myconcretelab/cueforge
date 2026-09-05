@@ -1,6 +1,6 @@
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import {
-  ArrowUpDown, AudioLines, AudioWaveform, ChevronDown, CircleCheck, Clock3, Columns3, Download, FolderInput, FolderPlus, GripHorizontal, GripVertical, History, LayoutDashboard, ListMusic, ListPlus, LoaderCircle, Menu, Move, Pause, Pencil, Play, Plus, Radio,
+  ArrowUpDown, AudioLines, AudioWaveform, ChevronDown, CircleCheck, Clock3, Columns3, Download, FolderInput, FolderPlus, GripHorizontal, GripVertical, History, LayoutDashboard, LifeBuoy, ListMusic, ListPlus, LoaderCircle, Menu, Move, Pause, Pencil, Play, Plus, Radio,
   LockKeyhole, LogIn, RefreshCcw, Repeat2, RotateCcw, Scan, Search, Settings, Settings2, SlidersHorizontal, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
@@ -17,6 +17,7 @@ import { PlaylistPanel, type PlaylistOptions } from './components/PlaylistPanel'
 import { PlaybackOutputSelector } from './components/PlaybackOutputSelector';
 import { SoundShowImportDialog } from './components/SoundShowImportDialog';
 import { SettingsDialog } from './components/SettingsDialog';
+import { SupportDialog } from './components/SupportDialog';
 import { TrackDialog } from './components/TrackDialog';
 import { TrackPad } from './components/TrackPad';
 import { TrackSubcategoryDialog } from './components/TrackSubcategoryDialog';
@@ -167,6 +168,8 @@ export default function App() {
   const [openverseOpen, setOpenverseOpen] = useState(false);
   const [openverseAutoSearch, setOpenverseAutoSearch] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportUnreadCount, setSupportUnreadCount] = useState(0);
   const [settingsInitialSection, setSettingsInitialSection] = useState<'billing'>();
   const [accountSummary, setAccountSummary] = useState<AccountSummary>();
   const [bridgeAvailable, setBridgeAvailable] = useState<boolean>();
@@ -239,6 +242,16 @@ export default function App() {
   }, []);
 
   useEffect(() => audioEngine.subscribe(setActivePlaybacks), []);
+  useEffect(() => {
+    if (!user || supportOpen) return;
+    let cancelled = false;
+    const refresh = () => api.supportTickets().then(({ tickets }) => {
+      if (!cancelled) setSupportUnreadCount(tickets.reduce((total, ticket) => total + ticket.unreadCount, 0));
+    }).catch(() => undefined);
+    refresh();
+    const timer = window.setInterval(refresh, 60_000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [supportOpen, user]);
   useEffect(() => audioEngine.setMasterVolume(masterVolume / 100), [masterVolume]);
   useEffect(() => audioEngine.setMaxActivePlaybacks(detail?.project.maxActivePlaybacks ?? 8), [detail?.project.maxActivePlaybacks]);
   useEffect(() => audioEngine.subscribeHistory(setPlaybackHistory), []);
@@ -2325,6 +2338,7 @@ export default function App() {
         </div>
         <div className="top-actions">
           {!remote && <button className={`icon-button layout-button ${layoutEditing ? 'active' : ''}`} disabled={!customLayoutsEnabled} onClick={() => { setLayoutEditing((current) => !current); setCategoryManageMode(false); setReorderMode(false); setSelectionMode(false); setSelectedTrackIds(new Set()); }} aria-label={layoutEditing ? 'Terminer la modification de la disposition' : 'Modifier la disposition de l’interface'} title={customLayoutsEnabled ? 'Disposition de l’interface' : 'Disposition personnalisée non incluse dans votre forfait'}><LayoutDashboard size={19} /></button>}
+          <button className="icon-button support-button" onClick={() => setSupportOpen(true)} aria-label="Ouvrir le support" title="Support"><LifeBuoy size={19} />{supportUnreadCount > 0 && <i aria-label={`${supportUnreadCount} réponse${supportUnreadCount > 1 ? 's' : ''} non lue${supportUnreadCount > 1 ? 's' : ''}`}>{Math.min(supportUnreadCount, 9)}</i>}</button>
           <button className={`icon-button settings-button ${unseenReleases.length > 0 ? 'has-update' : ''}`} onClick={() => { setSettingsInitialSection(undefined); setSettingsOpen(true); }} aria-label="Ouvrir les paramètres" title="Paramètres"><Settings size={19} />{unseenReleases.length > 0 && <i aria-hidden="true" />}</button>
           {!remote && <button className="icon-button reset-show-button" onClick={resetCurrentProject} disabled={!detail} aria-label="Réinitialiser le spectacle en cours" title="Réinitialiser le spectacle"><RefreshCcw size={18} /></button>}
           {!remote && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Ajouter un son</button>}
@@ -2500,6 +2514,7 @@ export default function App() {
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
     {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} initialSection={settingsInitialSection} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} openSubcategoriesOnDrag={openSubcategoriesOnDrag} appSkin={appSkin} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onOpenSubcategoriesOnDragChange={setOpenSubcategoriesOnDragPreference} onAppSkinChange={changeAppSkin} onAccountChange={handleAccountChange} onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined); }} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenOpenverse={() => { setSettingsOpen(false); setOpenverseAutoSearch(false); setOpenverseOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onUpdateKeyboardShortcut={updateKeyboardShortcut} onUpdatePlaylistGroupLimit={updatePlaylistGroupLimit} onUpdatePlaybackSettings={updatePlaybackSettings} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}
+    {supportOpen && <SupportDialog onClose={() => setSupportOpen(false)} onUnreadChange={setSupportUnreadCount} />}
     {whatsNewOpen && releaseInfo && <WhatsNewDialog releases={releasesForDialog} currentVersion={releaseInfo.currentVersion} onClose={closeWhatsNew} />}
     {soundShowImportOpen && <SoundShowImportDialog onClose={() => setSoundShowImportOpen(false)} onImported={async (projectId) => { setSoundShowImportOpen(false); await loadProjects(); chooseProject(projectId); }} />}
     {openverseOpen && detail && <OpenverseDialog initialQuery={search} autoSearch={openverseAutoSearch} projectId={detail.project.id} categories={detail.categories} subcategories={detail.subcategories} projectColors={detail.colors} defaultCategoryId={selectedCategoryId !== 'all' ? selectedCategoryId : undefined} nextPosition={detail.tracks.length} bridgeOutputs={routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId} onImported={refreshProject} onClose={() => { setOpenverseOpen(false); setOpenverseAutoSearch(false); }} />}

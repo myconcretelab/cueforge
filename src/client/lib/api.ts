@@ -1,4 +1,4 @@
-import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminUser, AuditEntry, BatchTrackUpdateInput, BridgeDevice, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, OpenverseLicenseFilter, OpenverseSearchResult, OpenverseSource, Playlist, PlaylistEntry, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcuts, PublicDemo, PublicPlan, ReleaseInfo, SoundShowAnalysis, Track, TrackSubcategory, User } from '../types';
+import type { AccountSummary, AdminAccount, AdminOverview, AdminReleaseInfo, AdminSupportTicket, AdminUser, AuditEntry, BatchTrackUpdateInput, BridgeDevice, Category, CommercialPlan, FreesoundLicenseFilter, FreesoundSearchResult, KeyAction, MouseAction, OpenverseLicenseFilter, OpenverseSearchResult, OpenverseSource, Playlist, PlaylistEntry, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcuts, PublicDemo, PublicPlan, ReleaseInfo, SoundShowAnalysis, SupportMessage, SupportTicket, SupportTicketPriority, SupportTicketStatus, Track, TrackSubcategory, User } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -53,6 +53,11 @@ export const api = {
   >('/api/bridge/pairings/status', { method: 'POST', body: JSON.stringify({ ticket }) }),
   bridgeDevices: () => request<{ devices: BridgeDevice[] }>('/api/bridge/devices'),
   revokeBridgeDevice: (id: string) => request<void>(`/api/bridge/devices/${id}`, { method: 'DELETE' }),
+  supportTickets: () => request<{ tickets: SupportTicket[] }>('/api/support/tickets'),
+  supportTicket: (id: string) => request<{ ticket: SupportTicket; messages: SupportMessage[] }>(`/api/support/tickets/${id}`),
+  createSupportTicket: (input: { subject: string; body: string }) => request<{ ticket: SupportTicket }>('/api/support/tickets', { method: 'POST', body: JSON.stringify(input) }),
+  replyToSupportTicket: (id: string, body: string) => request<{ message: SupportMessage }>(`/api/support/tickets/${id}/messages`, { method: 'POST', body: JSON.stringify({ body }) }),
+  updateSupportTicket: (id: string, status: Extract<SupportTicketStatus, 'open' | 'resolved' | 'closed'>) => request<{ ticket: SupportTicket }>(`/api/support/tickets/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   adminOverview: () => request<{ overview: AdminOverview; recentAudit: AuditEntry[] }>('/api/admin/overview'),
   adminReleases: () => request<AdminReleaseInfo>('/api/admin/releases'),
   adminAccounts: (search = '') => request<{ accounts: AdminAccount[] }>(`/api/admin/accounts?search=${encodeURIComponent(search)}`),
@@ -66,6 +71,15 @@ export const api = {
   deleteAdminPlan: (code: string) => request<void>(`/api/admin/plans/${encodeURIComponent(code)}`, { method: 'DELETE' }),
   syncAdminPlanStripe: (code: string) => request<{ billing: { environment: 'test' | 'live'; productId: string; monthlyPriceId: string | null; annualPriceId: string | null } }>(`/api/admin/plans/${encodeURIComponent(code)}/stripe-sync`, { method: 'POST' }),
   reconcileAdminAccountStripe: (id: string) => request<void>(`/api/admin/accounts/${id}/stripe-reconcile`, { method: 'POST' }),
+  adminSupportTickets: (input: { search?: string; status?: SupportTicketStatus } = {}) => {
+    const parameters = new URLSearchParams();
+    if (input.search) parameters.set('search', input.search);
+    if (input.status) parameters.set('status', input.status);
+    return request<{ tickets: AdminSupportTicket[] }>(`/api/admin/support/tickets?${parameters}`);
+  },
+  adminSupportTicket: (id: string) => request<{ ticket: AdminSupportTicket; messages: SupportMessage[] }>(`/api/admin/support/tickets/${id}`),
+  replyToAdminSupportTicket: (id: string, input: { body: string; status: Extract<SupportTicketStatus, 'awaiting_user' | 'resolved' | 'closed'> }) => request<{ message: SupportMessage }>(`/api/admin/support/tickets/${id}/messages`, { method: 'POST', body: JSON.stringify(input) }),
+  updateAdminSupportTicket: (id: string, input: { status?: SupportTicketStatus; priority?: SupportTicketPriority }) => request<{ ticket: AdminSupportTicket }>(`/api/admin/support/tickets/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
   projects: () => request<{ projects: Project[] }>('/api/projects'),
   createProject: (name: string) => request<{ project: Project }>('/api/projects', {
     method: 'POST', body: JSON.stringify({ name }),

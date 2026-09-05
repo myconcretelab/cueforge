@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Activity, BadgeEuro, BookOpen, Boxes, CircleAlert, Copy, CreditCard, Database, Gauge, HardDrive, LayoutDashboard, LoaderCircle, LogOut, RefreshCcw, Search, ShieldCheck, Trash2, Users, X } from 'lucide-react';
+import { Activity, BadgeEuro, BookOpen, Boxes, CircleAlert, Copy, CreditCard, Database, Gauge, HardDrive, LayoutDashboard, LifeBuoy, LoaderCircle, LogOut, MessageSquare, RefreshCcw, Search, Send, ShieldCheck, Trash2, Users, X } from 'lucide-react';
 import { AuthScreen } from '../components/AuthScreen';
 import { api, ApiError } from '../lib/api';
-import type { AdminAccount, AdminOverview, AdminUser, AppRelease, AuditEntry, CommercialPlan, User } from '../types';
+import type { AdminAccount, AdminOverview, AdminSupportTicket, AdminUser, AppRelease, AuditEntry, CommercialPlan, SupportMessage, SupportTicketPriority, SupportTicketStatus, User } from '../types';
 
-type Section = 'overview' | 'accounts' | 'plans' | 'users' | 'documentation';
+type Section = 'overview' | 'accounts' | 'plans' | 'users' | 'support' | 'documentation';
 type AccountStatus = AdminAccount['accessStatus'];
 type PlanEditorTarget = { mode: 'create' | 'edit'; source?: CommercialPlan };
 
@@ -21,6 +21,19 @@ const roleLabels: Record<User['platformRole'], string> = {
   support: 'Support',
   admin: 'Administrateur',
   super_admin: 'Super-admin',
+};
+
+const supportStatusLabels: Record<SupportTicketStatus, string> = {
+  open: 'En attente du support',
+  awaiting_user: 'En attente de l’utilisateur',
+  resolved: 'Résolue',
+  closed: 'Close',
+};
+
+const supportPriorityLabels: Record<SupportTicketPriority, string> = {
+  normal: 'Normale',
+  high: 'Haute',
+  urgent: 'Urgente',
 };
 
 function formatBytes(bytes: number): string {
@@ -50,12 +63,15 @@ export function AdminApp() {
   const [accounts, setAccounts] = useState<AdminAccount[]>([]);
   const [plans, setPlans] = useState<CommercialPlan[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>([]);
+  const [supportStatus, setSupportStatus] = useState<'all' | SupportTicketStatus>('all');
   const [adminReleases, setAdminReleases] = useState<AppRelease[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingAccount, setEditingAccount] = useState<AdminAccount>();
   const [editingPlan, setEditingPlan] = useState<PlanEditorTarget>();
+  const [selectedSupportTicket, setSelectedSupportTicket] = useState<AdminSupportTicket>();
 
   useEffect(() => {
     api.me().then(({ user: current }) => setUser(current)).catch((cause) => {
@@ -80,6 +96,8 @@ export function AdminApp() {
         setPlans((await api.adminPlans()).plans);
       } else if (section === 'users') {
         setUsers((await api.adminUsers(search)).users);
+      } else if (section === 'support') {
+        setSupportTickets((await api.adminSupportTickets({ search, status: supportStatus === 'all' ? undefined : supportStatus })).tickets);
       } else {
         setAdminReleases((await api.adminReleases()).releases);
       }
@@ -88,7 +106,7 @@ export function AdminApp() {
     } finally {
       setLoading(false);
     }
-  }, [search, section, user]);
+  }, [search, section, supportStatus, user]);
 
   useEffect(() => { loadSection().catch(() => undefined); }, [loadSection]);
 
@@ -106,6 +124,7 @@ export function AdminApp() {
     { id: 'accounts', label: 'Comptes', icon: Boxes },
     { id: 'plans', label: 'Forfaits', icon: BadgeEuro },
     { id: 'users', label: 'Utilisateurs', icon: Users },
+    ...(user.platformRole === 'super_admin' ? [{ id: 'support' as const, label: 'Support', icon: LifeBuoy }] : []),
     { id: 'documentation', label: 'Documentation', icon: BookOpen },
   ];
 
@@ -122,19 +141,22 @@ export function AdminApp() {
       {section === 'accounts' && <AccountsSection accounts={accounts} canEdit={user.platformRole === 'super_admin'} search={search} onSearch={setSearch} onSubmitSearch={loadSection} onEdit={setEditingAccount} />}
       {section === 'plans' && <PlansSection plans={plans} canEdit={user.platformRole === 'super_admin'} onEdit={(plan) => setEditingPlan({ mode: 'edit', source: plan })} onCreate={() => setEditingPlan({ mode: 'create' })} onDuplicate={(plan) => setEditingPlan({ mode: 'create', source: plan })} />}
       {section === 'users' && <UsersSection users={users} currentUser={user} search={search} onSearch={setSearch} onSubmitSearch={loadSection} onChanged={loadSection} onError={setError} />}
+      {section === 'support' && <SupportSection tickets={supportTickets} search={search} status={supportStatus} onSearch={setSearch} onStatusChange={setSupportStatus} onSubmitSearch={loadSection} onOpen={setSelectedSupportTicket} />}
       {section === 'documentation' && <AdminDocumentation releases={adminReleases} />}
     </main>
     {editingAccount && <AccountEditor account={editingAccount} plans={plans} onClose={() => setEditingAccount(undefined)} onSaved={() => { setEditingAccount(undefined); loadSection().catch(() => undefined); }} onError={setError} />}
     {editingPlan && <PlanEditor target={editingPlan} onClose={() => setEditingPlan(undefined)} onSaved={() => { setEditingPlan(undefined); loadSection().catch(() => undefined); }} onError={setError} />}
+    {selectedSupportTicket && <AdminSupportTicketDialog source={selectedSupportTicket} onClose={() => setSelectedSupportTicket(undefined)} onChanged={loadSection} />}
   </div>;
 }
 
 function AdminDocumentation({ releases }: { releases: AppRelease[] }) {
   return <div className="admin-content admin-docs">
-    <section className="admin-panel admin-doc-section"><header><div><h2>Accès au dashboard</h2><p>Rôles de plateforme et droits associés à l’adresse /admin.</p></div></header><div className="admin-doc-body"><table><thead><tr><th>Rôle</th><th>Accès</th></tr></thead><tbody><tr><td><code>user</code></td><td>Aucun accès administratif</td></tr><tr><td><code>support</code></td><td>Aucun accès administratif</td></tr><tr><td><code>admin</code></td><td>Consultation des comptes, forfaits, utilisateurs et journaux</td></tr><tr><td><code>super_admin</code></td><td>Consultation et modification des données commerciales</td></tr></tbody></table></div></section>
+    <section className="admin-panel admin-doc-section"><header><div><h2>Accès au dashboard</h2><p>Rôles de plateforme et droits associés à l’adresse /admin.</p></div></header><div className="admin-doc-body"><table><thead><tr><th>Rôle</th><th>Accès</th></tr></thead><tbody><tr><td><code>user</code></td><td>Aucun accès administratif</td></tr><tr><td><code>support</code></td><td>Aucun accès administratif</td></tr><tr><td><code>admin</code></td><td>Consultation des comptes, forfaits, utilisateurs et journaux</td></tr><tr><td><code>super_admin</code></td><td>Modification des données commerciales et gestion des demandes de support</td></tr></tbody></table></div></section>
     <section className="admin-panel admin-doc-section"><header><div><h2>Comptes et accès</h2><p>Structure commerciale appliquée aux espaces clients.</p></div></header><div className="admin-doc-body"><p>Un compte regroupe ses membres, ses spectacles, son forfait, son état d’accès et son abonnement. Le quota du forfait s’applique sauf lorsqu’un quota exceptionnel est défini sur le compte.</p><dl><div><dt><code>trialing</code></dt><dd>Essai actif jusqu’à la date indiquée.</dd></div><div><dt><code>active</code></dt><dd>Écritures et lecture autorisées.</dd></div><div><dt><code>grace_period</code></dt><dd>Accès maintenu pendant le délai de régularisation.</dd></div><div><dt><code>read_only</code></dt><dd>Lecture autorisée et modifications bloquées.</dd></div><div><dt><code>suspended</code></dt><dd>Modifications bloquées par l’administration.</dd></div></dl></div></section>
     <section className="admin-panel admin-doc-section"><header><div><h2>Forfaits et publication</h2><p>Prix, quotas, droits fonctionnels, essais et affichage sur sonoriva.fr.</p></div></header><div className="admin-doc-body"><p>Un forfait définit son code, son nom, sa description, son quota, sa durée d’essai, ses prix, ses fonctionnalités disponibles, son nombre maximal de spectacles, son état actif et son utilisation comme forfait par défaut.</p><ul><li><strong>Fonctionnalités disponibles</strong> contrôle les dispositions personnalisées, les playlists et la télécommande.</li><li>Une limite de spectacles vide correspond à un nombre illimité.</li><li><strong>Visible sur le site</strong> publie le forfait dans l’API publique.</li><li><strong>Mis en avant</strong> sélectionne la carte principale du site ; un seul forfait peut être mis en avant.</li><li><strong>Ordre d’affichage</strong> détermine le classement des cartes, puis le nom départage les valeurs identiques.</li><li>Un forfait dont tous les prix renseignés valent 0 € est gratuit et s’active sans Stripe. Un prix vide désactive la périodicité correspondante.</li><li>Un forfait ne peut être supprimé que s’il n’est ni attribué, ni défini par défaut.</li></ul></div></section>
     <section className="admin-panel admin-doc-section"><header><div><h2>Abonnements et journal</h2><p>Données conservées par le pilotage commercial.</p></div></header><div className="admin-doc-body"><p>Stripe conserve les clients, tarifs, abonnements, factures et paiements. SonoRiva conserve une projection de l’abonnement qui détermine le forfait, le quota et l’état d’accès.</p><p>Le bouton de synchronisation d’un forfait crée ou actualise son produit et ses tarifs Stripe dans l’environnement configuré. Un changement de montant crée un nouveau tarif ; les abonnements existants conservent leur ancien tarif.</p><p>Les webhooks signés pilotent les droits. Les retours de Checkout ne modifient jamais directement l’accès. Chaque événement Stripe est traité de manière idempotente et journalisé.</p></div></section>
+    <section className="admin-panel admin-doc-section"><header><div><h2>Demandes de support</h2><p>Conversations rattachées aux utilisateurs et à leur compte.</p></div></header><div className="admin-doc-body"><p>La rubrique Support est réservée au super-administrateur. Elle affiche le demandeur, le compte, le forfait, l’état d’accès, le stockage utilisé et le quota effectif.</p><p>Une demande peut être en attente du support, en attente de l’utilisateur, résolue ou close. Sa priorité peut être normale, haute ou urgente. Les réponses et changements administratifs sont journalisés.</p></div></section>
     <section className="admin-panel admin-doc-section"><header><div><h2>Versions de l’administration</h2><p>Évolutions du dashboard, des forfaits et de la publication commerciale.</p></div></header><div className="admin-release-list">{releases.map((release) => <article key={`${release.audience}-${release.version}`}><header><div><strong>{release.title}</strong><span>Version {release.version}</span></div><time dateTime={release.date}>{new Date(`${release.date}T00:00:00Z`).toLocaleDateString('fr-FR', { timeZone: 'UTC', dateStyle: 'long' })}</time></header><p>{release.summary}</p><ul>{release.changes.map((change) => <li key={change}>{change}</li>)}</ul></article>)}{releases.length === 0 && <p className="admin-empty">Aucune version administrative.</p>}</div></section>
   </div>;
 }
@@ -156,6 +178,123 @@ function OverviewSection({ overview, audit }: { overview: AdminOverview; audit: 
 
 function SearchBar({ value, onChange, onSubmit, placeholder }: { value: string; onChange: (value: string) => void; onSubmit: () => void; placeholder: string }) {
   return <form className="admin-search" onSubmit={(event) => { event.preventDefault(); onSubmit(); }}><Search size={17} /><input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} /><button>Rechercher</button></form>;
+}
+
+function formatSupportDate(value: string): string {
+  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
+
+function SupportSection({ tickets, search, status, onSearch, onStatusChange, onSubmitSearch, onOpen }: {
+  tickets: AdminSupportTicket[];
+  search: string;
+  status: 'all' | SupportTicketStatus;
+  onSearch: (value: string) => void;
+  onStatusChange: (value: 'all' | SupportTicketStatus) => void;
+  onSubmitSearch: () => void;
+  onOpen: (ticket: AdminSupportTicket) => void;
+}) {
+  const waitingCount = tickets.filter((ticket) => ticket.status === 'open').length;
+  const unreadCount = tickets.reduce((total, ticket) => total + ticket.unreadCount, 0);
+  return <div className="admin-content support-admin-content">
+    <section className="support-admin-summary">
+      <article><span><MessageSquare size={18} /></span><strong>{tickets.length}</strong><small>Demandes affichées</small></article>
+      <article><span><LifeBuoy size={18} /></span><strong>{waitingCount}</strong><small>En attente du support</small></article>
+      <article><span><CircleAlert size={18} /></span><strong>{unreadCount}</strong><small>Messages non lus</small></article>
+    </section>
+    <section className="admin-panel">
+      <header><div><h2>Demandes de support</h2><p>Messages, utilisateurs, forfaits et consommation des comptes.</p></div><div className="support-admin-filters"><select aria-label="Filtrer par état" value={status} onChange={(event) => onStatusChange(event.target.value as 'all' | SupportTicketStatus)}><option value="all">Tous les états</option>{Object.entries(supportStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><SearchBar value={search} onChange={onSearch} onSubmit={onSubmitSearch} placeholder="Sujet, utilisateur ou compte" /></div></header>
+      <div className="admin-table-wrap"><table className="admin-table support-admin-table"><thead><tr><th>Demande</th><th>Utilisateur</th><th>Compte</th><th>Quota</th><th>État</th><th /></tr></thead><tbody>{tickets.map((ticket) => <tr key={ticket.id} className={ticket.unreadCount > 0 ? 'has-unread' : ''}>
+        <td><strong>{ticket.subject}</strong><small>{ticket.messageCount} message{ticket.messageCount > 1 ? 's' : ''} · {formatSupportDate(ticket.lastMessageAt)}</small></td>
+        <td><strong>{ticket.userName}</strong><small>{ticket.userEmail}</small></td>
+        <td><strong>{ticket.accountName}</strong><small>{ticket.planName} · {statusLabels[ticket.accountStatus]}</small></td>
+        <td><strong>{formatBytes(ticket.storageUsedBytes)}</strong><small>sur {formatBytes(ticket.storageQuotaBytes)}</small></td>
+        <td><span className={`support-admin-status status-${ticket.status}`}>{supportStatusLabels[ticket.status]}</span>{ticket.priority !== 'normal' && <small className={`support-priority priority-${ticket.priority}`}>{supportPriorityLabels[ticket.priority]}</small>}</td>
+        <td><button className="table-action support-open-ticket" onClick={() => onOpen(ticket)}>Ouvrir{ticket.unreadCount > 0 && <em>{ticket.unreadCount}</em>}</button></td>
+      </tr>)}</tbody></table>{tickets.length === 0 && <p className="admin-empty">Aucune demande trouvée.</p>}</div>
+    </section>
+  </div>;
+}
+
+function AdminSupportTicketDialog({ source, onClose, onChanged }: { source: AdminSupportTicket; onClose: () => void; onChanged: () => void }) {
+  const [ticket, setTicket] = useState(source);
+  const [messages, setMessages] = useState<SupportMessage[]>([]);
+  const [replyStatus, setReplyStatus] = useState<Extract<SupportTicketStatus, 'awaiting_user' | 'resolved' | 'closed'>>('awaiting_user');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const result = await api.adminSupportTicket(source.id);
+      setTicket(result.ticket);
+      setMessages(result.messages);
+      onChanged();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Chargement de la demande impossible.');
+    } finally {
+      setLoading(false);
+    }
+  }, [onChanged, source.id]);
+
+  useEffect(() => { load().catch(() => undefined); }, [load]);
+
+  async function changeTicket(input: { status?: SupportTicketStatus; priority?: SupportTicketPriority }) {
+    setBusy(true);
+    setError('');
+    try {
+      await api.updateAdminSupportTicket(ticket.id, input);
+      setTicket((current) => ({ ...current, ...input }));
+      onChanged();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Modification impossible.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reply(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const body = String(new FormData(form).get('body') ?? '');
+    setBusy(true);
+    setError('');
+    try {
+      const result = await api.replyToAdminSupportTicket(ticket.id, { body, status: replyStatus });
+      setMessages((current) => [...current, result.message]);
+      setTicket((current) => ({ ...current, status: replyStatus, lastMessageAt: result.message.createdAt, updatedAt: result.message.createdAt, messageCount: current.messageCount + 1, unreadCount: 0 }));
+      form.reset();
+      onChanged();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Envoi de la réponse impossible.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return <div className="admin-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="admin-modal support-admin-dialog">
+      <header><div><p className="eyebrow">Demande de support</p><h2>{ticket.subject}</h2></div><button className="admin-modal-close" onClick={onClose} aria-label="Fermer"><X size={19} /></button></header>
+      <div className="support-admin-ticket-layout">
+        <aside className="support-customer-context">
+          <section><span>Utilisateur</span><strong>{ticket.userName}</strong><a href={`mailto:${ticket.userEmail}`}>{ticket.userEmail}</a></section>
+          <section><span>Compte</span><strong>{ticket.accountName}</strong><small>{statusLabels[ticket.accountStatus]}</small></section>
+          <section><span>Forfait</span><strong>{ticket.planName}</strong><small>{ticket.planCode}</small></section>
+          <section><span>Stockage</span><strong>{formatBytes(ticket.storageUsedBytes)} / {formatBytes(ticket.storageQuotaBytes)}</strong><div className="support-quota-bar"><i style={{ width: `${Math.min(100, ticket.storageQuotaBytes > 0 ? ticket.storageUsedBytes / ticket.storageQuotaBytes * 100 : 0)}%` }} /></div></section>
+          <label>État<select value={ticket.status} disabled={busy} onChange={(event) => changeTicket({ status: event.target.value as SupportTicketStatus })}>{Object.entries(supportStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+          <label>Priorité<select value={ticket.priority} disabled={busy} onChange={(event) => changeTicket({ priority: event.target.value as SupportTicketPriority })}>{Object.entries(supportPriorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        </aside>
+        <main className="support-admin-thread">
+          <div className="support-admin-thread-meta"><span className={`support-admin-status status-${ticket.status}`}>{supportStatusLabels[ticket.status]}</span><small>Ouverte le {formatSupportDate(ticket.createdAt)}</small></div>
+          <div className="support-admin-messages">{messages.map((message) => <article key={message.id} className={message.authorKind}><header><strong>{message.authorKind === 'admin' ? message.authorName ?? 'Support SonoRiva' : ticket.userName}</strong><time>{formatSupportDate(message.createdAt)}</time></header><p>{message.body}</p></article>)}</div>
+          {error && <p className="admin-error support-dialog-error"><CircleAlert size={16} />{error}</p>}
+          <form className="support-admin-reply" onSubmit={reply}><textarea name="body" minLength={1} maxLength={10000} rows={4} required placeholder="Répondre à l’utilisateur…" /><div><select value={replyStatus} onChange={(event) => setReplyStatus(event.target.value as typeof replyStatus)}><option value="awaiting_user">Envoyer et attendre l’utilisateur</option><option value="resolved">Envoyer et résoudre</option><option value="closed">Envoyer et clore</option></select><button className="button primary" disabled={busy}>{busy ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />}Envoyer</button></div></form>
+          {loading && <div className="support-admin-loading"><LoaderCircle className="spin" />Chargement…</div>}
+        </main>
+      </div>
+    </section>
+  </div>;
 }
 
 function AccountsSection({ accounts, canEdit, search, onSearch, onSubmitSearch, onEdit }: { accounts: AdminAccount[]; canEdit: boolean; search: string; onSearch: (value: string) => void; onSubmitSearch: () => void; onEdit: (account: AdminAccount) => void }) {

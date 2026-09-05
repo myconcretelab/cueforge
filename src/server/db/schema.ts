@@ -292,6 +292,38 @@ export const playlistItems = pgTable('playlist_items', {
   rowIndex: integer('row_index').notNull().default(0),
 }, (table) => [index('playlist_items_playlist_id_idx').on(table.playlistId), index('playlist_items_track_id_idx').on(table.trackId)]);
 
+export const supportTickets = pgTable('support_tickets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  accountId: uuid('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  createdByUserId: uuid('created_by_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  subject: text('subject').notNull(),
+  status: text('status').notNull().default('open'),
+  priority: text('priority').notNull().default('normal'),
+  lastMessageAt: timestamp('last_message_at', { withTimezone: true }).notNull().defaultNow(),
+  userLastReadAt: timestamp('user_last_read_at', { withTimezone: true }).notNull().defaultNow(),
+  adminLastReadAt: timestamp('admin_last_read_at', { withTimezone: true }),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  closedAt: timestamp('closed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('support_tickets_account_id_idx').on(table.accountId),
+  index('support_tickets_created_by_user_id_idx').on(table.createdByUserId),
+  index('support_tickets_status_last_message_idx').on(table.status, table.lastMessageAt),
+]);
+
+export const supportMessages = pgTable('support_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ticketId: uuid('ticket_id').notNull().references(() => supportTickets.id, { onDelete: 'cascade' }),
+  authorUserId: uuid('author_user_id').references(() => users.id, { onDelete: 'set null' }),
+  authorKind: text('author_kind').notNull(),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('support_messages_ticket_id_created_at_idx').on(table.ticketId, table.createdAt),
+  index('support_messages_author_user_id_idx').on(table.authorUserId),
+]);
+
 export const auditLogs = pgTable('audit_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
   actorUserId: uuid('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
@@ -320,3 +352,5 @@ export type Playlist = typeof playlists.$inferSelect;
 export type Category = typeof categories.$inferSelect;
 export type Track = typeof tracks.$inferSelect;
 export type PlaylistItem = typeof playlistItems.$inferSelect;
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type SupportMessage = typeof supportMessages.$inferSelect;

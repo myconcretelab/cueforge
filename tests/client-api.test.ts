@@ -198,4 +198,27 @@ describe('client API', () => {
       headers: undefined,
     }));
   });
+
+  it('crée une demande de support et transmet les réponses des deux interfaces', async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ ticket: {}, message: {} }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetcher);
+    const ticketId = '66666666-6666-4666-8666-666666666666';
+
+    await api.createSupportTicket({ subject: 'Sortie audio', body: 'La sortie n’est plus proposée.' });
+    await api.replyToSupportTicket(ticketId, 'Voici les informations demandées.');
+    await api.replyToAdminSupportTicket(ticketId, { body: 'La sortie est de nouveau disponible.', status: 'resolved' });
+
+    expect(fetcher).toHaveBeenNthCalledWith(1, '/api/support/tickets', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ subject: 'Sortie audio', body: 'La sortie n’est plus proposée.' }),
+    }));
+    expect(fetcher).toHaveBeenNthCalledWith(2, `/api/support/tickets/${ticketId}/messages`, expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ body: 'Voici les informations demandées.' }),
+    }));
+    expect(fetcher).toHaveBeenNthCalledWith(3, `/api/admin/support/tickets/${ticketId}/messages`, expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ body: 'La sortie est de nouveau disponible.', status: 'resolved' }),
+    }));
+  });
 });

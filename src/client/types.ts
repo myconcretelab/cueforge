@@ -211,6 +211,44 @@ export interface AdminUser {
   accountCount: number;
 }
 
+export type SupportTicketStatus = 'open' | 'awaiting_user' | 'resolved' | 'closed';
+export type SupportTicketPriority = 'normal' | 'high' | 'urgent';
+
+export interface SupportTicket {
+  id: string;
+  accountId: string;
+  createdByUserId: string;
+  subject: string;
+  status: SupportTicketStatus;
+  priority: SupportTicketPriority;
+  messageCount: number;
+  unreadCount: number;
+  lastMessageAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupportMessage {
+  id: string;
+  ticketId: string;
+  authorUserId: string | null;
+  authorKind: 'user' | 'admin';
+  authorName: string | null;
+  body: string;
+  createdAt: string;
+}
+
+export interface AdminSupportTicket extends SupportTicket {
+  userName: string;
+  userEmail: string;
+  accountName: string;
+  accountStatus: AccountSummary['accessStatus'];
+  planCode: string;
+  planName: string;
+  storageQuotaBytes: number;
+  storageUsedBytes: number;
+}
+
 export interface Category {
   id: string;
   projectId: string;

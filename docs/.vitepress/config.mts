@@ -60,6 +60,7 @@ export default defineConfig({
       {
         text: 'Assistance',
         items: [
+          { text: 'Demandes de support', link: '/guides/support' },
           { text: 'Dépannage', link: '/depannage/' },
           { text: 'Notes de version', link: '/nouveautes/' },
         ],

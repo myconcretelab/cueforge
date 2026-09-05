@@ -45,4 +45,4 @@ SonoRiva est une application hébergée. Le service gère l’exécution de l’
 
 ## Support
 
-Une déclaration d’incident contient la version de SonoRiva, le navigateur, le système d’exploitation, les étapes de reproduction et le message d’erreur.
+Le bouton **Support** de l’application permet de créer une demande, de suivre les réponses et de poursuivre la conversation. Son fonctionnement est décrit dans [Demandes de support](./guides/support.md).
