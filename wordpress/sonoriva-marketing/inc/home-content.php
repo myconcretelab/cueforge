@@ -15,13 +15,23 @@ function sonoriva_marketing_home_hero_logo_block(): string
 
     return <<<HTML
 <!-- wp:html -->
-<figure class="sr-hero-logo" data-hero-logo><img data-hero-logo-image data-src="{$theme_uri}/assets/images/logo-anime-hero-transparent.svg" alt="Logo SonoRiva animé" width="1555" height="2048"><noscript><style>.sr-hero-logo img{visibility:visible}</style><img src="{$theme_uri}/assets/images/logo-anime-hero-transparent.svg" alt="Logo SonoRiva" width="1555" height="2048"></noscript></figure>
+<figure class="sr-hero-logo" data-hero-logo><img data-hero-logo-image data-src="{$theme_uri}/assets/images/logo-anime-hero-transparent.svg" alt="Logo SonoRiva animé" width="1555" height="2048"></figure>
 <!-- /wp:html -->
 HTML;
 }
 
 function sonoriva_marketing_migrate_home_content(string $content): string
 {
+    $cleaned = preg_replace(
+        '~\.sr-hero-logo img\{visibility:visible\}<img[^>]*logo-anime-hero-transparent\.svg[^>]*>~',
+        '',
+        $content,
+        1
+    );
+    if (is_string($cleaned)) {
+        $content = $cleaned;
+    }
+
     if (str_contains($content, 'data-hero-logo')) {
         return $content;
     }
