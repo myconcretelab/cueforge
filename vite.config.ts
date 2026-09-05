@@ -1,9 +1,37 @@
+import { execFileSync } from 'node:child_process';
+import { readFile, writeFile } from 'node:fs/promises';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import packageMetadata from './package.json';
 
+const serviceWorkerRevisionToken = '__SONORIVA_BUILD_REVISION__';
+
+function currentBuildRevision(): string {
+  try {
+    return execFileSync('git', ['rev-parse', '--short=12', 'HEAD'], { encoding: 'utf8' }).trim();
+  } catch {
+    return packageMetadata.version;
+  }
+}
+
+function versionServiceWorker(): Plugin {
+  const revision = currentBuildRevision();
+  return {
+    name: 'sonoriva-version-service-worker',
+    apply: 'build',
+    async closeBundle() {
+      const output = new URL('./dist/client/sw.js', import.meta.url);
+      const source = await readFile(output, 'utf8');
+      if (!source.includes(serviceWorkerRevisionToken)) {
+        throw new Error('Le jeton de version du service worker est absent.');
+      }
+      await writeFile(output, source.replaceAll(serviceWorkerRevisionToken, revision));
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), versionServiceWorker()],
   define: {
     __APP_VERSION__: JSON.stringify(packageMetadata.version),
   },

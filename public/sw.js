@@ -1,5 +1,6 @@
 const AUDIO_CACHE = 'sonoriva-audio-v1';
-const SHELL_CACHE = 'sonoriva-shell-v1';
+const BUILD_REVISION = '__SONORIVA_BUILD_REVISION__';
+const SHELL_CACHE = `sonoriva-shell-${BUILD_REVISION}`;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(['/', '/manifest.webmanifest', '/icon.svg'])));
