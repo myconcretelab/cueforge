@@ -9,9 +9,34 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+function sonoriva_marketing_home_hero_logo_block(): string
+{
+    $theme_uri = esc_url(set_url_scheme(get_template_directory_uri(), 'https'));
+
+    return <<<HTML
+<!-- wp:html -->
+<figure class="sr-hero-logo" data-hero-logo><img data-hero-logo-image data-src="{$theme_uri}/assets/images/logo-anime-hero-transparent.svg" alt="Logo SonoRiva animé" width="1555" height="2048"><noscript><style>.sr-hero-logo img{visibility:visible}</style><img src="{$theme_uri}/assets/images/logo-anime-hero-transparent.svg" alt="Logo SonoRiva" width="1555" height="2048"></noscript></figure>
+<!-- /wp:html -->
+HTML;
+}
+
+function sonoriva_marketing_migrate_home_content(string $content): string
+{
+    if (str_contains($content, 'data-hero-logo')) {
+        return $content;
+    }
+
+    $hero_logo = sonoriva_marketing_home_hero_logo_block();
+    $pattern = '~<!-- wp:image \{[^\n]*"className":"sr-ui-shot sr-ui-shot-hero"[^\n]*\} -->\s*<figure class="wp-block-image size-full sr-ui-shot sr-ui-shot-hero">.*?</figure>\s*<!-- /wp:image -->~s';
+    $migrated = preg_replace($pattern, $hero_logo, $content, 1);
+
+    return is_string($migrated) ? $migrated : $content;
+}
+
 function sonoriva_marketing_home_block_content(): string
 {
     $theme_uri = esc_url(set_url_scheme(get_template_directory_uri(), 'https'));
+    $hero_logo = sonoriva_marketing_home_hero_logo_block();
 
     return <<<HTML
 <!-- wp:group {"align":"full","className":"sr-section sr-hero","layout":{"type":"constrained"}} -->
@@ -45,9 +70,7 @@ function sonoriva_marketing_home_block_content(): string
 <!-- /wp:column -->
 
 <!-- wp:column {"verticalAlignment":"center","width":"57%"} -->
-<div class="wp-block-column is-vertically-aligned-center" style="flex-basis:57%"><!-- wp:image {"sizeSlug":"full","linkDestination":"none","className":"sr-ui-shot sr-ui-shot-hero"} -->
-<figure class="wp-block-image size-full sr-ui-shot sr-ui-shot-hero"><img src="{$theme_uri}/assets/images/app-regie-full.png" alt="Interface de SonoRiva ouverte avec les actions configurables, les catégories, douze sons, les lectures actives et une playlist" width="1600" height="1050"/><figcaption class="wp-element-caption">Capture du compte de démonstration complet · toutes les options sont actives</figcaption></figure>
-<!-- /wp:image --></div>
+<div class="wp-block-column is-vertically-aligned-center" style="flex-basis:57%">{$hero_logo}</div>
 <!-- /wp:column --></div>
 <!-- /wp:columns --></div>
 <!-- /wp:group -->

@@ -19,9 +19,9 @@
 
 .sonoriva-plans-block .pricing-card.featured {
     z-index: 1;
-    border: 2px solid #22d3b6;
-    background: radial-gradient(circle at 50% 0, rgba(34,211,182, .2), transparent 54%), #111113;
-    box-shadow: 0 0 0 5px rgba(34,211,182, .1), 0 24px 70px rgba(34,211,182, .22);
+    border: 2px solid #DBEDF7;
+    background: radial-gradient(circle at 50% 0, rgba(219,237,247, .2), transparent 54%), #414f6a;
+    box-shadow: 0 0 0 5px rgba(219,237,247, .1), 0 24px 70px rgba(219,237,247, .22);
     transform: translateY(-10px);
 }
 
@@ -35,11 +35,11 @@
 
 .sonoriva-plans-block .plan-top span {
     padding: 7px 13px;
-    border: 1px solid #5eead4;
+    border: 1px solid #F3FAFE;
     border-radius: 999px;
-    color: #09090b;
-    background: #5eead4;
-    box-shadow: 0 6px 22px rgba(34,211,182, .35);
+    color: #384661;
+    background: #F3FAFE;
+    box-shadow: 0 6px 22px rgba(219,237,247, .35);
     font-size: .66rem;
     font-weight: 850;
     letter-spacing: .08em;
@@ -60,9 +60,9 @@
     padding: 14px 10px;
     display: grid;
     gap: 2px;
-    border: 1px solid rgba(34,211,182, .25);
+    border: 1px solid rgba(219,237,247, .25);
     border-radius: 12px;
-    background: rgba(34,211,182, .07);
+    background: rgba(219,237,247, .07);
 }
 
 .sonoriva-plans-block .plan-storage strong {
@@ -73,7 +73,7 @@
 }
 
 .sonoriva-plans-block .plan-storage span {
-    color: #99f6e4;
+    color: #DBEDF7;
     font-size: .68rem;
     font-weight: 700;
 }
@@ -84,8 +84,8 @@
     padding: 22px 0;
     justify-items: center;
     gap: 7px;
-    border-top-color: rgba(34,211,182, .32);
-    border-bottom-color: rgba(34,211,182, .22);
+    border-top-color: rgba(219,237,247, .32);
+    border-bottom-color: rgba(219,237,247, .22);
 }
 
 .sonoriva-plans-block .price strong {
@@ -93,11 +93,11 @@
     font-size: clamp(2.35rem, 4vw, 3.55rem);
     line-height: .95;
     letter-spacing: -.065em;
-    text-shadow: 0 14px 45px rgba(34,211,182, .2);
+    text-shadow: 0 14px 45px rgba(219,237,247, .2);
 }
 
 .sonoriva-plans-block .price > span {
-    color: #99f6e4;
+    color: #DBEDF7;
     font-size: .76rem;
     font-weight: 700;
 }
@@ -122,7 +122,7 @@
 
 .sonoriva-plans-block .price strong small {
     margin-left: 8px;
-    color: #a1a1aa;
+    color: #d1dde6;
     font-size: .8rem;
     font-weight: 600;
     letter-spacing: 0;
@@ -131,7 +131,7 @@
 .editor-styles-wrapper .sonoriva-plans-block {
     padding: 24px;
     color: #fafafa;
-    background: #09090b;
+    background: #384661;
 }
 
 @media (max-width: 960px) {

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: SonoRiva Plans
  * Description: Bloc dynamique affichant les forfaits publics de SonoRiva.
- * Version: 2.0.0
+ * Version: 2.1.0
  * Author: SonoRiva
  */
 
@@ -140,7 +140,7 @@ function sonoriva_plans_register_block(): void
         'sonoriva-plans',
         plugins_url('style.css', __FILE__),
         [],
-        '2.0.0'
+        '2.1.0'
     );
     register_block_type('sonoriva/plans', [
         'api_version' => 2,

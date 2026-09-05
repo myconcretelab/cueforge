@@ -1,28 +1,30 @@
 .editor-styles-wrapper {
   color: #fafafa;
-  background: #0b0b0c;
+  background: #394762;
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .editor-styles-wrapper .sr-section {
   padding: 64px 28px;
   border-bottom: 1px solid rgba(255, 255, 255, .11);
-  background: #0b0b0c;
+  background: #394762;
 }
 
 .editor-styles-wrapper .sr-feature-dark,
-.editor-styles-wrapper .sr-hero { background: #09090b; }
-.editor-styles-wrapper .sr-feature-tint { background: #0f1012; }
-.editor-styles-wrapper .sr-final { background: #111c1a; }
+.editor-styles-wrapper .sr-hero { background: #384661; }
+.editor-styles-wrapper .sr-feature-tint { background: #3c4a65; }
+.editor-styles-wrapper .sr-final { background: #40506a; }
 .editor-styles-wrapper .sr-kicker,
-.editor-styles-wrapper .sr-index { color: #57dac4; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
+.editor-styles-wrapper .sr-index { color: #DBEDF7; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
 .editor-styles-wrapper .sr-section h1,
 .editor-styles-wrapper .sr-section h2,
 .editor-styles-wrapper .sr-section h3 { color: #f4f4f5; font-weight: 630; }
 .editor-styles-wrapper .sr-section p,
-.editor-styles-wrapper .sr-section li { color: #a8a8b0; }
+.editor-styles-wrapper .sr-section li { color: #d1dde6; }
 .editor-styles-wrapper .sr-ui-shot,
 .editor-styles-wrapper .sr-layout-diagram,
 .editor-styles-wrapper .sr-remote-diagram,
 .editor-styles-wrapper .sr-offline-panel,
-.editor-styles-wrapper .sr-routing { border: 1px solid rgba(255,255,255,.14); border-radius: 12px; background: #111113; }
+.editor-styles-wrapper .sr-routing { border: 1px solid rgba(255,255,255,.14); border-radius: 12px; background: #414f6a; }
+.editor-styles-wrapper .sr-hero-logo { width: min(100%, 390px); margin-inline: auto; }
+.editor-styles-wrapper .sr-hero-logo img { width: 100%; max-height: 535px; object-fit: contain; }

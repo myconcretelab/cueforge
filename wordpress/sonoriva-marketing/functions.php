@@ -89,7 +89,7 @@ function sonoriva_marketing_seo_head(): void
     $image = get_template_directory_uri() . '/assets/images/app-regie-full.png';
 
     echo '<meta name="description" content="' . esc_attr($description) . '">' . "\n";
-    echo '<meta name="theme-color" content="#09090b">' . "\n";
+    echo '<meta name="theme-color" content="#384661">' . "\n";
     echo '<meta property="og:locale" content="fr_FR">' . "\n";
     echo '<meta property="og:site_name" content="SonoRiva">' . "\n";
     echo '<meta property="og:title" content="' . esc_attr($title) . '">' . "\n";

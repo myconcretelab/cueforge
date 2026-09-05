@@ -22,6 +22,32 @@
     document.body.classList.remove('nav-open');
   }));
 
+  const startHeroLogo = () => {
+    document.querySelectorAll('[data-hero-logo]').forEach((logo) => {
+      const image = logo.querySelector('[data-hero-logo-image]');
+      const source = image?.dataset.src;
+
+      if (!image || !source || image.hasAttribute('src')) {
+        return;
+      }
+
+      const reveal = () => logo.classList.add('is-ready');
+      image.addEventListener('load', reveal, { once: true });
+      image.src = source;
+      image.removeAttribute('data-src');
+
+      if (image.complete && image.naturalWidth > 0) {
+        reveal();
+      }
+    });
+  };
+
+  if (document.readyState === 'complete') {
+    startHeroLogo();
+  } else {
+    window.addEventListener('load', startHeroLogo, { once: true });
+  }
+
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
