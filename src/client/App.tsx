@@ -36,6 +36,7 @@ import type { RoutedBridgeOutput } from './lib/bridge-output-routing';
 import { contrastColor } from './lib/color-contrast';
 import { droppedFilesHaveSubfolders, droppedFolderNames, droppedFolderTags, firstFolderName, readDroppedAudioFiles, titleFromAudioFilename, type DroppedAudioFile, type FolderImportMode } from './lib/file-import';
 import { formatShortcut, projectShortcut, projectShortcutDefinitions, resolvePrimaryShortcut, shortcutFromKeyboardEvent, shortcutMainKey, shortcutMatchesKeyboardEvent, shortcutModifierKeys, trackIndexFromKeyboardEvent, trackShortcutLabel } from './lib/keyboard-shortcuts';
+import { mobileTrackAutoScrollDelta, type ClientPoint } from './lib/mobile-track-reorder';
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { movePlaylistItem as repositionPlaylistItem, playlistEntries, playlistQueueItems, playlistRows as groupPlaylistItems, type PlaylistItemPlacement, type PlaylistQueueItem } from './lib/playlist-rows';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
@@ -55,6 +56,25 @@ const mouseActions: Array<{ value: MouseAction; label: string }> = [
   { value: 'none', label: 'Aucune action' },
 ];
 type SearchScope = TrackSearchScope | 'subcategories';
+type MobileTrackDropTarget =
+  | { kind: 'track'; id: string; placement: 'before' | 'group' | 'after' }
+  | { kind: 'subcategory'; id: string }
+  | { kind: 'category'; id: string };
+
+interface MobileTrackDrag {
+  trackId: string;
+  selection: boolean;
+  target?: MobileTrackDropTarget;
+}
+
+interface MobileTrackDragPreview {
+  trackId: string;
+  title: string;
+  color: string;
+  count: number;
+  clientX: number;
+  clientY: number;
+}
 const clockFormatter = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 function formatBytes(bytes: number): string {
@@ -115,6 +135,7 @@ export default function App() {
   const [batchEditOpen, setBatchEditOpen] = useState(false);
   const [batchMoveOpen, setBatchMoveOpen] = useState(false);
   const [draggedTrackId, setDraggedTrackId] = useState<string>();
+  const [mobileTrackDragPreview, setMobileTrackDragPreview] = useState<MobileTrackDragPreview>();
   const [dropTrackId, setDropTrackId] = useState<string>();
   const [dropTrackPlacement, setDropTrackPlacement] = useState<'before' | 'group' | 'after'>();
   const [dropSubcategoryId, setDropSubcategoryId] = useState<string>();
@@ -186,6 +207,7 @@ export default function App() {
   const marqueeStart = useRef<{ x: number; y: number; additive: boolean; selectedIds: Set<string> } | undefined>(undefined);
   const marqueeMoved = useRef(false);
   const suppressSelectionClick = useRef(false);
+  const mobileTrackDragRef = useRef<MobileTrackDrag | undefined>(undefined);
   const subcategoryOpenTimerRef = useRef<{ id: string; timer: number } | undefined>(undefined);
   const playlistRunRef = useRef(false);
   const playlistTransitioningRef = useRef(false);
@@ -1926,11 +1948,124 @@ export default function App() {
       : 'free';
   const demoLimits = accountSummary?.demoLimits;
 
+  function setMobileTrackDropTarget(target?: MobileTrackDropTarget) {
+    const drag = mobileTrackDragRef.current;
+    if (!drag) return;
+    const previousTarget = drag.target;
+    if (previousTarget?.kind === 'subcategory' && (target?.kind !== 'subcategory' || target.id !== previousTarget.id)) cancelScheduledSubcategoryOpen(previousTarget.id);
+    drag.target = target;
+    setDropTrackId(target?.kind === 'track' ? target.id : undefined);
+    setDropTrackPlacement(target?.kind === 'track' ? target.placement : undefined);
+    setDropSubcategoryId(target?.kind === 'subcategory' ? target.id : undefined);
+    setDropCategoryId(target?.kind === 'category' ? target.id : undefined);
+  }
+
+  function beginMobileTrackDrag(track: Track, color: string, point: ClientPoint) {
+    const selection = selectionMode && selectedTrackIds.has(track.id);
+    if (!reorderMode && !selection) return;
+    mobileTrackDragRef.current = { trackId: track.id, selection };
+    setDraggedTrackId(track.id);
+    setMobileTrackDragPreview({
+      trackId: track.id,
+      title: selection && selectedTrackIds.size > 1 ? `${selectedTrackIds.size} morceaux sélectionnés` : track.title,
+      color,
+      count: selection ? selectedTrackIds.size : 1,
+      clientX: point.clientX,
+      clientY: point.clientY,
+    });
+  }
+
+  function moveMobileTrackDrag(point: ClientPoint) {
+    const drag = mobileTrackDragRef.current;
+    if (!drag) return;
+    const scrollDelta = mobileTrackAutoScrollDelta(point.clientY, window.innerHeight);
+    if (scrollDelta) window.scrollBy({ top: scrollDelta, behavior: 'auto' });
+    const previewHalfWidth = Math.min(120, Math.max(80, (window.innerWidth - 32) / 2));
+    setMobileTrackDragPreview((current) => current ? {
+      ...current,
+      clientX: Math.max(previewHalfWidth + 16, Math.min(window.innerWidth - previewHalfWidth - 16, point.clientX)),
+      clientY: point.clientY,
+    } : current);
+
+    const hit = document.elementFromPoint(point.clientX, point.clientY);
+    const trackElement = hit?.closest<HTMLElement>('[data-track-id]');
+    const targetTrackId = trackElement?.dataset.trackId;
+    if (trackElement && targetTrackId && targetTrackId !== drag.trackId && !(drag.selection && selectedTrackIds.has(targetTrackId))) {
+      const bounds = trackElement.getBoundingClientRect();
+      setMobileTrackDropTarget({
+        kind: 'track',
+        id: targetTrackId,
+        placement: drag.selection ? 'group' : trackDropPlacement(point.clientX, bounds.left, bounds.width),
+      });
+      return;
+    }
+
+    const subcategoryElement = hit?.closest<HTMLElement>('[data-subcategory-id], [data-subcategory-drawer-id]');
+    const subcategoryId = subcategoryElement?.dataset.subcategoryId ?? subcategoryElement?.dataset.subcategoryDrawerId;
+    if (subcategoryId) {
+      scheduleSubcategoryOpen(subcategoryId);
+      setMobileTrackDropTarget({ kind: 'subcategory', id: subcategoryId });
+      return;
+    }
+
+    const categoryId = hit?.closest<HTMLElement>('[data-category-id]')?.dataset.categoryId;
+    setMobileTrackDropTarget(categoryId ? { kind: 'category', id: categoryId } : undefined);
+  }
+
+  function resetMobileTrackDrag() {
+    cancelScheduledSubcategoryOpen();
+    mobileTrackDragRef.current = undefined;
+    setMobileTrackDragPreview(undefined);
+    setDraggedTrackId(undefined);
+    setDropTrackId(undefined);
+    setDropTrackPlacement(undefined);
+    setDropSubcategoryId(undefined);
+    setDropCategoryId(undefined);
+  }
+
+  function finishMobileTrackDrag(point: ClientPoint, cancelled: boolean) {
+    if (!cancelled) moveMobileTrackDrag(point);
+    const drag = mobileTrackDragRef.current;
+    const target = drag?.target;
+    resetMobileTrackDrag();
+    if (!drag || !target || cancelled || !detail) return;
+
+    if (target.kind === 'category') {
+      if (drag.selection) moveSelectedTracks(target.id, null).catch(() => undefined);
+      else reorderTrack(drag.trackId, target.id).catch(() => undefined);
+      return;
+    }
+
+    if (target.kind === 'subcategory') {
+      const subcategory = detail.subcategories.find((item) => item.id === target.id);
+      if (!subcategory) return;
+      if (drag.selection) moveSelectedTracks(subcategory.categoryId, subcategory.id).catch(() => undefined);
+      else moveTrackIntoSubcategory(drag.trackId, subcategory.id).catch(() => undefined);
+      return;
+    }
+
+    const sourceTrack = detail.tracks.find((item) => item.id === drag.trackId);
+    const targetTrack = detail.tracks.find((item) => item.id === target.id);
+    if (!sourceTrack || !targetTrack) return;
+    if (drag.selection) {
+      createSubcategoryFromSelectedTracks(targetTrack).catch(() => undefined);
+      return;
+    }
+    if (target.placement === 'group') {
+      if (targetTrack.subcategoryId) moveTrackIntoSubcategory(sourceTrack.id, targetTrack.subcategoryId).catch(() => undefined);
+      else createSubcategoryFromTracks(sourceTrack, targetTrack).catch(() => undefined);
+      return;
+    }
+    const beforeTrackId = target.placement === 'after' ? trackIdAfterTarget(detail.tracks, targetTrack) : targetTrack.id;
+    reorderTrack(sourceTrack.id, targetTrack.categoryId, beforeTrackId, targetTrack.subcategoryId).catch(() => undefined);
+  }
+
   function renderBoardTrack(track: Track) {
     const category = detail?.categories.find((item) => item.id === track.categoryId);
+    const color = track.color ?? category?.color ?? '#71717a';
     const shortcutIndex = visibleTracks.findIndex((candidate) => candidate.id === track.id);
     const reorderPositionTarget = dropTrackId === track.id && dropTrackPlacement !== 'group' ? dropTrackPlacement : undefined;
-    return <TrackPad key={track.id} track={track} color={track.color ?? category?.color ?? '#71717a'} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={playlistsEnabled && !selectionMode && !remote} selectionMode={selectionMode} selected={selectedTrackIds.has(track.id)} dropTarget={dropTrackId === track.id && dropTrackPlacement === 'group'} dropLabel={track.subcategoryId ? 'Ajouter à la sous-catégorie' : 'Créer une sous-catégorie'} reorderPositionTarget={reorderPositionTarget} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={trackShortcutLabel(shortcutIndex)} bridgeOutputs={remote || reorderMode || selectionMode ? [] : routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId}
+    return <TrackPad key={track.id} track={track} color={color} active={activeTrackIds.has(track.id)} playbacks={playbacksByTrack.get(track.id) ?? []} historyProgress={playbackHistory.get(track.id) ?? 0} loaded={offlineTrackIds.has(track.id)} reorderEnabled={reorderMode} playlistDropEnabled={playlistsEnabled && !selectionMode && !remote} selectionMode={selectionMode} selected={selectedTrackIds.has(track.id)} dropTarget={dropTrackId === track.id && dropTrackPlacement === 'group'} dropLabel={track.subcategoryId ? 'Ajouter à la sous-catégorie' : 'Créer une sous-catégorie'} reorderPositionTarget={reorderPositionTarget} playlistPositionTarget={dropPlaylistTrackId === track.id ? (dropPlaylistAfter ? 'after' : 'before') : undefined} shortcut={trackShortcutLabel(shortcutIndex)} bridgeOutputs={remote || reorderMode || selectionMode ? [] : routedBridgeOutputs} mainBridgeOutputId={mainBridgeOutputId}
       onPrimary={() => detail && runTrackAction(detail.project.leftClickAction ?? 'start', track)}
       onOutputPlay={(outputId) => playTrackOnOutput(track, outputId)}
       onSecondary={() => detail && runTrackAction(detail.project.rightClickAction ?? 'crossfade', track)}
@@ -1985,6 +2120,11 @@ export default function App() {
         const beforeTrackId = placement === 'after' ? trackIdAfterTarget(detail?.tracks ?? [], track) : track.id;
         reorderTrack(sourceTrack.id, track.categoryId, beforeTrackId, track.subcategoryId).catch(() => undefined);
       }}
+      mobileDragEnabled={reorderMode || (selectionMode && selectedTrackIds.has(track.id))}
+      mobileDragSource={mobileTrackDragPreview?.trackId === track.id}
+      onMobileDragStart={(point) => beginMobileTrackDrag(track, color, point)}
+      onMobileDragMove={moveMobileTrackDrag}
+      onMobileDragEnd={finishMobileTrackDrag}
       onDragEnd={() => { cancelScheduledSubcategoryOpen(); setDraggedTrackId(undefined); setDropTrackId(undefined); setDropTrackPlacement(undefined); setDropSubcategoryId(undefined); setDropCategoryId(undefined); }} />;
   }
 
@@ -2246,7 +2386,7 @@ export default function App() {
               onDragLeave={() => setDropCategoryOrderId((current) => current === category.id ? undefined : current)}
               onDrop={(event) => { if (!categoryManageMode || !draggedCategoryId) return; event.preventDefault(); event.stopPropagation(); const bounds = event.currentTarget.getBoundingClientRect(); reorderCategories(draggedCategoryId, category.id, event.clientX > bounds.left + bounds.width / 2).catch(() => undefined); }}
               onDragEnd={() => { setDraggedCategoryId(undefined); setDropCategoryOrderId(undefined); setDropCategoryAfter(false); }}>
-              <button className={`category-tab ${!isSearching && category.id === selectedCategoryId ? 'active' : ''} ${dropCategoryId === category.id ? 'is-drop-target' : ''}`} onClick={() => selectCategory(category.id)}
+              <button className={`category-tab ${!isSearching && category.id === selectedCategoryId ? 'active' : ''} ${dropCategoryId === category.id ? 'is-drop-target' : ''}`} data-category-id={category.id} onClick={() => selectCategory(category.id)}
                 onDragOver={(event) => { if ((!reorderMode && !draggingSelectedTracks) || (!draggedTrackId && !draggedPlaylistId && !draggedTrackSubcategoryId)) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropCategoryId(category.id); setDropTrackId(undefined); setDropPlaylistId(undefined); setDropPlaylistTrackId(undefined); setDropSubcategoryPositionId(undefined); }}
                 onDragLeave={() => setDropCategoryId((current) => current === category.id ? undefined : current)}
                 onDrop={(event) => { if ((!reorderMode && !draggingSelectedTracks) || (!draggedTrackId && !draggedPlaylistId && !draggedTrackSubcategoryId)) return; event.preventDefault(); event.stopPropagation(); if (draggingSelectedTracks) moveSelectedTracks(category.id, null).catch(() => undefined); else if (draggedPlaylistId) movePlaylistToCategory(draggedPlaylistId, category.id).catch(() => undefined); else if (draggedTrackSubcategoryId) moveSubcategoryToCategory(draggedTrackSubcategoryId, category.id).catch(() => undefined); else if (draggedTrackId) reorderTrack(draggedTrackId, category.id).catch(() => undefined); }}>
@@ -2339,7 +2479,7 @@ export default function App() {
             const drawerBorderCompensation = 4 / trackColumns;
             const joinLeft = `calc(${subcategoryColumn * 100 / trackColumns}% + ${subcategoryColumn * boardGap / trackColumns + subcategoryColumn * drawerBorderCompensation}px)`;
             const joinWidth = `calc(${100 / trackColumns}% - ${(trackColumns - 1) * boardGap / trackColumns}px + ${drawerBorderCompensation}px)`;
-            return <Fragment key={`${boardItem.kind}:${boardItem.id}`}>{tile}{showDrawer && openSubcategory && <section className={`subcategory-drawer ${dropSubcategoryId === openSubcategory.id ? 'is-track-drop-target' : ''}`} style={{ '--subcategory-color': openSubcategory.color, '--subcategory-join-left': joinLeft, '--subcategory-join-width': joinWidth } as React.CSSProperties}
+            return <Fragment key={`${boardItem.kind}:${boardItem.id}`}>{tile}{showDrawer && openSubcategory && <section className={`subcategory-drawer ${dropSubcategoryId === openSubcategory.id ? 'is-track-drop-target' : ''}`} data-subcategory-drawer-id={openSubcategory.id} style={{ '--subcategory-color': openSubcategory.color, '--subcategory-join-left': joinLeft, '--subcategory-join-width': joinWidth } as React.CSSProperties}
               onDragOver={(event) => { const overTrack = event.target instanceof Element && Boolean(event.target.closest('[data-track-id]')); if (!canDropTrackInSubcategoryDrawer(reorderMode || draggingSelectedTracks, draggedTrackId, overTrack)) return; event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = 'move'; setDropSubcategoryId(openSubcategory.id); setDropTrackId(undefined); setDropTrackPlacement(undefined); }}
               onDragLeave={(event) => { const nextTarget = event.relatedTarget as Node | null; if (nextTarget && event.currentTarget.contains(nextTarget)) return; setDropSubcategoryId((current) => current === openSubcategory.id ? undefined : current); }}
               onDrop={(event) => { const overTrack = event.target instanceof Element && Boolean(event.target.closest('[data-track-id]')); if (!canDropTrackInSubcategoryDrawer(reorderMode || draggingSelectedTracks, draggedTrackId, overTrack) || !draggedTrackId) return; event.preventDefault(); event.stopPropagation(); if (draggingSelectedTracks) moveSelectedTracks(openSubcategory.categoryId, openSubcategory.id).catch(() => undefined); else moveTrackIntoSubcategory(draggedTrackId, openSubcategory.id).catch(() => undefined); }}>
@@ -2355,6 +2495,8 @@ export default function App() {
 
       <footer className="statusbar"><span><i className={connected ? 'live' : ''} />{remote ? 'Contrôleur' : 'Lecteur principal'} · volume maître {masterVolume} %{shortcutOutputSecondary ? ' · sortie secondaire' : ''}</span><span><Settings2 size={14} /> SonoRiva {releaseInfo?.currentVersion ?? __APP_VERSION__} · {audioEngine.getPlaybackMode() === 'bridge' ? 'Bridge audio' : 'Web Audio'} · {activePlaybacks.length} actif{activePlaybacks.length !== 1 ? 's' : ''}</span></footer>
     </main>
+
+    {mobileTrackDragPreview && <div className="mobile-track-drag-preview" aria-hidden="true" style={{ '--track-color': mobileTrackDragPreview.color, left: mobileTrackDragPreview.clientX, top: mobileTrackDragPreview.clientY } as React.CSSProperties}><span>{mobileTrackDragPreview.title}</span>{mobileTrackDragPreview.count > 1 && <strong>{mobileTrackDragPreview.count}</strong>}</div>}
 
     {uploadOpen && detail && <UploadDialog projectId={detail.project.id} categories={detail.categories} onClose={() => setUploadOpen(false)} onUploaded={async () => { setUploadOpen(false); await refreshProject(); }} />}
     {settingsOpen && <SettingsDialog user={user} projects={projects} projectColors={detail?.project.id === selectedProjectId ? detail.colors : []} selectedProjectId={selectedProjectId} initialSection={settingsInitialSection} offlineStatus={offlineStatus} remote={remote} appVersion={releaseInfo?.currentVersion ?? __APP_VERSION__} hasUnseenReleases={unseenReleases.length > 0} automaticUpdates={automaticUpdates} openSubcategoriesOnDrag={openSubcategoriesOnDrag} appSkin={appSkin} onAutomaticUpdatesChange={setAutomaticUpdatePreference} onOpenSubcategoriesOnDragChange={setOpenSubcategoriesOnDragPreference} onAppSkinChange={changeAppSkin} onAccountChange={handleAccountChange} onClose={() => { setSettingsOpen(false); setSettingsInitialSection(undefined); }} onChooseProject={chooseProject} onCreateProject={createProject} onReorderProjects={reorderProjects} onDeleteProject={deleteProject} onCreateProjectColor={createProjectColor} onDeleteProjectColor={deleteProjectColor} onReorderProjectColors={reorderProjectColors} onImportSoundShow={() => { setSettingsOpen(false); setSoundShowImportOpen(true); }} onOpenOpenverse={() => { setSettingsOpen(false); setOpenverseAutoSearch(false); setOpenverseOpen(true); }} onOpenWhatsNew={() => { setSettingsOpen(false); setWhatsNewOpen(true); }} onToggleRemote={toggleRemoteMode} onCacheOffline={cacheOffline} onUpdateKeyAction={updateKeyAction} onUpdateKeyboardShortcut={updateKeyboardShortcut} onUpdatePlaylistGroupLimit={updatePlaylistGroupLimit} onUpdatePlaybackSettings={updatePlaybackSettings} onLogout={() => { setSettingsOpen(false); logout().catch((cause) => setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.')); }} />}

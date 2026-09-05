@@ -20,7 +20,7 @@ interface Props {
 
 export function TrackSubcategoryPad({ subcategory, tracks, open, reorderEnabled, dropTarget, positionTarget, onToggle, onEdit, onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd }: Props) {
   const previews = tracks.slice(0, 4);
-  return <article className={`track-pad subcategory-pad ${open ? 'is-open' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${dropTarget ? 'is-drop-target' : ''} ${positionTarget ? `reorder-position-target drop-${positionTarget}` : ''}`} style={{ '--track-color': subcategory.color, '--track-contrast': contrastColor(subcategory.color) } as React.CSSProperties} draggable={reorderEnabled}
+  return <article className={`track-pad subcategory-pad ${open ? 'is-open' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${dropTarget ? 'is-drop-target' : ''} ${positionTarget ? `reorder-position-target drop-${positionTarget}` : ''}`} style={{ '--track-color': subcategory.color, '--track-contrast': contrastColor(subcategory.color) } as React.CSSProperties} draggable={reorderEnabled} data-subcategory-id={subcategory.id}
     onDragStart={onDragStart} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} onDragEnd={onDragEnd}>
     <div className="subcategory-titlebar">
       <span className="subcategory-count-badge" aria-label={`${tracks.length} morceau${tracks.length !== 1 ? 'x' : ''}`}>{tracks.length > 99 ? '99+' : tracks.length}</span>

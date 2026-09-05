@@ -1,7 +1,9 @@
+import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { AudioWaveform, CircleCheck, Infinity as InfinityIcon, MoreHorizontal, Play } from 'lucide-react';
 import type { ActivePlayback } from '../lib/audio-engine';
 import type { RoutedBridgeOutput } from '../lib/bridge-output-routing';
 import { contrastColor } from '../lib/color-contrast';
+import { mobileTrackDragActivated, type ClientPoint } from '../lib/mobile-track-reorder';
 import type { Track } from '../types';
 
 interface Props {
@@ -31,14 +33,56 @@ interface Props {
   onDragOver: (event: React.DragEvent<HTMLElement>) => void;
   onDrop: (event: React.DragEvent<HTMLElement>) => void;
   onDragEnd: () => void;
+  mobileDragEnabled?: boolean;
+  mobileDragSource?: boolean;
+  onMobileDragStart?: (point: ClientPoint) => void;
+  onMobileDragMove?: (point: ClientPoint) => void;
+  onMobileDragEnd?: (point: ClientPoint, cancelled: boolean) => void;
 }
 
-export function TrackPad({ track, color, active, playbacks, historyProgress, loaded, reorderEnabled, playlistDropEnabled, selectionMode, selected, dropTarget, dropLabel, reorderPositionTarget, playlistPositionTarget, shortcut, bridgeOutputs, mainBridgeOutputId, onPrimary, onOutputPlay, onSecondary, onEdit, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: Props) {
+export function TrackPad({ track, color, active, playbacks, historyProgress, loaded, reorderEnabled, playlistDropEnabled, selectionMode, selected, dropTarget, dropLabel, reorderPositionTarget, playlistPositionTarget, shortcut, bridgeOutputs, mainBridgeOutputId, onPrimary, onOutputPlay, onSecondary, onEdit, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, mobileDragEnabled = false, mobileDragSource = false, onMobileDragStart, onMobileDragMove, onMobileDragEnd }: Props) {
   const mainOutput = bridgeOutputs.find((output) => output.id === mainBridgeOutputId);
   const alternateOutputs = mainOutput ? bridgeOutputs.filter((output) => output.id !== mainOutput.id) : [];
-  return <article className={`track-pad ${active ? 'is-active' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${playlistDropEnabled ? 'playlist-drag-enabled' : ''} ${selectionMode ? 'selection-enabled' : ''} ${selected ? 'is-selected' : ''} ${dropTarget ? 'is-drop-target group-drop-target' : ''} ${reorderPositionTarget ? `reorder-position-target drop-${reorderPositionTarget}` : ''} ${playlistPositionTarget ? `playlist-position-target drop-${playlistPositionTarget}` : ''}`}
+  const pointerDrag = useRef<{ pointerId: number; start: ClientPoint; started: boolean } | undefined>(undefined);
+  const suppressClick = useRef(false);
+
+  function beginMobileDrag(event: ReactPointerEvent<HTMLElement>) {
+    if (!mobileDragEnabled || event.pointerType === 'mouse' || event.button !== 0) return;
+    pointerDrag.current = { pointerId: event.pointerId, start: { clientX: event.clientX, clientY: event.clientY }, started: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function moveMobileDrag(event: ReactPointerEvent<HTMLElement>) {
+    const gesture = pointerDrag.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    const point = { clientX: event.clientX, clientY: event.clientY };
+    if (!gesture.started && !mobileTrackDragActivated(gesture.start, point)) return;
+    event.preventDefault();
+    if (!gesture.started) {
+      gesture.started = true;
+      suppressClick.current = true;
+      onMobileDragStart?.(point);
+    }
+    onMobileDragMove?.(point);
+  }
+
+  function finishMobileDrag(event: ReactPointerEvent<HTMLElement>, cancelled: boolean) {
+    const gesture = pointerDrag.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    pointerDrag.current = undefined;
+    if (!gesture.started) return;
+    event.preventDefault();
+    suppressClick.current = true;
+    onMobileDragEnd?.({ clientX: event.clientX, clientY: event.clientY }, cancelled);
+    window.setTimeout(() => { suppressClick.current = false; }, 0);
+  }
+
+  return <article className={`track-pad ${active ? 'is-active' : ''} ${reorderEnabled ? 'reorder-enabled' : ''} ${playlistDropEnabled ? 'playlist-drag-enabled' : ''} ${selectionMode ? 'selection-enabled' : ''} ${selected ? 'is-selected' : ''} ${mobileDragEnabled ? 'mobile-drag-enabled' : ''} ${mobileDragSource ? 'mobile-drag-source' : ''} ${dropTarget ? 'is-drop-target group-drop-target' : ''} ${reorderPositionTarget ? `reorder-position-target drop-${reorderPositionTarget}` : ''} ${playlistPositionTarget ? `playlist-position-target drop-${playlistPositionTarget}` : ''}`}
     style={{ '--track-color': color, '--track-contrast': contrastColor(color) } as React.CSSProperties} draggable={selectionMode ? selected : reorderEnabled || playlistDropEnabled} data-track-id={track.id} data-drop-label={dropTarget ? dropLabel : undefined} onClick={() => selectionMode && onSelect()}
-    onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}>
+    onClickCapture={(event) => { if (suppressClick.current) { event.preventDefault(); event.stopPropagation(); } }}
+    onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onDragEnd={onDragEnd}
+    onPointerDown={beginMobileDrag} onPointerMove={moveMobileDrag} onPointerUp={(event) => finishMobileDrag(event, false)} onPointerCancel={(event) => finishMobileDrag(event, true)}>
     {selectionMode && <span className="track-selection-indicator" aria-hidden="true">{selected && <CircleCheck size={18} />}</span>}
     {loaded && <span className="track-loaded" title="Disponible hors ligne" aria-label="Disponible hors ligne"><CircleCheck size={15} /></span>}
     <button className="icon-button subtle track-edit" onClick={() => !selectionMode && onEdit()} aria-label={`Modifier ${track.title}`} tabIndex={selectionMode ? -1 : undefined}><MoreHorizontal size={18} /></button>
