@@ -15,6 +15,7 @@ describe('site de présentation WordPress', () => {
     expect(styles).toContain('.site-footer {');
     expect(styles).toContain('.sr-hero {');
     expect(styles).toContain('background: #384661;');
+    expect(styles).toContain(':is(.sr-offline-panel, .sr-layout-diagram, .sr-remote-diagram, .sr-routing)');
     expect(editorStyles).toContain('background: #DBEDF7');
     expect(editorStyles).toContain('.editor-styles-wrapper .sr-hero');
   });

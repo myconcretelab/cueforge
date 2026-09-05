@@ -3,7 +3,7 @@ Theme Name: SonoRiva Marketing
 Theme URI: https://sonoriva.fr
 Author: SonoRiva
 Description: Thème de présentation moderne pour SonoRiva, la régie son web pensée pour la scène.
-Version: 5.2.0
+Version: 5.2.1
 Text Domain: sonoriva-marketing
 */
 
@@ -831,4 +831,17 @@ body.page:not(.home):not(.comparison-page-body) .site-header:not(.is-scrolled) .
 
 @media (max-width: 520px) {
   .comparison-page .migration-steps li { padding-left: 55px; }
+}
+
+.sr-landing .sr-section:not(.sr-hero) :is(.sr-offline-panel, .sr-layout-diagram, .sr-remote-diagram, .sr-routing) :is(h2, h3, strong) {
+  color: #f4f4f5 !important;
+}
+.sr-landing .sr-section:not(.sr-hero) :is(.sr-offline-panel, .sr-layout-diagram, .sr-remote-diagram, .sr-routing) :is(p:not(.sr-status, .sr-routing-title, .sr-routing-track, .sr-layout-label), li) {
+  color: #d1dde6 !important;
+}
+.sr-landing .sr-section:not(.sr-hero) .sonoriva-plans-block .pricing-card :is(h2, h3, strong) {
+  color: #f4f4f5 !important;
+}
+.sr-landing .sr-section:not(.sr-hero) .sonoriva-plans-block .pricing-card :is(p, li) {
+  color: #d1dde6 !important;
 }
