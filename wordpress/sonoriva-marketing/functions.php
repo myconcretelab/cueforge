@@ -10,6 +10,8 @@ if (!defined('ABSPATH')) {
 }
 
 require_once get_template_directory() . '/inc/home-content.php';
+require_once get_template_directory() . '/inc/page-content.php';
+require_once get_template_directory() . '/inc/soundshow-content.php';
 
 function sonoriva_marketing_setup(): void
 {
@@ -41,6 +43,12 @@ function sonoriva_marketing_register_patterns(): void
         'description' => __('La présentation complète du produit, composée uniquement de blocs éditables.', 'sonoriva-marketing'),
         'categories' => ['sonoriva'],
         'content' => sonoriva_marketing_home_block_content(),
+    ]);
+    register_block_pattern('sonoriva/alternative-soundshow', [
+        'title' => __('Alternative à SoundShow', 'sonoriva-marketing'),
+        'description' => __('La page de comparaison et de migration SoundShow, composée de blocs éditables.', 'sonoriva-marketing'),
+        'categories' => ['sonoriva'],
+        'content' => sonoriva_marketing_soundshow_block_content(),
     ]);
 }
 add_action('init', 'sonoriva_marketing_register_patterns');
@@ -226,6 +234,9 @@ add_filter('pre_handle_404', 'sonoriva_marketing_sitemap_status', 10, 2);
 function sonoriva_marketing_body_classes(array $classes): array
 {
     $classes[] = 'sonoriva-site';
+    if (is_page('alternative-soundshow')) {
+        $classes[] = 'comparison-page-body';
+    }
     return $classes;
 }
 add_filter('body_class', 'sonoriva_marketing_body_classes');
