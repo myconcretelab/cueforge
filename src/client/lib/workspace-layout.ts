@@ -1,11 +1,9 @@
 export const workspaceLayoutRows = 12;
 export const workspaceLayoutColumns = [6, 8, 12] as const;
-export const compactPlaylistMinimumRows = 4;
-export const compactPlaylistMaximumRows = 9;
 
 export type WorkspaceGridColumns = typeof workspaceLayoutColumns[number];
 export type WorkspaceBlockId = 'actions' | 'categories' | 'soundboard' | 'players' | 'playlist';
-export type WorkspacePreset = 'classic' | 'compact-control' | 'playlist-vertical' | 'playlist-focus' | 'custom';
+export type WorkspacePreset = 'classic' | 'playlist-vertical' | 'playlist-focus' | 'custom';
 export const workspaceDockableBlockIds: WorkspaceBlockId[] = ['actions', 'players', 'playlist'];
 export const workspaceCollapsibleBlockIds: WorkspaceBlockId[] = ['actions', 'playlist'];
 
@@ -23,9 +21,6 @@ export interface WorkspaceLayout {
   items: WorkspaceLayoutItem[];
   dock: WorkspaceBlockId[];
   collapsed: WorkspaceBlockId[];
-  compactPlaylistEnabled: boolean;
-  compactPlaylistOpen: boolean;
-  compactPlaylistRows: number;
 }
 
 export interface SavedWorkspaceLayout {
@@ -44,7 +39,6 @@ export const workspaceBlockLabels: Record<WorkspaceBlockId, string> = {
 
 export const workspacePresetLabels: Record<Exclude<WorkspacePreset, 'custom'>, string> = {
   classic: 'Régie classique',
-  'compact-control': 'Régie compacte',
   'playlist-vertical': 'Playlist verticale',
   'playlist-focus': 'Playlist principale',
 };
@@ -57,18 +51,11 @@ const basePresets: Record<Exclude<WorkspacePreset, 'custom'>, WorkspaceLayoutIte
     { id: 'players', x: 9, y: 0, w: 3, h: 6 },
     { id: 'playlist', x: 9, y: 6, w: 3, h: 6 },
   ],
-  'compact-control': [
-    { id: 'actions', x: 0, y: 0, w: 3, h: 4 },
-    { id: 'categories', x: 0, y: 0, w: 9, h: 3 },
-    { id: 'soundboard', x: 0, y: 3, w: 9, h: 9 },
-    { id: 'players', x: 9, y: 0, w: 3, h: 8 },
-    { id: 'playlist', x: 9, y: 8, w: 3, h: 4 },
-  ],
   'playlist-vertical': [
     { id: 'actions', x: 0, y: 0, w: 3, h: 4 },
     { id: 'playlist', x: 0, y: 0, w: 4, h: 12 },
     { id: 'categories', x: 4, y: 0, w: 8, h: 3 },
-    { id: 'soundboard', x: 4, y: 3, w: 6, h: 9 },
+    { id: 'soundboard', x: 4, y: 3, w: 8, h: 9 },
     { id: 'players', x: 10, y: 3, w: 2, h: 9 },
   ],
   'playlist-focus': [
@@ -76,7 +63,7 @@ const basePresets: Record<Exclude<WorkspacePreset, 'custom'>, WorkspaceLayoutIte
     { id: 'categories', x: 0, y: 0, w: 12, h: 3 },
     { id: 'playlist', x: 0, y: 3, w: 8, h: 9 },
     { id: 'players', x: 8, y: 3, w: 4, h: 4 },
-    { id: 'soundboard', x: 8, y: 7, w: 4, h: 5 },
+    { id: 'soundboard', x: 8, y: 3, w: 4, h: 9 },
   ],
 };
 
@@ -89,8 +76,8 @@ const minimumSizes: Record<WorkspaceBlockId, { w: number; h: number }> = {
 };
 
 export function createWorkspaceLayout(preset: Exclude<WorkspacePreset, 'custom'> = 'classic', columns: WorkspaceGridColumns = 12): WorkspaceLayout {
-  const dock: WorkspaceBlockId[] = preset === 'classic' ? ['actions', 'players', 'playlist'] : ['actions'];
-  return { columns, preset, items: scaleItems(basePresets[preset], 12, columns), dock, collapsed: preset === 'compact-control' ? ['playlist'] : [], compactPlaylistEnabled: preset === 'compact-control', compactPlaylistOpen: false, compactPlaylistRows: 6 };
+  const dock: WorkspaceBlockId[] = preset === 'classic' ? ['actions', 'players', 'playlist'] : ['actions', 'players'];
+  return { columns, preset, items: scaleItems(basePresets[preset], 12, columns), dock, collapsed: [] };
 }
 
 export function workspaceLayoutWithColumns(layout: WorkspaceLayout, columns: WorkspaceGridColumns): WorkspaceLayout {
@@ -130,36 +117,19 @@ export function swapWorkspaceItems(layout: WorkspaceLayout, firstId: WorkspaceBl
     [dock[firstIndex], dock[secondIndex]] = [dock[secondIndex]!, dock[firstIndex]!];
     return { ...layout, preset: 'custom', dock };
   }
-  const compactPairSwap = layout.compactPlaylistEnabled && ((firstId === 'actions' && (secondId === 'players' || secondId === 'playlist')) || (secondId === 'actions' && (firstId === 'players' || firstId === 'playlist')));
-  const actionWasDocked = firstId === 'actions' ? firstDocked : secondId === 'actions' ? secondDocked : false;
-  const dock: WorkspaceBlockId[] = compactPairSwap
-    ? [...workspaceDockItems(layout).filter((id) => id !== 'actions' && id !== 'players' && id !== 'playlist'), actionWasDocked ? 'players' : 'actions']
-    : firstDocked === secondDocked
+  const dock: WorkspaceBlockId[] = firstDocked === secondDocked
     ? layout.dock
     : workspaceDockItems(layout).map((id) => id === (firstDocked ? firstId : secondId) ? (firstDocked ? secondId : firstId) : id);
-  let items = layout.items.map((item) => item.id === firstId ? { ...second, id: firstId } : item.id === secondId ? { ...first, id: secondId } : item);
-  if (compactPairSwap) {
-    const actionDocked = dock.includes('actions');
-    const gridSlot = actionDocked ? (firstId === 'actions' ? first : second) : (firstId === 'actions' ? second : first);
-    const playlistRows = clamp(layout.compactPlaylistRows, compactPlaylistMinimumRows, compactPlaylistMaximumRows);
-    items = items.map((item) => {
-      if (!actionDocked && item.id === 'actions') return { ...item, x: gridSlot.x, y: 0, w: gridSlot.w, h: workspaceLayoutRows };
-      if (actionDocked && item.id === 'players') return { ...item, x: gridSlot.x, y: 0, w: gridSlot.w, h: workspaceLayoutRows - playlistRows };
-      if (actionDocked && item.id === 'playlist') return { ...item, x: gridSlot.x, y: workspaceLayoutRows - playlistRows, w: gridSlot.w, h: playlistRows };
-      return item;
-    });
-  }
   return {
     ...layout,
     preset: 'custom',
     dock,
-    items,
+    items: layout.items.map((item) => item.id === firstId ? { ...second, id: firstId } : item.id === secondId ? { ...first, id: secondId } : item),
   };
 }
 
 export function workspaceItemIsDocked(layout: WorkspaceLayout, id: WorkspaceBlockId): boolean {
-  if (layout.dock.includes(id)) return true;
-  return layout.compactPlaylistEnabled && (id === 'players' || id === 'playlist') && layout.dock.some((item) => item === 'players' || item === 'playlist');
+  return layout.dock.includes(id);
 }
 
 export function workspaceItemIsCollapsed(layout: WorkspaceLayout, id: WorkspaceBlockId): boolean {
@@ -175,23 +145,16 @@ export function setWorkspaceItemCollapsed(layout: WorkspaceLayout, id: Workspace
   return {
     ...layout,
     collapsed: nextCollapsed,
-    ...(id === 'playlist' && layout.compactPlaylistEnabled ? { compactPlaylistOpen: !collapsed } : {}),
   };
 }
 
 export function workspaceDockItems(layout: WorkspaceLayout): WorkspaceBlockId[] {
-  const dock = layout.dock.filter((id, index) => layout.dock.indexOf(id) === index);
-  if (!layout.compactPlaylistEnabled || !dock.some((id) => id === 'players' || id === 'playlist')) return dock;
-  const firstPairIndex = dock.findIndex((id) => id === 'players' || id === 'playlist');
-  const withoutPair: WorkspaceBlockId[] = dock.filter((id) => id !== 'players' && id !== 'playlist');
-  withoutPair.splice(firstPairIndex, 0, 'players', 'playlist');
-  return withoutPair;
+  return layout.dock.filter((id, index) => layout.dock.indexOf(id) === index);
 }
 
 export function dockWorkspaceItem(layout: WorkspaceLayout, id: WorkspaceBlockId): WorkspaceLayout {
   if (!workspaceDockableBlockIds.includes(id)) return layout;
-  const ids = layout.compactPlaylistEnabled && (id === 'players' || id === 'playlist') ? ['players', 'playlist'] as WorkspaceBlockId[] : [id];
-  const dock = [...layout.dock.filter((item) => !ids.includes(item)), ...ids];
+  const dock = [...layout.dock.filter((item) => item !== id), id];
   const next = { ...layout, preset: 'custom' as const, dock };
   const gridItems = next.items.filter((item) => !workspaceItemIsDocked(next, item.id));
   const rightEdge = Math.max(...gridItems.map((item) => item.x + item.w));
@@ -200,8 +163,7 @@ export function dockWorkspaceItem(layout: WorkspaceLayout, id: WorkspaceBlockId)
 }
 
 export function placeWorkspaceItemOnGrid(layout: WorkspaceLayout, id: WorkspaceBlockId, x: number, y: number): WorkspaceLayout {
-  const ids = layout.compactPlaylistEnabled && (id === 'players' || id === 'playlist') ? ['players', 'playlist'] as WorkspaceBlockId[] : [id];
-  const undocked = { ...layout, dock: layout.dock.filter((item) => !ids.includes(item)) };
+  const undocked = { ...layout, dock: layout.dock.filter((item) => item !== id) };
   const moved = moveWorkspaceItem(undocked, id, x, y);
   return moved === undocked ? layout : moved;
 }
@@ -209,32 +171,36 @@ export function placeWorkspaceItemOnGrid(layout: WorkspaceLayout, id: WorkspaceB
 export function readWorkspaceLayout(serialized: string | null): WorkspaceLayout {
   if (!serialized) return createWorkspaceLayout();
   try {
-    const value = JSON.parse(serialized) as WorkspaceLayout;
+    const value = JSON.parse(serialized) as Omit<WorkspaceLayout, 'preset'> & { preset: WorkspacePreset | 'compact-control'; compactPlaylistEnabled?: boolean };
+    if (value.preset === 'compact-control' || value.compactPlaylistEnabled) return createWorkspaceLayout();
+    if (workspaceLayoutColumns.includes(value.columns) && value.preset in workspacePresetLabels) {
+      const preset = createWorkspaceLayout(value.preset as Exclude<WorkspacePreset, 'custom'>);
+      const collapsed = Array.isArray(value.collapsed)
+        ? value.collapsed.filter((id): id is WorkspaceBlockId => workspaceCollapsibleBlockIds.includes(id as WorkspaceBlockId))
+        : [];
+      return { ...preset, collapsed };
+    }
     const storedItems = Array.isArray(value.items) && !value.items.some((item) => item.id === 'actions')
       ? [...value.items, createWorkspaceLayout('classic', value.columns).items.find((item) => item.id === 'actions')!]
       : value.items;
     const storedDock = Array.isArray(value.dock) ? value.dock.filter((id): id is WorkspaceBlockId => workspaceDockableBlockIds.includes(id as WorkspaceBlockId)) : ['actions'] as WorkspaceBlockId[];
     const legacyClassic = value.preset === 'classic' && storedDock.length === 1 && storedDock[0] === 'actions';
     const dock = legacyClassic ? ['actions', 'players', 'playlist'] as WorkspaceBlockId[] : storedDock;
-    const compactPlaylistEnabled = Boolean(value.compactPlaylistEnabled ?? value.preset === 'compact-control');
     const collapsed = Array.isArray(value.collapsed)
       ? value.collapsed.filter((id): id is WorkspaceBlockId => workspaceCollapsibleBlockIds.includes(id as WorkspaceBlockId))
-      : compactPlaylistEnabled && !value.compactPlaylistOpen ? ['playlist'] as WorkspaceBlockId[] : [];
+      : [];
     const classicItems = legacyClassic && Array.isArray(storedItems)
       ? storedItems.map((item) => item.id === 'categories' || item.id === 'soundboard' ? { ...item, x: 0, w: value.columns } : item)
       : storedItems;
     const expandedItems = Array.isArray(classicItems) ? expandCategorySpace(classicItems) : classicItems;
-    const items = Array.isArray(expandedItems) && layoutItemsAreValid(expandedItems, value.columns, dock, compactPlaylistEnabled) ? expandedItems : storedItems;
-    if (!workspaceLayoutColumns.includes(value.columns) || !Array.isArray(items) || !layoutItemsAreValid(items, value.columns, dock, compactPlaylistEnabled)) return createWorkspaceLayout();
+    const items = Array.isArray(expandedItems) && layoutItemsAreValid(expandedItems, value.columns, dock) ? expandedItems : storedItems;
+    if (!workspaceLayoutColumns.includes(value.columns) || !Array.isArray(items) || !layoutItemsAreValid(items, value.columns, dock)) return createWorkspaceLayout();
     const restored: WorkspaceLayout = {
       columns: value.columns,
       preset: value.preset in workspacePresetLabels || value.preset === 'custom' ? value.preset : 'custom',
       items,
       dock,
       collapsed,
-      compactPlaylistEnabled,
-      compactPlaylistOpen: compactPlaylistEnabled ? !collapsed.includes('playlist') : Boolean(value.compactPlaylistOpen),
-      compactPlaylistRows: clamp(value.compactPlaylistRows ?? 6, compactPlaylistMinimumRows, compactPlaylistMaximumRows),
     };
     return workspaceLayoutWithColumns(restored, 12);
   } catch {
@@ -285,9 +251,6 @@ export function workspaceLayoutsMatch(first: WorkspaceLayout, second: WorkspaceL
       items: normalized.items,
       dock: normalized.dock,
       collapsed: normalized.collapsed,
-      compactPlaylistEnabled: normalized.compactPlaylistEnabled,
-      compactPlaylistOpen: normalized.compactPlaylistOpen,
-      compactPlaylistRows: normalized.compactPlaylistRows,
     };
   };
   return JSON.stringify(comparable(first)) === JSON.stringify(comparable(second));
@@ -321,15 +284,11 @@ function expandCategorySpace(items: WorkspaceLayoutItem[]): WorkspaceLayoutItem[
   });
 }
 
-function layoutItemsAreValid(items: WorkspaceLayoutItem[], columns: WorkspaceGridColumns, dock: WorkspaceBlockId[], compactPlaylistEnabled: boolean): boolean {
+function layoutItemsAreValid(items: WorkspaceLayoutItem[], columns: WorkspaceGridColumns, dock: WorkspaceBlockId[]): boolean {
   const ids = new Set(items.map((item) => item.id));
   if (ids.size !== 5 || !(['actions', 'categories', 'soundboard', 'players', 'playlist'] as WorkspaceBlockId[]).every((id) => ids.has(id))) return false;
   if (new Set(dock).size !== dock.length || dock.some((id) => !ids.has(id))) return false;
   const effectiveDock = new Set(dock);
-  if (compactPlaylistEnabled && dock.some((id) => id === 'players' || id === 'playlist')) {
-    effectiveDock.add('players');
-    effectiveDock.add('playlist');
-  }
   return items.every((item) => Number.isInteger(item.x) && Number.isInteger(item.y) && Number.isInteger(item.w) && Number.isInteger(item.h)
     && item.x >= 0 && item.y >= 0 && item.w > 0 && item.h > 0 && item.x + item.w <= columns && item.y + item.h <= workspaceLayoutRows)
     && items.filter((item) => !effectiveDock.has(item.id)).every((item, index, gridItems) => gridItems.slice(index + 1).every((other) => !itemsOverlap(item, other)));

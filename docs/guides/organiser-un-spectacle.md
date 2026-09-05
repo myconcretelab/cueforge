@@ -6,13 +6,11 @@ SonoRiva utilise quatre niveaux d’organisation : spectacles, catégories, coul
 
 Le bouton **Disposition de l’interface** de la barre supérieure ouvre l’éditeur des cinq blocs : actions de déclenchement, catégories, soundboard, lectures en cours et playlist.
 
-Quatre modèles sont disponibles : **Régie classique**, **Régie compacte**, **Playlist verticale** et **Playlist principale**. Le modèle **Playlist verticale** place la playlist sur toute la hauteur de la grille. La grille interne utilise toujours douze colonnes. Le bloc Catégories occupe au minimum trois rangées afin d’afficher ses cartes entièrement.
+Trois modèles sont disponibles : **Régie classique**, **Playlist verticale** et **Playlist principale**. Dans chaque modèle, les lectures en cours sont placées dans la colonne gauche sous les actions de déclenchement. Le modèle **Playlist verticale** place la playlist sur toute la hauteur de la grille et utilise la largeur restante pour les catégories et le soundboard. La grille interne utilise toujours douze colonnes. Le bloc Catégories occupe au minimum trois rangées afin d’afficher ses cartes entièrement.
 
 Le bouton **Enregistrer** associe un nom à la disposition actuelle. Les dispositions ainsi créées apparaissent dans le groupe **Mes dispositions** du sélecteur et peuvent être chargées ou supprimées depuis le même éditeur. Enregistrer de nouveau une disposition identique la renomme ; enregistrer sous un nom existant remplace son contenu. Ces configurations sont conservées localement dans le navigateur pour chaque utilisateur.
 
-Dans le modèle **Régie compacte**, les lectures occupent toute la hauteur de la colonne droite. Le bouton **Playlist** fixé en bas de cette colonne ouvre le panneau sous les lecteurs et indique le nombre de morceaux présents. Un morceau glissé sur ce bouton ouvre le tiroir et peut être déposé directement dans la playlist. La séparation supérieure du panneau règle sa hauteur à la souris ; les flèches haut et bas la modifient lorsqu’elle possède le focus clavier. L’état ouvert et la hauteur sont enregistrés avec la disposition locale. Sur mobile, la playlist reste un bloc vertical permanent.
-
-La colonne gauche est une zone de dépôt permanente. Elle peut contenir les blocs **Actions de déclenchement**, **Lectures en cours** et **Playlist**. Dans le modèle **Régie compacte**, déplacer les lectures dans cette colonne y déplace également la playlist conditionnelle. Les blocs restés sur la grille s’étendent dans l’espace libéré.
+La colonne gauche est une zone de dépôt permanente. Elle peut contenir les blocs **Actions de déclenchement**, **Lectures en cours** et **Playlist**. Les blocs restés sur la grille s’étendent dans l’espace libéré.
 
 Les modules **Actions de déclenchement** et **Playlist** possèdent une petite commande de réduction dans leur angle supérieur droit. Une fois réduit, le module devient une barre de 34 pixels affichant son icône, son titre et, pour la playlist, son nombre de morceaux. Un clic sur la barre restaure le module. Une playlist réduite se rouvre automatiquement lorsqu’un morceau y est ajouté ou déposé. L’état de chaque module est enregistré avec la disposition locale.
 
@@ -38,6 +36,12 @@ La suppression retire le spectacle, ses catégories, ses pistes, ses playlists e
 Une catégorie regroupe des pistes. La catégorie sélectionnée filtre la grille ; **Tous les sons** affiche l’ensemble des pistes du spectacle. Les cartes de catégories restent carrées et leur largeur est réglable avec la poignée située à droite de la rangée.
 
 Les catégories possèdent un nom, une couleur et un ordre. Leur ordre est modifiable par glisser-déposer.
+
+## Affichage du soundboard
+
+La commande **Affichage du soundboard** propose les modes **Cartes**, **Liste** et **Automatique**. Le mode automatique utilise la liste lorsque le nombre de morceaux de la vue atteint le seuil configuré, compris entre 5 et 200 morceaux.
+
+Le nombre de colonnes est réglé séparément pour les cartes et pour la liste. La liste accepte de une à quatre colonnes sur ordinateur et de une à deux colonnes sur mobile. Chaque ligne de morceau affiche sa couleur, son bouton de lecture principal, les boutons de sorties supplémentaires disponibles, son nom, sa durée et son raccourci clavier. Ces réglages sont conservés localement pour chaque spectacle.
 
 ## Sous-catégories
 

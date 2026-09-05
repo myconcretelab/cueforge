@@ -1,6 +1,6 @@
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import {
-  ArrowUpDown, AudioLines, AudioWaveform, ChevronDown, CircleCheck, Clock3, Columns3, Download, FolderInput, FolderPlus, GripHorizontal, GripVertical, History, LayoutDashboard, LifeBuoy, ListMusic, ListPlus, LoaderCircle, Menu, Move, Pause, Pencil, Play, Plus, Radio,
+  ArrowUpDown, AudioLines, AudioWaveform, CircleCheck, Clock3, Columns3, Download, FolderInput, FolderPlus, GripVertical, History, LayoutDashboard, LifeBuoy, ListMusic, ListPlus, LoaderCircle, Menu, Move, Pause, Pencil, Play, Plus, Radio,
   LockKeyhole, LogIn, RefreshCcw, Repeat2, RotateCcw, Scan, Search, Settings, Settings2, SlidersHorizontal, Square, SquareDashed, Timer, Trash2, Upload, Volume2, VolumeX, Waves, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { io, type Socket } from 'socket.io-client';
@@ -41,10 +41,11 @@ import { mobileTrackAutoScrollDelta, type ClientPoint } from './lib/mobile-track
 import { cachedTrackIds, cacheTrackOffline, deleteCachedTracks, deleteOfflineAudio } from './lib/offline-audio';
 import { movePlaylistItem as repositionPlaylistItem, playlistEntries, playlistQueueItems, playlistRows as groupPlaylistItems, type PlaylistItemPlacement, type PlaylistQueueItem } from './lib/playlist-rows';
 import { categoryIsFavorites, parseStopwatchState, playlistIsVisible, resolveCategoryId } from './lib/session-state';
+import { defaultSoundboardViewSettings, readSoundboardViewSettings, resolveSoundboardView, soundboardViewStorageKey, type SoundboardViewMode, type SoundboardViewSettings } from './lib/soundboard-view';
 import { intersectsSelection, type SelectionRectangle } from './lib/track-selection';
 import { normalizeTrackTags, toggleSearchScopeSelection, trackMatchesEnabledSearch, type TrackSearchScope } from './lib/track-tags';
 import { canDropTrackInSubcategoryDrawer, subcategoryMatchesSearch, trackDropPlacement, trackIdAfterTarget } from './lib/track-subcategories';
-import { compactPlaylistMaximumRows, compactPlaylistMinimumRows, createWorkspaceLayout, dockWorkspaceItem, moveWorkspaceItem, placeWorkspaceItemOnGrid, readSavedWorkspaceLayouts, readWorkspaceLayout, resizeWorkspaceItem, setWorkspaceItemCollapsed, swapWorkspaceItems, workspaceBlockLabels, workspaceDockableBlockIds, workspaceDockItems, workspaceItemIsCollapsed, workspaceItemIsDocked, workspaceLayoutItem, workspaceLayoutsMatch, workspaceLayoutSnapshot, workspaceLayoutStorageKey, workspaceLayoutRows, workspaceSavedLayoutsStorageKey, type SavedWorkspaceLayout, type WorkspaceBlockId } from './lib/workspace-layout';
+import { createWorkspaceLayout, dockWorkspaceItem, moveWorkspaceItem, placeWorkspaceItemOnGrid, readSavedWorkspaceLayouts, readWorkspaceLayout, resizeWorkspaceItem, setWorkspaceItemCollapsed, swapWorkspaceItems, workspaceBlockLabels, workspaceDockableBlockIds, workspaceDockItems, workspaceItemIsCollapsed, workspaceItemIsDocked, workspaceLayoutItem, workspaceLayoutsMatch, workspaceLayoutSnapshot, workspaceLayoutStorageKey, workspaceSavedLayoutsStorageKey, type SavedWorkspaceLayout, type WorkspaceBlockId } from './lib/workspace-layout';
 import type { AccountSummary, Category, KeyAction, MouseAction, Playlist, Project, ProjectColor, ProjectDetail, ProjectKeyboardShortcutKey, ReleaseInfo, RemoteCommand, Track, TrackSubcategory, User } from './types';
 
 const colors = ['#DBEDF7', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#eab308'];
@@ -163,6 +164,7 @@ export default function App() {
   const [stackedWorkspaceLayout, setStackedWorkspaceLayout] = useState(() => window.matchMedia('(max-width: 900px)').matches);
   const [desktopColumns, setDesktopColumns] = useState(() => readNumberRange('sonoriva-track-columns', 6, 2, 12));
   const [mobileColumns, setMobileColumns] = useState(() => readNumberRange('sonoriva-track-columns-mobile', 2, 1, 3));
+  const [soundboardViewSettings, setSoundboardViewSettings] = useState<SoundboardViewSettings>(() => ({ ...defaultSoundboardViewSettings }));
   const [uploadOpen, setUploadOpen] = useState(false);
   const [soundShowImportOpen, setSoundShowImportOpen] = useState(false);
   const [openverseOpen, setOpenverseOpen] = useState(false);
@@ -673,7 +675,10 @@ export default function App() {
     return detail.tracks.filter((track) => track.categoryId === selectedCategoryId);
   }, [detail, selectedCategoryId]);
   const preloadedInCategory = tracksToPreload.filter((track) => offlineTrackIds.has(track.id)).length;
-  const trackColumns = compactLayout ? mobileColumns : desktopColumns;
+  const soundboardView = resolveSoundboardView(soundboardViewSettings.mode, categoryTracks.length, soundboardViewSettings.automaticListThreshold);
+  const trackColumns = soundboardView === 'list'
+    ? compactLayout ? soundboardViewSettings.mobileListColumns : soundboardViewSettings.desktopListColumns
+    : compactLayout ? mobileColumns : desktopColumns;
   const currentCategory = detail?.categories.find((category) => category.id === selectedCategoryId);
   const displayedCategories = useMemo(() => detail?.categories.filter((category) => !categoryIsFavorites(category.name)) ?? [], [detail?.categories]);
   const resolvedMainBridgeOutputId = routedBridgeOutputs.some((output) => output.id === mainBridgeOutputId) ? mainBridgeOutputId : routedBridgeOutputs[0]?.id;
@@ -719,6 +724,11 @@ export default function App() {
     setDesktopColumns(readNumberRange(trackColumnsStorageKey(detailProjectId, columnCategoryId, false), 6, 2, 12));
     setMobileColumns(readNumberRange(trackColumnsStorageKey(detailProjectId, columnCategoryId, true), 2, 1, 3));
   }, [columnCategoryId, detailProjectId]);
+
+  useEffect(() => {
+    if (!detailProjectId) return;
+    setSoundboardViewSettings(readSoundboardViewSettings(localStorage.getItem(soundboardViewStorageKey(detailProjectId))));
+  }, [detailProjectId]);
 
   const consumeNextTrackVolume = useCallback(() => {
     const multiplier = nextTrackVolume / 100;
@@ -1810,6 +1820,10 @@ export default function App() {
 
   function updateTrackColumns(value: number) {
     if (!detail) return;
+    if (soundboardView === 'list') {
+      updateSoundboardViewSettings(compactLayout ? { mobileListColumns: value } : { desktopListColumns: value });
+      return;
+    }
     if (compactLayout) {
       setMobileColumns(value);
       localStorage.setItem(trackColumnsStorageKey(detail.project.id, columnCategoryId, true), String(value));
@@ -1817,6 +1831,15 @@ export default function App() {
       setDesktopColumns(value);
       localStorage.setItem(trackColumnsStorageKey(detail.project.id, columnCategoryId, false), String(value));
     }
+  }
+
+  function updateSoundboardViewSettings(patch: Partial<SoundboardViewSettings>) {
+    if (!detail) return;
+    setSoundboardViewSettings((current) => {
+      const next = { ...current, ...patch };
+      localStorage.setItem(soundboardViewStorageKey(detail.project.id), JSON.stringify(next));
+      return next;
+    });
   }
 
   function resetPlaybackProgress(scope: 'category' | 'project') {
@@ -2179,7 +2202,6 @@ export default function App() {
     return <PlaylistPanel items={playlistItems} tracks={detail?.tracks ?? []} colors={detail?.colors ?? []} options={playlistOptions} currentRowIndex={playlistCurrentIndex} maxGroupSize={detail?.project.maxPlaylistGroupSize ?? 4} playbackActive={playlistPlaybacks.length > 0} playbackPaused={playlistPlaybacks.length > 0 && playlistPlaybacks.every((playback) => playback.paused)} saved={Boolean(loadedPlaylistId)} saving={playlistSaving} optionsOpen={playlistOptionsOpen} onOptionsOpenChange={setPlaylistOptionsOpen} onOptionsChange={(patch) => setPlaylistOptions((current) => ({ ...current, ...patch }))} onDropTrack={addTrackToPlaylist} onMoveItem={movePlaylistItem} onRemoveItem={removePlaylistItem} onPlayRow={playPlaylistRow} onPlayPause={playPausePlaylist} onStop={stopPlaylistPlayback} onNext={skipPlaylistRow} onSave={() => saveCurrentPlaylist().catch(() => undefined)} onDelete={() => deleteCurrentPlaylist().catch(() => undefined)} onClear={clearPlaylist} />;
   }
 
-  const compactPlaylistLayout = workspaceLayout.compactPlaylistEnabled;
   const storedDockedBlockIds = workspaceDockItems(workspaceLayout);
   const dockedBlockIds = stackedWorkspaceLayout ? ['actions'] as WorkspaceBlockId[] : storedDockedBlockIds;
   const actionsDocked = stackedWorkspaceLayout || workspaceItemIsDocked(workspaceLayout, 'actions');
@@ -2187,40 +2209,6 @@ export default function App() {
   const playlistDocked = !stackedWorkspaceLayout && workspaceItemIsDocked(workspaceLayout, 'playlist');
   const actionsCollapsed = workspaceItemIsCollapsed(workspaceLayout, 'actions');
   const playlistCollapsed = workspaceItemIsCollapsed(workspaceLayout, 'playlist');
-  const compactPlaylistRows = Math.min(compactPlaylistMaximumRows, Math.max(compactPlaylistMinimumRows, workspaceLayout.compactPlaylistRows));
-  const storedPlayersLayoutItem = workspaceLayoutItem(workspaceLayout, 'players');
-  const storedPlaylistLayoutItem = workspaceLayoutItem(workspaceLayout, 'playlist');
-  const drawerGeometryActive = compactPlaylistLayout && !playersDocked && !layoutEditing;
-  const displayedPlayersLayoutItem = drawerGeometryActive
-    ? { ...storedPlayersLayoutItem, y: 0, h: workspaceLayout.compactPlaylistOpen ? workspaceLayoutRows - compactPlaylistRows : workspaceLayoutRows }
-    : storedPlayersLayoutItem;
-  const displayedPlaylistLayoutItem = drawerGeometryActive
-    ? { ...storedPlaylistLayoutItem, y: workspaceLayoutRows - compactPlaylistRows, h: compactPlaylistRows }
-    : storedPlaylistLayoutItem;
-
-  function setCompactPlaylistRows(rows: number) {
-    const compactRows = Math.min(compactPlaylistMaximumRows, Math.max(compactPlaylistMinimumRows, Math.round(rows)));
-    setWorkspaceLayout((current) => current.compactPlaylistRows === compactRows ? current : { ...current, compactPlaylistRows: compactRows });
-  }
-
-  function beginCompactPlaylistResize(event: ReactPointerEvent<HTMLButtonElement>) {
-    const receptacle = event.currentTarget.closest<HTMLElement>('.workspace-layout-grid, .sidebar-layout-dock');
-    if (!receptacle) return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    const bounds = receptacle.getBoundingClientRect();
-    const rowGap = Number.parseFloat(window.getComputedStyle(receptacle).rowGap) || 0;
-    const rowUnit = (bounds.height - rowGap * (workspaceLayoutRows - 1)) / workspaceLayoutRows + rowGap;
-    const resize = (moveEvent: PointerEvent) => setCompactPlaylistRows((bounds.bottom - moveEvent.clientY + rowGap) / rowUnit);
-    const finish = () => {
-      window.removeEventListener('pointermove', resize);
-      window.removeEventListener('pointerup', finish);
-      window.removeEventListener('pointercancel', finish);
-    };
-    window.addEventListener('pointermove', resize);
-    window.addEventListener('pointerup', finish);
-    window.addEventListener('pointercancel', finish);
-  }
 
   function swapWorkspacePlacement(sourceId: WorkspaceBlockId, targetId: WorkspaceBlockId) {
     setWorkspaceLayout((current) => {
@@ -2276,30 +2264,14 @@ export default function App() {
     addTrackToPlaylist(trackId);
   }
 
-  function renderCompactPlaylistToggle() {
-    if (remote || !compactPlaylistLayout || layoutEditing || !playlistCollapsed) return null;
-    return <button type="button" className="compact-playlist-toggle" aria-expanded="false" onClick={() => toggleWorkspaceModule('playlist')}
-      onDragOver={expandCollapsedPlaylistOnDrag}
-      onDrop={dropTrackOnCollapsedPlaylist}>
-      <span><ListMusic size={14} /><strong>Playlist</strong><em>{playlistItems.length}</em></span><ChevronDown size={13} />
-    </button>;
-  }
-
-  function renderCompactPlaylistResizer() {
-    if (remote || !compactPlaylistLayout || !workspaceLayout.compactPlaylistOpen || layoutEditing) return null;
-    return <button type="button" className="compact-playlist-resizer" role="separator" aria-label="Régler la hauteur du tiroir playlist" aria-orientation="horizontal" aria-valuemin={compactPlaylistMinimumRows} aria-valuemax={compactPlaylistMaximumRows} aria-valuenow={compactPlaylistRows} title="Glisser pour régler la hauteur · Flèches haut et bas" onPointerDown={beginCompactPlaylistResize}
-      onKeyDown={(event) => { if (event.key === 'ArrowUp') { event.preventDefault(); setCompactPlaylistRows(compactPlaylistRows + 1); } else if (event.key === 'ArrowDown') { event.preventDefault(); setCompactPlaylistRows(compactPlaylistRows - 1); } }}><GripHorizontal size={18} /></button>;
-  }
-
   function renderDockedBlock(id: WorkspaceBlockId) {
-    const className = id === 'playlist' && compactPlaylistLayout && workspaceLayout.compactPlaylistOpen ? 'is-compact-drawer-open' : '';
-    return <WorkspaceLayoutBlock key={id} item={workspaceLayoutItem(workspaceLayout, id)} columns={workspaceLayout.columns} label={workspaceBlockLabels[id]} editing={layoutEditing && !remote} docked className={className}
+    return <WorkspaceLayoutBlock key={id} item={workspaceLayoutItem(workspaceLayout, id)} columns={workspaceLayout.columns} label={workspaceBlockLabels[id]} editing={layoutEditing && !remote} docked
       collapsible={id === 'actions' || id === 'playlist'} collapsed={id === 'actions' ? actionsCollapsed : id === 'playlist' ? playlistCollapsed : false}
       moduleIcon={id === 'actions' ? <Radio size={13} /> : id === 'playlist' ? <ListMusic size={13} /> : undefined} moduleBadge={id === 'playlist' ? playlistItems.length : undefined}
       onToggleCollapsed={id === 'actions' || id === 'playlist' ? () => toggleWorkspaceModule(id) : undefined}
       onCollapsedDragOver={id === 'playlist' ? expandCollapsedPlaylistOnDrag : undefined} onCollapsedDrop={id === 'playlist' ? dropTrackOnCollapsedPlaylist : undefined}
       onSwap={swapWorkspacePlacement} onResize={(blockId, width, height) => setWorkspaceLayout((current) => resizeWorkspaceItem(current, blockId, width, height))}>
-      {id === 'actions' ? renderActionsContent() : id === 'players' ? <>{renderPlayersContent()}{renderCompactPlaylistToggle()}</> : id === 'playlist' ? <>{renderCompactPlaylistResizer()}{renderPlaylistContent()}</> : null}
+      {id === 'actions' ? renderActionsContent() : id === 'players' ? renderPlayersContent() : id === 'playlist' ? renderPlaylistContent() : null}
     </WorkspaceLayoutBlock>;
   }
 
@@ -2308,7 +2280,7 @@ export default function App() {
   return <div className={`app-shell ${remote ? 'remote-mode' : ''}`}>
     <aside className={sidebarOpen ? 'sidebar open' : 'sidebar'}>
       <header className="brand"><img className="brand-mark small" src="/sonoriva-logo.svg" alt="" /><strong>SonoRiva</strong><button className="icon-button sidebar-close" onClick={() => setSidebarOpen(false)}><X /></button></header>
-      <div className={`sidebar-layout-dock ${layoutEditing ? 'is-editing' : ''} ${compactPlaylistLayout ? 'has-compact-playlist' : ''} ${compactPlaylistLayout && workspaceLayout.compactPlaylistOpen ? 'is-compact-playlist-open' : ''}`} style={{ '--compact-playlist-rows': compactPlaylistRows } as React.CSSProperties}
+      <div className={`sidebar-layout-dock ${layoutEditing ? 'is-editing' : ''}`}
         onDragOver={(event) => { if (!layoutEditing || !event.dataTransfer.types.includes(workspaceBlockMime)) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; }}
         onDrop={(event) => { if (!layoutEditing || (event.target instanceof Element && event.target.closest('[data-workspace-block]'))) return; const blockId = event.dataTransfer.getData(workspaceBlockMime) as WorkspaceBlockId; if (!workspaceDockableBlockIds.includes(blockId)) return; event.preventDefault(); setWorkspaceLayout((current) => dockWorkspaceItem(current, blockId)); }}>
         {dockedBlockIds.map(renderDockedBlock)}
@@ -2352,7 +2324,7 @@ export default function App() {
         onDeleteSaved={deleteNamedWorkspaceLayout}
         onReset={() => setWorkspaceLayout(createWorkspaceLayout('classic'))}
         onClose={() => setLayoutEditing(false)} />}
-      <div className={`workspace-layout-grid ${layoutEditing ? 'is-editing' : ''} ${compactPlaylistLayout ? 'has-compact-playlist' : ''} ${workspaceLayout.compactPlaylistOpen ? 'is-compact-playlist-open' : ''}`} style={{ '--workspace-columns': workspaceLayout.columns } as React.CSSProperties}
+      <div className={`workspace-layout-grid ${layoutEditing ? 'is-editing' : ''}`} style={{ '--workspace-columns': workspaceLayout.columns } as React.CSSProperties}
         onDragOver={(event) => { if (!layoutEditing || !event.dataTransfer.types.includes(workspaceBlockMime)) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; }}
         onDrop={(event) => {
           if (!layoutEditing || (event.target instanceof Element && event.target.closest('[data-workspace-block]'))) return;
@@ -2373,17 +2345,17 @@ export default function App() {
           onSwap={swapWorkspacePlacement}
           onResize={(id, width, height) => setWorkspaceLayout((current) => resizeWorkspaceItem(current, id, width, height))}>{renderActionsContent()}</WorkspaceLayoutBlock>}
 
-        {!playersDocked && <WorkspaceLayoutBlock item={displayedPlayersLayoutItem} columns={workspaceLayout.columns} label={workspaceBlockLabels.players} editing={layoutEditing && !remote}
+        {!playersDocked && <WorkspaceLayoutBlock item={workspaceLayoutItem(workspaceLayout, 'players')} columns={workspaceLayout.columns} label={workspaceBlockLabels.players} editing={layoutEditing && !remote}
           onSwap={swapWorkspacePlacement}
           onResize={(id, width, height) => setWorkspaceLayout((current) => resizeWorkspaceItem(current, id, width, height))}>
-          {renderPlayersContent()}{renderCompactPlaylistToggle()}
+          {renderPlayersContent()}
         </WorkspaceLayoutBlock>}
 
-        {!playlistDocked && <WorkspaceLayoutBlock item={displayedPlaylistLayoutItem} columns={workspaceLayout.columns} label={workspaceBlockLabels.playlist} editing={layoutEditing && !remote} className={drawerGeometryActive && workspaceLayout.compactPlaylistOpen ? 'is-compact-drawer-open' : ''}
+        {!playlistDocked && <WorkspaceLayoutBlock item={workspaceLayoutItem(workspaceLayout, 'playlist')} columns={workspaceLayout.columns} label={workspaceBlockLabels.playlist} editing={layoutEditing && !remote}
           collapsible collapsed={playlistCollapsed} moduleIcon={<ListMusic size={13} />} moduleBadge={playlistItems.length} onToggleCollapsed={() => toggleWorkspaceModule('playlist')} onCollapsedDragOver={expandCollapsedPlaylistOnDrag} onCollapsedDrop={dropTrackOnCollapsedPlaylist}
           onSwap={swapWorkspacePlacement}
           onResize={(id, width, height) => setWorkspaceLayout((current) => resizeWorkspaceItem(current, id, width, height))}>
-          {renderCompactPlaylistResizer()}{renderPlaylistContent()}
+          {renderPlaylistContent()}
         </WorkspaceLayoutBlock>}
 
         <WorkspaceLayoutBlock item={workspaceLayoutItem(workspaceLayout, 'categories')} columns={workspaceLayout.columns} label={workspaceBlockLabels.categories} editing={layoutEditing && !remote}
@@ -2435,8 +2407,13 @@ export default function App() {
           {!remote && <button className={`dashboard-button ${reorderMode ? 'active' : ''}`} onClick={() => { setReorderMode((current) => !current); setSelectionMode(false); setSelectedTrackIds(new Set()); setCategoryManageMode(false); setDraggedTrackId(undefined); setDraggedTrackSubcategoryId(undefined); setDropTrackId(undefined); setDropTrackPlacement(undefined); setDropSubcategoryId(undefined); setDropSubcategoryPositionId(undefined); setDropCategoryId(undefined); setDraggedPlaylistId(undefined); setDropPlaylistId(undefined); setDropPlaylistTrackId(undefined); setDropPlaylistAfter(false); }} disabled={reordering}
             aria-label={reordering ? 'Enregistrement de la réorganisation' : reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'} title={reorderMode ? 'Terminer la réorganisation' : 'Réorganiser les morceaux'}><span className="reorder-mode-icon" aria-hidden="true"><SquareDashed size={20} /><Move size={12} /></span></button>}
           <div className="dashboard-control">
-            <button className={`dashboard-button ${columnsOpen ? 'active' : ''}`} onClick={() => { setColumnsOpen((current) => !current); setHistoryOpen(false); }} aria-label="Régler le nombre de colonnes" title="Nombre de colonnes"><Columns3 size={18} /></button>
-            {columnsOpen && <div className="dashboard-popover columns-popover"><label><span>Colonnes</span><strong>{trackColumns}</strong><input type="range" min={compactLayout ? 1 : 2} max={compactLayout ? 3 : 12} value={trackColumns} onChange={(event) => updateTrackColumns(Number(event.target.value))} /></label></div>}
+            <button className={`dashboard-button ${columnsOpen ? 'active' : ''}`} onClick={() => { setColumnsOpen((current) => !current); setHistoryOpen(false); }} aria-label="Régler l’affichage du soundboard" title="Affichage du soundboard"><Columns3 size={18} /></button>
+            {columnsOpen && <div className="dashboard-popover columns-popover">
+              <label><span>Affichage</span><select value={soundboardViewSettings.mode} onChange={(event) => updateSoundboardViewSettings({ mode: event.target.value as SoundboardViewMode })}><option value="cards">Cartes</option><option value="list">Liste</option><option value="auto">Automatique</option></select></label>
+              {soundboardViewSettings.mode === 'auto' && <label><span>Liste à partir de</span><strong>{soundboardViewSettings.automaticListThreshold} morceaux</strong><input type="range" min="5" max="200" value={soundboardViewSettings.automaticListThreshold} onChange={(event) => updateSoundboardViewSettings({ automaticListThreshold: Number(event.target.value) })} /></label>}
+              <label><span>{soundboardView === 'list' ? 'Colonnes de liste' : 'Colonnes de cartes'}</span><strong>{trackColumns}</strong><input type="range" min={soundboardView === 'list' ? 1 : compactLayout ? 1 : 2} max={soundboardView === 'list' ? compactLayout ? 2 : 4 : compactLayout ? 3 : 12} value={trackColumns} onChange={(event) => updateTrackColumns(Number(event.target.value))} /></label>
+              {soundboardViewSettings.mode === 'auto' && <small>Affichage actuel : {soundboardView === 'list' ? 'liste' : 'cartes'}</small>}
+            </div>}
           </div>
           {!remote && <div className="dashboard-control">
             <button className={`dashboard-button ${historyOpen ? 'active' : ''}`} onClick={() => { setHistoryOpen((current) => !current); setColumnsOpen(false); }} aria-label="Réinitialiser les progressions" title="Réinitialiser les progressions"><History size={18} /></button>
@@ -2460,7 +2437,7 @@ export default function App() {
 
       <section className="soundboard">
         {remote && <div className="remote-banner"><Radio size={18} /><span>Mode télécommande — les sons seront joués sur la régie connectée.</span></div>}
-        {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleBoardItems.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun résultat trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou activez un autre filtre.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className={`track-grid ${selectionMode ? 'selection-mode' : ''} ${draggingSelectedTracks ? 'dragging-selection' : ''}`} style={{ '--track-columns': trackColumns } as React.CSSProperties} onPointerDown={beginMarqueeSelection} onPointerMove={moveMarqueeSelection} onPointerUp={endMarqueeSelection} onPointerCancel={endMarqueeSelection}>
+        {!detail ? <div className="empty-state"><div className="skeleton-grid" /></div> : visibleBoardItems.length === 0 ? <div className="empty-state"><span className="empty-icon"><AudioLines /></span><h2>{search ? 'Aucun résultat trouvé' : 'Votre scène attend son premier son'}</h2><p>{search ? 'Essayez une autre recherche ou activez un autre filtre.' : 'Importez une musique ou un bruitage pour commencer votre soundboard.'}</p>{!remote && !search && <button className="button primary" onClick={() => setUploadOpen(true)}><Upload size={17} />Importer un son</button>}</div> : <div className={`track-grid ${soundboardView === 'list' ? 'is-list' : ''} ${selectionMode ? 'selection-mode' : ''} ${draggingSelectedTracks ? 'dragging-selection' : ''}`} style={{ '--track-columns': trackColumns } as React.CSSProperties} onPointerDown={beginMarqueeSelection} onPointerMove={moveMarqueeSelection} onPointerUp={endMarqueeSelection} onPointerCancel={endMarqueeSelection}>
           {visibleBoardItems.map((boardItem, boardIndex) => {
             let tile: React.ReactNode;
             if (boardItem.kind === 'playlist') {
@@ -2499,7 +2476,7 @@ export default function App() {
               onDrop={(event) => { const overTrack = event.target instanceof Element && Boolean(event.target.closest('[data-track-id]')); if (!canDropTrackInSubcategoryDrawer(reorderMode || draggingSelectedTracks, draggedTrackId, overTrack) || !draggedTrackId) return; event.preventDefault(); event.stopPropagation(); if (draggingSelectedTracks) moveSelectedTracks(openSubcategory.categoryId, openSubcategory.id).catch(() => undefined); else moveTrackIntoSubcategory(draggedTrackId, openSubcategory.id).catch(() => undefined); }}>
               <span className="subcategory-drawer-join" aria-hidden="true" />
               <header><span className="subcategory-drawer-actions"><button type="button" className="icon-button" onClick={() => setSubcategoryDialog(openSubcategory)} aria-label={`Modifier ${openSubcategory.name}`} title="Modifier"><Pencil size={15} /></button><button type="button" className="icon-button danger" onClick={() => { if (window.confirm(`Supprimer la sous-catégorie « ${openSubcategory.name} » ? Les morceaux resteront dans sa catégorie parente.`)) deleteSubcategory(openSubcategory).catch((cause) => setError(cause instanceof Error ? cause.message : 'Suppression impossible.')); }} aria-label={`Supprimer ${openSubcategory.name}`} title="Supprimer"><Trash2 size={15} /></button><button type="button" className="icon-button" onClick={() => { setEditingSubcategoryName(false); setOpenSubcategoryId(undefined); }} aria-label="Fermer la sous-catégorie"><X size={16} /></button></span><span className="subcategory-drawer-heading"><em>{openSubcategoryTracks.length}</em>{editingSubcategoryName ? <input className="subcategory-inline-name" value={subcategoryNameDraft} maxLength={80} autoFocus aria-label="Nom de la sous-catégorie" onChange={(event) => setSubcategoryNameDraft(event.target.value)} onBlur={() => renameSubcategory(openSubcategory, subcategoryNameDraft).catch(() => undefined)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } else if (event.key === 'Escape') { event.preventDefault(); setSubcategoryNameDraft(openSubcategory.name); setEditingSubcategoryName(false); } }} /> : <button type="button" className="subcategory-inline-title" onClick={() => { setSubcategoryNameDraft(openSubcategory.name); setEditingSubcategoryName(true); }} title="Cliquer pour renommer"><strong>{openSubcategory.name}</strong></button>}</span></header>
-              {openSubcategoryTracks.length > 0 ? <div className="subcategory-drawer-grid">{openSubcategoryTracks.map((track) => renderBoardTrack(track))}</div> : <div className="subcategory-drawer-empty"><FolderPlus size={22} /><span>Glissez des morceaux dans le tiroir pour les ajouter.</span></div>}
+              {openSubcategoryTracks.length > 0 ? <div className={`subcategory-drawer-grid ${soundboardView === 'list' ? 'is-list' : ''}`}>{openSubcategoryTracks.map((track) => renderBoardTrack(track))}</div> : <div className="subcategory-drawer-empty"><FolderPlus size={22} /><span>Glissez des morceaux dans le tiroir pour les ajouter.</span></div>}
             </section>}</Fragment>;
           })}
         </div>}
