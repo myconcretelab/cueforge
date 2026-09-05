@@ -83,6 +83,6 @@ describe('réorganisation tactile des morceaux', () => {
     expect(app).toContain("target.kind === 'subcategory'");
     expect(app).toContain("target.kind === 'category'");
     expect(app).toContain('mobile-track-drag-preview');
-    expect(styles).toContain('.track-pad.mobile-drag-enabled { touch-action: none;');
+    expect(styles).toContain('.track-pad.mobile-drag-enabled { touch-action: none; -webkit-user-drag: none; }');
   });
 });
